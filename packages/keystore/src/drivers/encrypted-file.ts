@@ -2,6 +2,7 @@ import { p256 } from '@noble/curves/nist.js';
 import { argon2id } from '@noble/hashes/argon2.js';
 import { gcm } from '@noble/ciphers/aes.js';
 import { randomBytes } from '@noble/ciphers/utils.js';
+import { deriveKey } from '@authmesh/core';
 import type { KeyStore } from '../interface.js';
 import { readFile, writeFile, mkdir, unlink, rename } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
@@ -22,7 +23,16 @@ interface EncryptedKeyFile {
   publicKey: string; // base64 (compressed P-256, unencrypted)
 }
 
+const DEVICE_ID_RE = /^[a-zA-Z0-9_-]+$/;
+
+function validateDeviceId(deviceId: string): void {
+  if (!DEVICE_ID_RE.test(deviceId)) {
+    throw new Error(`Invalid device ID: must match ${DEVICE_ID_RE}`);
+  }
+}
+
 function getKeyPath(basePath: string, deviceId: string): string {
+  validateDeviceId(deviceId);
   return join(basePath, `${deviceId}.key.json`);
 }
 
@@ -95,6 +105,15 @@ export class EncryptedFileKeyStore implements KeyStore {
     return new Uint8Array(Buffer.from(keyFile.publicKey, 'base64'));
   }
 
+  async getHmacKeyMaterial(deviceId: string): Promise<Uint8Array> {
+    const privateKey = await this.loadPrivateKey(deviceId);
+    try {
+      return deriveKey(privateKey, 'amesh-hmac-material-v1', deviceId, 32);
+    } finally {
+      privateKey.fill(0);
+    }
+  }
+
   async delete(deviceId: string): Promise<void> {
     const path = getKeyPath(this.basePath, deviceId);
     await unlink(path);
@@ -126,8 +145,8 @@ export class EncryptedFileKeyStore implements KeyStore {
     const path = getKeyPath(this.basePath, deviceId);
     const tmpPath = `${path}.tmp`;
 
-    await mkdir(dirname(path), { recursive: true });
-    await writeFile(tmpPath, JSON.stringify(keyFile, null, 2), 'utf-8');
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    await writeFile(tmpPath, JSON.stringify(keyFile, null, 2), { encoding: 'utf-8', mode: 0o600 });
     await rename(tmpPath, path);
   }
 }

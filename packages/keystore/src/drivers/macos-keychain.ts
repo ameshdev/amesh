@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { randomBytes } from '@noble/ciphers/utils.js';
 import { p256 } from '@noble/curves/nist.js';
 import type { KeyStore } from '../interface.js';
 
@@ -92,6 +94,11 @@ function derToRaw(der: Uint8Array): Uint8Array {
  */
 export class MacOSKeychainKeyStore implements KeyStore {
   private _backendName: string = 'keychain';
+  private readonly keysDir: string;
+
+  constructor(keysDir: string) {
+    this.keysDir = keysDir;
+  }
 
   get backendName(): string {
     return this._backendName;
@@ -121,6 +128,21 @@ export class MacOSKeychainKeyStore implements KeyStore {
     const result = await callHelper({ action: 'get-public-key', deviceId });
     const uncompressed = new Uint8Array(Buffer.from(result.publicKey!, 'base64'));
     return compressPublicKey(uncompressed);
+  }
+
+  async getHmacKeyMaterial(deviceId: string): Promise<Uint8Array> {
+    // Hardware keystores can't export private key material.
+    // Use a stored random secret, generated once per device.
+    const secretPath = join(this.keysDir, `${deviceId}.hmac`);
+    try {
+      return new Uint8Array(await readFile(secretPath));
+    } catch {
+      // First call or migration: generate and persist HMAC secret
+      await mkdir(this.keysDir, { recursive: true, mode: 0o700 });
+      const secret = randomBytes(32);
+      await writeFile(secretPath, secret, { mode: 0o600 });
+      return secret;
+    }
   }
 
   async delete(deviceId: string): Promise<void> {

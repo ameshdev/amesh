@@ -28,8 +28,8 @@ export async function loadIdentity(path: string): Promise<Identity> {
 
 export async function saveIdentity(path: string, identity: Identity): Promise<void> {
   const tmpPath = `${path}.tmp`;
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(tmpPath, JSON.stringify(identity, null, 2), 'utf-8');
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  await writeFile(tmpPath, JSON.stringify(identity, null, 2), { encoding: 'utf-8', mode: 0o600 });
   await rename(tmpPath, path);
 }
 

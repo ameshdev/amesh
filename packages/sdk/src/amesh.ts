@@ -100,8 +100,8 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
       join(getAmeshDir(), 'keys'),
       process.env.AUTH_MESH_PASSPHRASE,
     );
-    const publicKey = await keyStore.getPublicKey(identity.deviceId);
-    allowList = new AllowList(join(getAmeshDir(), 'allow_list.json'), publicKey, identity.deviceId);
+    const hmacKey = await keyStore.getHmacKeyMaterial(identity.deviceId);
+    allowList = new AllowList(join(getAmeshDir(), 'allow_list.json'), hmacKey, identity.deviceId);
     return allowList;
   }
 
@@ -146,8 +146,9 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
       next();
     } catch (err) {
       if (err instanceof Error && err.message.includes('integrity check failed')) {
+        console.error('[amesh] CRITICAL: allow list integrity check failed — possible tampering');
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'allow_list_integrity_failure' }));
+        res.end(JSON.stringify({ error: 'internal_error' }));
         return;
       }
       next(err as Error);

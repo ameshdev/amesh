@@ -46,7 +46,7 @@ export async function generateBootstrapToken(opts: {
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const jti = `bt_${Buffer.from(randomBytes(4)).toString('hex')}`;
+  const jti = `bt_${Buffer.from(randomBytes(16)).toString('hex')}`;
 
   const header: BootstrapTokenHeader = { typ: 'amesh-bootstrap', ver: '1', alg: 'ES256' };
   const payload: BootstrapTokenPayload = {

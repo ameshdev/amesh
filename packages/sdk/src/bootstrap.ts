@@ -160,8 +160,8 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
           }, null, 2));
 
           // Write allow list with controller
-          const newPubKey = await keyStore.getPublicKey(deviceId);
-          const allowList = new AllowList(join(ameshDir, 'allow_list.json'), newPubKey, deviceId);
+          const hmacKey = await keyStore.getHmacKeyMaterial(deviceId);
+          const allowList = new AllowList(join(ameshDir, 'allow_list.json'), hmacKey, deviceId);
           await allowList.addDevice({
             deviceId: payload.iss,
             publicKey: Buffer.from(controllerPubKey).toString('base64'),
