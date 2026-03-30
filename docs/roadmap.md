@@ -39,7 +39,6 @@
 - [x] Fixed init to store keys under real device ID
 - [x] Shared loadContext() helper for all commands
 - [x] Relay start script (`pnpm start` in relay package)
-- [x] Landing page redesign — clear value proposition, "what we replace" section
 - [x] Value proposition doc (`docs/why-amesh.md`)
 
 ## Hardware Keystore Drivers [DONE]
@@ -74,14 +73,11 @@
 - [x] Published 5 packages to npm (`@authmesh/core`, `keystore`, `sdk`, `cli`, `relay`)
 - [x] Landing page deployed to Firebase Hosting (`authmesh.dev`)
 - [x] Relay deployed to Cloud Run (`relay.authmesh.dev`)
-- [x] Firebase auto-deploy on push to main
-- [x] SEO: sitemap, robots.txt, OG tags, Twitter cards, canonical URLs, per-page titles
 - [x] Integration guide with 6 recipes + remote pairing docs
 - [x] Self-hosting guide (Docker, Cloud Run, Fly.io, K8s, plain Node.js)
 - [x] Dockerfile.relay + docker-compose.yml
 - [x] CLI default relay URL: `wss://relay.authmesh.dev/ws`
 - [x] Branch protection on main (PRs required)
-- [x] Google Search Console submitted
 
 ## Security Hardening (PR #1) [DONE]
 - [x] AllowList HMAC keyed from private key material (was using public key)
@@ -110,8 +106,3 @@
 - [ ] Fastify verification plugin (in addition to Express middleware)
 - [ ] Noise Protocol Framework migration (ADR-008)
 - [ ] Automatic revocation propagation
-- [ ] OG image for social sharing (1200x630px)
-- [ ] Cloud Run auto-deploy GitHub Action
-- [ ] Comparison pages on site (vs API keys, vs mTLS, vs Vault)
-- [ ] Hacker News / Reddit / Dev.to launch posts
-- [ ] Analytics (Plausible)

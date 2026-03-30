@@ -76,8 +76,9 @@ pnpm lint           # turbo lint (eslint per package)
 **At session start:** Read `docs/roadmap.md` to find current phase and next task.
 
 **At session end (when user says "save progress", "wrap up", or "done for now"):**
-1. Update `docs/roadmap.md` — check off completed items, add any new items discovered
-2. Update memory files — save anything learned that future sessions need (gotchas, decisions, user preferences)
-3. If a new ADR was made, append to `docs/architecture-decisions.md`
+1. Update `docs/roadmap.md` — check off completed items, add new **technical** items only
+2. Marketing, ops, and DevOps tasks go in `.claude` memory (`project_internal_tasks.md`), not the public roadmap
+3. Update memory files — save anything learned that future sessions need (gotchas, decisions, user preferences)
+4. If a new ADR was made, append to `docs/architecture-decisions.md`
 
 **This file must stay under 4k tokens.** If it grows past ~500 words, move details to `docs/` and keep this file as pointers. Never inline full specs, API docs, or examples here — reference the file path instead.
