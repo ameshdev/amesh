@@ -1,0 +1,42 @@
+FROM node:20-slim AS build
+
+WORKDIR /app
+
+# Copy workspace config
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json turbo.json ./
+
+# Copy only the packages needed for the relay
+COPY packages/core/package.json packages/core/
+COPY packages/relay/package.json packages/relay/
+
+# Install dependencies
+RUN corepack enable pnpm && pnpm install --frozen-lockfile
+
+# Copy source
+COPY packages/core/src packages/core/src
+COPY packages/core/tsconfig.json packages/core/
+COPY packages/relay/src packages/relay/src
+COPY packages/relay/tsconfig.json packages/relay/
+
+# Build
+RUN pnpm build --filter=@authmesh/relay
+
+# --- Production stage ---
+FROM node:20-slim
+
+WORKDIR /app
+
+COPY --from=build /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./
+COPY --from=build /app/packages/core/package.json packages/core/
+COPY --from=build /app/packages/core/dist packages/core/dist
+COPY --from=build /app/packages/relay/package.json packages/relay/
+COPY --from=build /app/packages/relay/dist packages/relay/dist
+
+RUN corepack enable pnpm && pnpm install --frozen-lockfile --prod
+
+EXPOSE 3001
+
+ENV PORT=3001
+ENV HOST=0.0.0.0
+
+CMD ["node", "packages/relay/dist/start.js"]

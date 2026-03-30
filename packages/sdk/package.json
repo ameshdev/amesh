@@ -1,0 +1,72 @@
+{
+  "name": "@authmesh/sdk",
+  "version": "0.1.0",
+  "description": "Signing fetch client and verification middleware for amesh — replace API keys with device identity",
+  "type": "module",
+  "license": "MIT",
+  "author": "Yair Etzion",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ameshdev/amesh.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://github.com/ameshdev/amesh",
+  "keywords": [
+    "authentication",
+    "m2m",
+    "api-key",
+    "device-identity",
+    "ecdsa",
+    "secure-enclave",
+    "tpm",
+    "zero-trust",
+    "middleware",
+    "express"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./middleware": {
+      "import": "./dist/middleware.js",
+      "types": "./dist/middleware.d.ts"
+    },
+    "./redis": {
+      "import": "./dist/redis-nonce-store.js",
+      "types": "./dist/redis-nonce-store.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@authmesh/core": "workspace:*",
+    "@authmesh/keystore": "workspace:*",
+    "@noble/ciphers": "2.1.1",
+    "@noble/hashes": "2.0.1",
+    "ioredis": "5.6.1",
+    "ws": "^8.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@noble/curves": "2.0.1",
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

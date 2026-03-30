@@ -1,0 +1,57 @@
+{
+  "name": "@authmesh/core",
+  "version": "0.1.0",
+  "description": "P-256 ECDSA crypto primitives for hardware-bound M2M authentication",
+  "type": "module",
+  "license": "MIT",
+  "author": "Yair Etzion",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ameshdev/amesh.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/ameshdev/amesh",
+  "keywords": [
+    "authentication",
+    "m2m",
+    "ecdsa",
+    "p256",
+    "cryptography",
+    "signing",
+    "verification",
+    "zero-trust"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@noble/curves": "2.0.1",
+    "@noble/hashes": "2.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "eslint": "^9.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "@authmesh/cli",
+  "version": "0.1.0",
+  "description": "CLI for amesh device identity management — init, pair, list, revoke",
+  "type": "module",
+  "license": "MIT",
+  "author": "Yair Etzion",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ameshdev/amesh.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/ameshdev/amesh",
+  "keywords": [
+    "authentication",
+    "cli",
+    "device-identity",
+    "secure-enclave",
+    "tpm",
+    "pairing"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "amesh": "./dist/index.js"
+  },
+  "oclif": {
+    "commands": "./dist/commands",
+    "bin": "amesh"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@authmesh/core": "workspace:*",
+    "@authmesh/keystore": "workspace:*",
+    "@noble/ciphers": "2.1.1",
+    "@noble/hashes": "2.0.1",
+    "@oclif/core": "^4.0.0",
+    "ws": "^8.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

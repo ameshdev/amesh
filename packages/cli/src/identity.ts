@@ -1,0 +1,43 @@
+import { sha256 } from '@noble/hashes/sha2.js';
+import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
+import { dirname } from 'node:path';
+
+export interface Identity {
+  version: '2.0.0';
+  deviceId: string;
+  publicKey: string; // base64
+  friendlyName: string;
+  createdAt: string; // ISO 8601
+  storageBackend: string;
+}
+
+/**
+ * Generate a device ID from a compressed P-256 public key.
+ * deviceId = "am_" + Base64URL(SHA-256(compressedPublicKey)).slice(0, 16)
+ */
+export function generateDeviceId(publicKey: Uint8Array): string {
+  const hash = sha256(publicKey);
+  const b64url = Buffer.from(hash).toString('base64url');
+  return `am_${b64url.slice(0, 16)}`;
+}
+
+export async function loadIdentity(path: string): Promise<Identity> {
+  const content = await readFile(path, 'utf-8');
+  return JSON.parse(content) as Identity;
+}
+
+export async function saveIdentity(path: string, identity: Identity): Promise<void> {
+  const tmpPath = `${path}.tmp`;
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(tmpPath, JSON.stringify(identity, null, 2), 'utf-8');
+  await rename(tmpPath, path);
+}
+
+export async function identityExists(path: string): Promise<boolean> {
+  try {
+    await readFile(path);
+    return true;
+  } catch {
+    return false;
+  }
+}

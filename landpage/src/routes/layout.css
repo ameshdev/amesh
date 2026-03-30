@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  --color-terminal: #0C0C0E;
+  --color-accent: #34D399;
+  --color-accent-bg: #064E3B;
+  --color-danger: #F87171;
+  --color-danger-bg: #2A1215;
+}

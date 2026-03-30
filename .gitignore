@@ -1,0 +1,30 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code memory (machine-specific)
+.claude/
+
+# Firebase
+.firebase/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Native build artifacts
+*.node
+target/
