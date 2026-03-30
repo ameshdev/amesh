@@ -49,6 +49,12 @@
 	<meta property="og:title" content="amesh — Hardware-Bound M2M Authentication. No API Keys." />
 	<meta property="og:description" content="Replace static API keys with cryptographic device identity. Private keys live in your Secure Enclave or TPM." />
 	<meta property="og:url" content="https://authmesh.dev/" />
+	<meta property="og:image" content="https://authmesh.dev/og-image.png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:image" content="https://authmesh.dev/og-image.png" />
 </svelte:head>
 
 <main class="mx-auto max-w-2xl px-6">
