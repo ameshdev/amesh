@@ -138,7 +138,7 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
       const body = typeof req.body === 'string' ? req.body : Buffer.isBuffer(req.body) ? req.body.toString() : '';
       const canonical = buildCanonicalString(req.method ?? 'GET', url.pathname + url.search, parsed.ts, parsed.nonce, body);
       const signature = new Uint8Array(Buffer.from(parsed.sig, 'base64url'));
-      const publicKey = new Uint8Array(Buffer.from(parsed.id, 'base64'));
+      const publicKey = new Uint8Array(Buffer.from(parsed.id, 'base64url'));
 
       if (!verifyMessage(signature, new TextEncoder().encode(canonical), publicKey)) { sendUnauthorized(res); return; }
 

@@ -10,6 +10,7 @@ export interface BootstrapTokenHeader {
 
 export interface BootstrapTokenPayload {
   iss: string; // controller device ID
+  pub: string; // controller public key (base64, compressed P-256)
   iat: number; // issued at (unix seconds)
   exp: number; // expiry (unix seconds)
   jti: string; // unique token ID
@@ -47,10 +48,13 @@ export async function generateBootstrapToken(opts: {
 
   const now = Math.floor(Date.now() / 1000);
   const jti = `bt_${Buffer.from(randomBytes(16)).toString('hex')}`;
+  const keyAlias = opts.keyAlias ?? opts.issuerDeviceId;
+  const publicKey = await opts.keyStore.getPublicKey(keyAlias);
 
   const header: BootstrapTokenHeader = { typ: 'amesh-bootstrap', ver: '1', alg: 'ES256' };
   const payload: BootstrapTokenPayload = {
     iss: opts.issuerDeviceId,
+    pub: Buffer.from(publicKey).toString('base64'),
     iat: now,
     exp: now + opts.ttlSeconds,
     jti,
@@ -63,7 +67,7 @@ export async function generateBootstrapToken(opts: {
   const headerB64 = b64url(JSON.stringify(header));
   const payloadB64 = b64url(JSON.stringify(payload));
   const sigInput = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
-  const sig = await opts.keyStore.sign(opts.keyAlias ?? opts.issuerDeviceId, sigInput);
+  const sig = await opts.keyStore.sign(keyAlias, sigInput);
 
   const token = `${PREFIX}.${headerB64}.${payloadB64}.${Buffer.from(sig).toString('base64url')}`;
   return { token, payload };

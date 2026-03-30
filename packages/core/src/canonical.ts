@@ -21,6 +21,11 @@ export function buildCanonicalString(
   nonce: string,
   body: Uint8Array | string = '',
 ): string {
+  // Validate fields cannot contain newlines (would inject extra canonical string fields)
+  if (/\n/.test(timestamp) || /\n/.test(nonce) || /\n/.test(method) || /\n/.test(path)) {
+    throw new Error('Canonical string fields must not contain newlines');
+  }
+
   const normalizedMethod = method.toUpperCase();
   const normalizedPath = sortQueryParams(path);
   const bodyBytes = typeof body === 'string' ? new TextEncoder().encode(body) : body;

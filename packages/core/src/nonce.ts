@@ -15,18 +15,33 @@ export interface NonceStore {
 export class InMemoryNonceStore implements NonceStore {
   private store = new Map<string, number>();
   private readonly sweepInterval: ReturnType<typeof setInterval>;
+  private readonly maxSize: number;
 
-  constructor(sweepIntervalSeconds = 30) {
+  constructor(sweepIntervalSeconds = 30, maxSize = 1_000_000) {
+    this.maxSize = maxSize;
     this.sweepInterval = setInterval(() => this.sweep(), sweepIntervalSeconds * 1000);
     this.sweepInterval.unref();
   }
 
   checkAndRecord(nonce: string, ttlSeconds: number): Promise<boolean> {
     const now = Math.floor(Date.now() / 1000);
-    this.sweep(now);
 
-    if (this.store.has(nonce)) {
-      return Promise.resolve(false);
+    const expiry = this.store.get(nonce);
+    if (expiry !== undefined) {
+      // Nonce exists — check if it has expired
+      if (expiry >= now) {
+        return Promise.resolve(false); // still valid → replay
+      }
+      // Expired — remove and allow reuse
+      this.store.delete(nonce);
+    }
+
+    // Reject if store is full (prevents memory exhaustion under nonce-flooding)
+    if (this.store.size >= this.maxSize) {
+      this.sweep(now);
+      if (this.store.size >= this.maxSize) {
+        return Promise.resolve(false);
+      }
     }
 
     this.store.set(nonce, now + ttlSeconds);

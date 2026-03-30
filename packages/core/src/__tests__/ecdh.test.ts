@@ -43,12 +43,12 @@ describe('computeSharedSecret', () => {
     expect(secretAB).toEqual(secretBA);
   });
 
-  it('returns a 33-byte compressed point', () => {
+  it('returns a 32-byte raw x-coordinate', () => {
     const alice = generateEphemeralKeyPair();
     const bob = generateEphemeralKeyPair();
     const secret = computeSharedSecret(alice.privateKey, bob.publicKey);
     expect(secret).toBeInstanceOf(Uint8Array);
-    expect(secret.length).toBe(33);
+    expect(secret.length).toBe(32);
   });
 
   it('produces different secrets for different peer keys', () => {

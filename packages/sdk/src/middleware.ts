@@ -89,7 +89,8 @@ export function authMeshVerify(opts: VerifyOptions) {
 
       // Step 7 — Verify signature
       const signature = new Uint8Array(Buffer.from(parsed.sig, 'base64url'));
-      const publicKey = new Uint8Array(Buffer.from(parsed.id, 'base64'));
+      // Support both base64 and base64url encoding for the id field
+      const publicKey = new Uint8Array(Buffer.from(parsed.id, 'base64url'));
 
       if (!verifyMessage(signature, message, publicKey)) {
         sendError(res, 401, 'unauthorized');
