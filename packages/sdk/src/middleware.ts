@@ -1,4 +1,5 @@
 import { buildCanonicalString, verifyMessage, InMemoryNonceStore } from '@authmesh/core';
+import type { NonceStore } from '@authmesh/core';
 import { AllowList } from '@authmesh/keystore';
 import { parseAuthHeader } from './header.js';
 import type { AuthMeshIdentity } from './types.js';
@@ -8,6 +9,7 @@ export interface VerifyOptions {
   allowList: AllowList;
   clockSkewSeconds?: number;
   nonceWindowSeconds?: number;
+  nonceStore?: NonceStore;
 }
 
 /**
@@ -25,7 +27,7 @@ export interface VerifyOptions {
  */
 export function authMeshVerify(opts: VerifyOptions) {
   const clockSkew = opts.clockSkewSeconds ?? 30;
-  const nonceStore = new InMemoryNonceStore();
+  const nonceStore = opts.nonceStore ?? new InMemoryNonceStore();
 
   return async (
     req: IncomingMessage & { body?: string | Buffer; authMesh?: AuthMeshIdentity },
@@ -87,7 +89,8 @@ export function authMeshVerify(opts: VerifyOptions) {
 
       // Step 7 — Verify signature
       const signature = new Uint8Array(Buffer.from(parsed.sig, 'base64url'));
-      const publicKey = new Uint8Array(Buffer.from(parsed.id, 'base64'));
+      // Support both base64 and base64url encoding for the id field
+      const publicKey = new Uint8Array(Buffer.from(parsed.id, 'base64url'));
 
       if (!verifyMessage(signature, message, publicKey)) {
         sendError(res, 401, 'unauthorized');
@@ -106,7 +109,8 @@ export function authMeshVerify(opts: VerifyOptions) {
     } catch (err) {
       // HMAC integrity failure on allow list read
       if (err instanceof Error && err.message.includes('integrity check failed')) {
-        sendError(res, 500, 'allow_list_integrity_failure');
+        console.error('[amesh] CRITICAL: allow list integrity check failed — possible tampering');
+        sendError(res, 500, 'internal_error');
         return;
       }
       next(err as Error);

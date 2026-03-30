@@ -251,9 +251,11 @@ OTC = crypto.randomInt(100000, 999999).toString()
 Both sides generate a **throwaway** P-256 keypair for this session only. They exchange public halves through the relay. The shared secret derived via ECDH never touches the relay. This ephemeral keypair is discarded after the ceremony.
 
 ```
-sharedSecret = P256_ECDH(myEphemeralPrivKey, theirEphemeralPubKey)
+sharedSecret = P256_ECDH(myEphemeralPrivKey, theirEphemeralPubKey)  // raw x-coordinate (32 bytes)
 sessionKey = HKDF-SHA256(sharedSecret, salt="amesh-handshake-v1")
 ```
+
+> **Note:** `sharedSecret` is the raw 32-byte x-coordinate of the ECDH result, per NIST SP 800-56A. Not the compressed point (which would include a 1-byte prefix).
 
 **Step 6 — Encrypted channel:**
 All subsequent messages over the relay are encrypted with `ChaCha20-Poly1305` using `sessionKey`. The relay sees ciphertext only.
@@ -495,20 +497,24 @@ The allow list is **sealed** with an HMAC keyed by the device's hardware-bound p
 
 ### HMAC Key Derivation
 
-The HMAC key is derived from the device's permanent private key using HKDF:
+The HMAC key material is obtained via `KeyStore.getHmacKeyMaterial(deviceId)`:
 
+**Software keystores (encrypted-file):** Derived from the permanent private key using HKDF:
 ```
 hmacKey = HKDF-SHA256(
   ikm    = permanentPrivateKey,
-  salt   = "amesh-allow-list-integrity-v1",
+  salt   = "amesh-hmac-material-v1",
   info   = deviceId,
   length = 32
 )
 ```
 
+**Hardware keystores (Secure Enclave, TPM):** The private key cannot be exported. A random 32-byte secret is generated once per device and stored in `<deviceId>.hmac` (mode `0600`) alongside the key. This secret is generated on first call and reused thereafter.
+
 This means:
-- The HMAC key never appears in the file
-- An attacker with filesystem access cannot forge a valid HMAC without the hardware-bound private key
+- The HMAC key never appears in the allow list file
+- For software keystores: an attacker cannot forge a valid HMAC without the passphrase
+- For hardware keystores: the HMAC secret is protected by file permissions (not hardware-bound; see Security Considerations)
 - Tampering with `allow_list.json` is immediately detected on next read
 
 ### Read/Write Protocol
@@ -649,6 +655,7 @@ interface KeyStore {
   generateAndStore(deviceId: string): Promise<{ publicKey: Uint8Array }>;  // compressed P-256 (33 bytes)
   sign(deviceId: string, message: Uint8Array): Promise<Uint8Array>;        // ECDSA raw r||s (64 bytes)
   getPublicKey(deviceId: string): Promise<Uint8Array>;                     // compressed P-256 (33 bytes)
+  getHmacKeyMaterial(deviceId: string): Promise<Uint8Array>;               // 32-byte secret for allow list HMAC
   delete(deviceId: string): Promise<void>;
 }
 ```

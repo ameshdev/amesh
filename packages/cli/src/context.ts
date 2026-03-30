@@ -24,8 +24,8 @@ export async function loadContext(): Promise<AmeshContext> {
   // keyAlias: the name used in the keystore. Defaults to deviceId for backwards compat.
   const keyAlias = (identity as Identity & { keyAlias?: string }).keyAlias ?? identity.deviceId;
 
-  const publicKey = await keyStore.getPublicKey(keyAlias);
-  const allowList = new AllowList(getAllowListPath(), publicKey, identity.deviceId);
+  const hmacKey = await keyStore.getHmacKeyMaterial(keyAlias);
+  const allowList = new AllowList(getAllowListPath(), hmacKey, identity.deviceId);
 
   return { identity, keyStore, allowList, keyAlias };
 }

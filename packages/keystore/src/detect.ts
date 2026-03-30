@@ -30,7 +30,7 @@ export async function detectAndCreate(
       );
       const { available, backend } = await isMacOSKeychainAvailable();
       if (available) {
-        const keyStore = new MacOSKeychainKeyStore();
+        const keyStore = new MacOSKeychainKeyStore(basePath);
         if (backend === 'keychain') {
           return {
             backend: 'keychain',
@@ -51,7 +51,7 @@ export async function detectAndCreate(
     try {
       const { isTPM2Available, TPMKeyStore } = await import('./drivers/tpm.js');
       if (await isTPM2Available()) {
-        return { backend: 'tpm2', keyStore: new TPMKeyStore() };
+        return { backend: 'tpm2', keyStore: new TPMKeyStore(basePath) };
       }
     } catch {
       // tpm2-tools not installed — fall through
@@ -91,11 +91,11 @@ export async function createForBackend(
     case 'secure-enclave':
     case 'keychain': {
       const { MacOSKeychainKeyStore } = await import('./drivers/macos-keychain.js');
-      return new MacOSKeychainKeyStore();
+      return new MacOSKeychainKeyStore(basePath);
     }
     case 'tpm2': {
       const { TPMKeyStore } = await import('./drivers/tpm.js');
-      return new TPMKeyStore();
+      return new TPMKeyStore(basePath);
     }
     default:
       throw new Error(`Unknown storage backend: ${backend}`);

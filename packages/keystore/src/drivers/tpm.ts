@@ -1,9 +1,10 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { createHash } from 'node:crypto';
-import { readFile, writeFile, unlink } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { readFile, writeFile, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { randomBytes } from '@noble/ciphers/utils.js';
 import type { KeyStore } from '../interface.js';
 
 const execFileAsync = promisify(execFile);
@@ -16,7 +17,7 @@ async function tpm2(subcommand: string, args: string[]): Promise<string> {
 }
 
 function tmpPath(suffix: string): string {
-  return join(tmpdir(), `amesh_${Date.now()}_${Math.random().toString(36).slice(2)}_${suffix}`);
+  return join(tmpdir(), `amesh_${randomUUID()}_${suffix}`);
 }
 
 async function cleanup(paths: string[]): Promise<void> {
@@ -29,6 +30,11 @@ async function cleanup(paths: string[]): Promise<void> {
  */
 export class TPMKeyStore implements KeyStore {
   readonly backendName = 'tpm2';
+  private readonly keysDir: string;
+
+  constructor(keysDir: string) {
+    this.keysDir = keysDir;
+  }
 
   /**
    * Derive a deterministic persistent handle from device ID.
@@ -68,7 +74,7 @@ export class TPMKeyStore implements KeyStore {
     const sigPath = tmpPath('sig');
 
     try {
-      await writeFile(msgPath, message);
+      await writeFile(msgPath, message, { mode: 0o600 });
       await tpm2('sign', ['-c', handle, '-g', 'sha256', '-s', 'ecdsa', '-o', sigPath, msgPath]);
       return new Uint8Array(await readFile(sigPath));
     } finally {
@@ -86,6 +92,21 @@ export class TPMKeyStore implements KeyStore {
       return pemToRaw(pem);
     } finally {
       await cleanup([pemPath]);
+    }
+  }
+
+  async getHmacKeyMaterial(deviceId: string): Promise<Uint8Array> {
+    // Hardware keystores can't export private key material.
+    // Use a stored random secret, generated once per device.
+    const secretPath = join(this.keysDir, `${deviceId}.hmac`);
+    try {
+      return new Uint8Array(await readFile(secretPath));
+    } catch {
+      // First call or migration: generate and persist HMAC secret
+      await mkdir(this.keysDir, { recursive: true, mode: 0o700 });
+      const secret = randomBytes(32);
+      await writeFile(secretPath, secret, { mode: 0o600 });
+      return secret;
     }
   }
 

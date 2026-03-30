@@ -19,6 +19,7 @@ async function identityExists(): Promise<boolean> {
 
 interface BootstrapPayload {
   iss: string;
+  pub?: string; // controller public key (base64, compressed P-256) — added in security hardening
   iat: number;
   exp: number;
   jti: string;
@@ -108,14 +109,31 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
         }
 
         if (msg.type === 'bootstrap_ack') {
-          const controllerPubKey = new Uint8Array(Buffer.from(msg.controllerPubKey, 'base64'));
+          // Use controller's public key embedded in the token (trusted),
+          // NOT the key from the relay message (untrusted).
+          if (!payload.pub) {
+            ws.close();
+            reject(new Error('token_missing_controller_pubkey'));
+            return;
+          }
+          const controllerPubKey = new Uint8Array(Buffer.from(payload.pub, 'base64'));
 
-          // Verify token signature with controller's public key
+          // Verify token signature with the embedded controller public key
           const sigInput = new TextEncoder().encode(signatureInput);
           if (!verifyMessage(signature, sigInput, controllerPubKey)) {
             ws.close();
             reject(new Error('invalid_token_signature'));
             return;
+          }
+
+          // Verify relay-provided key matches the token-embedded key
+          if (msg.controllerPubKey) {
+            const relayPubKey = new Uint8Array(Buffer.from(msg.controllerPubKey, 'base64'));
+            if (Buffer.from(controllerPubKey).toString('base64') !== Buffer.from(relayPubKey).toString('base64')) {
+              ws.close();
+              reject(new Error('controller_pubkey_mismatch'));
+              return;
+            }
           }
 
           // Verify controller's ack signature
@@ -138,30 +156,38 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
             const { readFile: rf, writeFile: wf, unlink } = await import('node:fs/promises');
             const pendingPath = join(keysDir, 'am_pending.key.json');
             const realPath = join(keysDir, `${deviceId}.key.json`);
-            await wf(realPath, await rf(pendingPath));
+            await wf(realPath, await rf(pendingPath), { mode: 0o600 });
             await unlink(pendingPath);
           } else {
-            await keyStore.delete('am_pending');
-            await keyStore.generateAndStore(deviceId);
+            // Hardware keystores can't rename keys. Store a keyAlias mapping
+            // so the real deviceId maps to the 'am_pending' key in hardware.
+            // The publicKey stays the same — no re-generation needed.
           }
 
           // Write identity.json
           const { writeFile, mkdir } = await import('node:fs/promises');
           const { dirname } = await import('node:path');
           const identityPath = join(ameshDir, 'identity.json');
-          await mkdir(dirname(identityPath), { recursive: true });
-          await writeFile(identityPath, JSON.stringify({
+          await mkdir(dirname(identityPath), { recursive: true, mode: 0o700 });
+          const identityData: Record<string, unknown> = {
             version: '2.0.0',
             deviceId,
             publicKey: Buffer.from(publicKey).toString('base64'),
             friendlyName: payload.name,
             createdAt: new Date().toISOString(),
             storageBackend: backend,
-          }, null, 2));
+          };
+          // Hardware backends can't rename keys — store alias to the pending key
+          if (backend !== 'encrypted-file') {
+            identityData.keyAlias = 'am_pending';
+          }
+          await writeFile(identityPath, JSON.stringify(identityData, null, 2), { mode: 0o600 });
 
           // Write allow list with controller
-          const newPubKey = await keyStore.getPublicKey(deviceId);
-          const allowList = new AllowList(join(ameshDir, 'allow_list.json'), newPubKey, deviceId);
+          // Use the actual key alias (am_pending for hardware, deviceId for encrypted-file)
+          const hmacAlias = backend === 'encrypted-file' ? deviceId : 'am_pending';
+          const hmacKey = await keyStore.getHmacKeyMaterial(hmacAlias);
+          const allowList = new AllowList(join(ameshDir, 'allow_list.json'), hmacKey, deviceId);
           await allowList.addDevice({
             deviceId: payload.iss,
             publicKey: Buffer.from(controllerPubKey).toString('base64'),

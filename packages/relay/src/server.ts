@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import type { WebSocket } from 'ws';
 import { SessionStore } from './session.js';
-import { RateLimiter } from './rate-limit.js';
+import { RateLimiter, OTCAttemptTracker } from './rate-limit.js';
 
 interface RelayMessage {
   type: 'listen' | 'connect' | 'data' | 'done' | 'bootstrap_watch' | 'bootstrap_init' | 'bootstrap_ack' | 'bootstrap_reject';
@@ -12,19 +12,46 @@ interface RelayMessage {
   [key: string]: unknown;
 }
 
+const MAX_PAYLOAD = 65_536; // 64 KB — generous for handshake messages
+const MAX_CONNECTIONS = 10_000;
+const BOOTSTRAP_WATCHER_TTL_MS = 300_000; // 5 minutes
+
 export async function createRelayServer(opts?: { host?: string; port?: number }) {
   const app = Fastify({ logger: false });
   const sessions = new SessionStore();
   const rateLimiter = new RateLimiter(5, 60_000);
-  // Bootstrap watchers: jti → controller WebSocket
-  const bootstrapWatchers = new Map<string, WebSocket>();
+  const otcAttempts = new OTCAttemptTracker(10);
+  // Bootstrap watchers: jti → { socket, createdAt }
+  const bootstrapWatchers = new Map<string, { socket: WebSocket; createdAt: number }>();
+  let connectionCount = 0;
 
-  await app.register(websocket);
+  await app.register(websocket, {
+    options: { maxPayload: MAX_PAYLOAD },
+  });
 
   app.get('/health', async () => ({ status: 'ok', sessions: sessions.size }));
 
+  // Purge stale bootstrap watchers every 30 seconds
+  const bootstrapCleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [jti, entry] of bootstrapWatchers) {
+      if (now - entry.createdAt > BOOTSTRAP_WATCHER_TTL_MS || entry.socket.readyState !== 1) {
+        bootstrapWatchers.delete(jti);
+      }
+    }
+  }, 30_000);
+  bootstrapCleanupTimer.unref();
+
   app.register(async function (fastify) {
     fastify.get('/ws', { websocket: true }, (socket: WebSocket, req) => {
+      // Connection limit
+      connectionCount++;
+      if (connectionCount > MAX_CONNECTIONS) {
+        socket.close(1013, 'too_many_connections');
+        connectionCount--;
+        return;
+      }
+
       const ip = req.ip;
 
       socket.on('message', (raw: Buffer) => {
@@ -65,6 +92,7 @@ export async function createRelayServer(opts?: { host?: string; port?: number })
       });
 
       socket.on('close', () => {
+        connectionCount--;
         cleanupSocket(socket);
       });
     });
@@ -107,6 +135,10 @@ export async function createRelayServer(opts?: { host?: string; port?: number })
     const session = sessions.get(otc);
     if (!session) {
       rateLimiter.recordFailure(ip);
+      // Per-OTC attempt tracking: invalidate OTC after too many failures
+      if (!otcAttempts.recordAndCheck(otc)) {
+        // OTC exhausted by brute-force — silently drop (already removed or expired)
+      }
       socket.send(JSON.stringify({ type: 'error', code: 'otc_not_found' }));
       return;
     }
@@ -118,6 +150,8 @@ export async function createRelayServer(opts?: { host?: string; port?: number })
 
     session.controller = socket;
     (socket as WebSocket & { _otc?: string })._otc = otc;
+    // Successful connect — clean up OTC attempt tracking
+    otcAttempts.remove(otc);
 
     // Notify both sides
     session.target.send(JSON.stringify({ type: 'peer_found' }));
@@ -157,22 +191,27 @@ export async function createRelayServer(opts?: { host?: string; port?: number })
   // Bootstrap: controller registers to watch for a specific jti
   function handleBootstrapWatch(socket: WebSocket, msg: RelayMessage) {
     if (!msg.jti) { socket.send(JSON.stringify({ type: 'error', code: 'missing_jti' })); return; }
-    bootstrapWatchers.set(msg.jti, socket);
+    bootstrapWatchers.set(msg.jti, { socket, createdAt: Date.now() });
     socket.send(JSON.stringify({ type: 'bootstrap_watching', jti: msg.jti }));
   }
 
   // Bootstrap: target initiates pairing with a token
   function handleBootstrapInit(socket: WebSocket, msg: RelayMessage) {
     if (!msg.jti) { socket.send(JSON.stringify({ type: 'error', code: 'missing_jti' })); return; }
-    const watcher = bootstrapWatchers.get(msg.jti);
-    if (!watcher || watcher.readyState !== 1) {
+    const entry = bootstrapWatchers.get(msg.jti);
+    if (!entry || entry.socket.readyState !== 1) {
       socket.send(JSON.stringify({ type: 'bootstrap_reject', error: 'no_watcher' }));
       return;
     }
     // Store target socket for response routing
     (socket as WebSocket & { _btJti?: string })._btJti = msg.jti;
-    // Forward to controller
-    watcher.send(JSON.stringify(msg));
+    // Whitelist forwarded fields — do not forward arbitrary attacker-controlled data
+    entry.socket.send(JSON.stringify({
+      type: msg.type,
+      jti: msg.jti,
+      token: msg.token,
+      targetPubKey: msg.targetPubKey,
+    }));
   }
 
   // Bootstrap: controller responds (ack or reject) — forward to target
@@ -191,19 +230,29 @@ export async function createRelayServer(opts?: { host?: string; port?: number })
   }
 
   function cleanupSocket(socket: WebSocket) {
+    // Clean up pairing sessions
     const otc = (socket as WebSocket & { _otc?: string })._otc;
-    if (!otc) return;
-
-    const session = sessions.get(otc);
-    if (!session) return;
-
-    // If the disconnected socket was the only peer, clean up the session
-    const peer = socket === session.target ? session.controller : session.target;
-    if (peer && peer.readyState === 1) {
-      peer.send(JSON.stringify({ type: 'error', code: 'peer_disconnected' }));
+    if (otc) {
+      const session = sessions.get(otc);
+      if (session) {
+        const peer = socket === session.target ? session.controller : session.target;
+        if (peer && peer.readyState === 1) {
+          peer.send(JSON.stringify({ type: 'error', code: 'peer_disconnected' }));
+        }
+        sessions.remove(otc);
+      }
     }
 
-    sessions.remove(otc);
+    // Clean up bootstrap watchers
+    const btJti = (socket as WebSocket & { _btJti?: string })._btJti;
+    if (btJti) bootstrapWatchers.delete(btJti);
+    // Also check if this socket was a watcher
+    for (const [jti, entry] of bootstrapWatchers) {
+      if (entry.socket === socket) {
+        bootstrapWatchers.delete(jti);
+        break;
+      }
+    }
   }
 
   const host = opts?.host ?? '0.0.0.0';
@@ -217,7 +266,10 @@ export async function createRelayServer(opts?: { host?: string; port?: number })
       return { host, port };
     },
     async stop() {
+      clearInterval(bootstrapCleanupTimer);
       sessions.destroy();
+      rateLimiter.destroy();
+      otcAttempts.destroy();
       await app.close();
     },
   };

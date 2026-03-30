@@ -23,7 +23,9 @@ export function computeSharedSecret(
   myPrivateKey: Uint8Array,
   theirPublicKey: Uint8Array,
 ): Uint8Array {
-  return p256.getSharedSecret(myPrivateKey, theirPublicKey, true);
+  // getSharedSecret with compressed=true returns 33 bytes (prefix + x-coordinate).
+  // Per NIST SP 800-56A, the shared secret is the raw x-coordinate only (32 bytes).
+  return p256.getSharedSecret(myPrivateKey, theirPublicKey, true).slice(1);
 }
 
 /**

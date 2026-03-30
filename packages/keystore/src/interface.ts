@@ -14,6 +14,16 @@ export interface KeyStore {
   /** Get the compressed P-256 public key (33 bytes) for a device. */
   getPublicKey(deviceId: string): Promise<Uint8Array>;
 
+  /**
+   * Get secret key material for HMAC-sealing the allow list.
+   *
+   * For software keystores this is derived from the private key via HKDF.
+   * For hardware keystores (where the private key cannot be exported), a
+   * random secret is generated once and stored alongside the key with
+   * restrictive file permissions.
+   */
+  getHmacKeyMaterial(deviceId: string): Promise<Uint8Array>;
+
   /** Delete a key from the store. */
   delete(deviceId: string): Promise<void>;
 

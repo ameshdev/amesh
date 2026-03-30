@@ -141,8 +141,8 @@ export class AllowList {
     data.hmac = Buffer.from(hmac).toString('base64');
 
     const tmpPath = `${this.filePath}.tmp`;
-    await mkdir(dirname(this.filePath), { recursive: true });
-    await writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    await mkdir(dirname(this.filePath), { recursive: true, mode: 0o700 });
+    await writeFile(tmpPath, JSON.stringify(data, null, 2), { encoding: 'utf-8', mode: 0o600 });
     await rename(tmpPath, this.filePath);
   }
 
