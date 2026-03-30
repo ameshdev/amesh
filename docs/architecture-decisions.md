@@ -102,3 +102,41 @@ Both CLIs display this number; the developer confirms they match. Same approach 
 **Why:** Pragmatic MVP choice. The construction mirrors TLS 1.3's cipher suite and is well-understood.
 
 **Technical debt:** The Noise Protocol Framework (Noise_NN pattern) has formal security proofs. Consider migrating before production release. Document as planned improvement.
+
+---
+
+## ADR-009: Security hardening (post-v0.1.0 audit)
+
+**Decision:** Multiple security fixes applied after a full audit of all 5 packages on 2026-03-30.
+
+### ECDH shared secret extraction
+**Decision:** `computeSharedSecret()` returns the raw 32-byte x-coordinate, not the 33-byte compressed point.
+
+**Why:** NIST SP 800-56A specifies extracting just the x-coordinate. The compressed point prefix byte (0x02/0x03) is not uniformly distributed and leaks information about y-coordinate parity. While HKDF hashes it away in practice, the standard extraction is correct.
+
+### AllowList HMAC keyed from `getHmacKeyMaterial()`, not public key
+**Decision:** Added `getHmacKeyMaterial(deviceId)` to the KeyStore interface. For encrypted-file, it decrypts the private key and derives via HKDF. For hardware keystores, a random 32-byte secret is stored in a file with 0600 permissions.
+
+**Why:** The AllowList constructor parameter was named `privateKeyMaterial` but all callers were passing the public key (from `getPublicKey()`). Since the public key is in `identity.json`, any attacker with filesystem access could derive the HMAC key and forge the allow list. This was the most critical finding.
+
+**Tradeoff for hardware backends:** The stored HMAC secret is file-permission-protected, not hardware-bound. A future improvement would store it in the Secure Enclave / TPM as a symmetric key.
+
+### Bootstrap token embeds controller public key
+**Decision:** Added `pub` field to bootstrap token payload containing the controller's compressed P-256 public key.
+
+**Why:** The target was verifying the token signature against `controllerPubKey` received from the relay `bootstrap_ack` message. A MITM relay could generate its own keypair, re-sign the token, and send its own public key — verification would succeed. Now the controller's key is embedded in the signed token payload and used as the trusted verification key.
+
+### File permissions on all sensitive writes
+**Decision:** All `writeFile` calls for keys, identity, and allow list use `mode: 0o600`. All `mkdir` calls use `mode: 0o700`.
+
+**Why:** Default umask (typically 0644) makes encrypted key files world-readable. Defense-in-depth even when encryption is strong.
+
+### Relay hardening
+**Decision:** Added per-OTC attempt tracking (max 10), WebSocket `maxPayload` (64KB), connection limit (10K), bootstrap watcher TTL and cleanup, message field whitelisting.
+
+**Why:** The relay was vulnerable to distributed OTC brute-force (per-IP limiting only), memory exhaustion via large payloads or unlimited connections, and stale bootstrap watcher leaks.
+
+### deviceId path traversal prevention
+**Decision:** Validate deviceId against `/^[a-zA-Z0-9_-]+$/` in encrypted-file driver.
+
+**Why:** `path.join(basePath, deviceId + ".key.json")` does not prevent `../` traversal. A malicious deviceId could write outside the keys directory.

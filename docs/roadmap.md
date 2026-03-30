@@ -83,7 +83,29 @@
 - [x] Branch protection on main (PRs required)
 - [x] Google Search Console submitted
 
+## Security Hardening (PR #1) [DONE]
+- [x] AllowList HMAC keyed from private key material (was using public key)
+- [x] `KeyStore.getHmacKeyMaterial()` — HKDF-derived for encrypted-file, stored secret for hardware
+- [x] Bootstrap token embeds controller public key (`pub` field) — prevents MITM relay
+- [x] Hardware keystore bootstrap uses keyAlias instead of re-generating mismatched key
+- [x] ECDH returns raw 32-byte x-coordinate per NIST SP 800-56A
+- [x] File permissions 0o600/0o700 on all sensitive files
+- [x] deviceId validated against path traversal
+- [x] Bootstrap jti entropy 32→128 bits
+- [x] Per-OTC brute-force tracking (max 10 per OTC)
+- [x] Relay: maxPayload 64KB, connection limit 10K, bootstrap watcher TTL + cleanup
+- [x] Nonce store bounded at 1M entries
+- [x] Base64URL decoding fix in SDK middleware
+- [x] Canonical string newline injection prevention
+- [x] Error responses no longer leak `allow_list_integrity_failure`
+- [x] TPM temp files use `crypto.randomUUID()` instead of `Math.random()`
+- [x] Protocol spec, ADR-009, roadmap updated
+
 ## Future
+- [ ] Bootstrap `single_use` enforcement (persistent jti store on relay — Redis SET NX EX)
+- [ ] TPM `pemToRaw` — parse ASN.1 DER to extract and compress EC point (currently returns ~91-byte DER)
+- [ ] Hardware-backed HMAC key storage (Secure Enclave symmetric key / TPM HMAC key)
+- [ ] Backend detection: warn or fail on silent downgrade from hardware to encrypted-file
 - [ ] Secure Enclave with Apple Developer ID signed binary (currently falls back to software Keychain)
 - [ ] Fastify verification plugin (in addition to Express middleware)
 - [ ] Noise Protocol Framework migration (ADR-008)
