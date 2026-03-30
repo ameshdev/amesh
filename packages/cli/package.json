@@ -1,6 +1,6 @@
 {
   "name": "@authmesh/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for amesh device identity management — init, pair, list, revoke",
   "type": "module",
   "license": "MIT",

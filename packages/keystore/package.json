@@ -1,6 +1,6 @@
 {
   "name": "@authmesh/keystore",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Secure Enclave, TPM 2.0, and encrypted-file key storage for amesh",
   "type": "module",
   "license": "MIT",
