@@ -8,7 +8,7 @@
 			<!-- Brand -->
 			<div>
 				<span class="font-mono text-lg font-semibold text-zinc-50">amesh</span>
-				<p class="mt-2 text-sm text-zinc-500">Hardware-bound M2M authentication. Zero static secrets.</p>
+				<p class="mt-2 text-sm text-zinc-500">Device-bound M2M authentication. Zero static secrets.</p>
 			</div>
 
 			<!-- Product -->

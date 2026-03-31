@@ -5,10 +5,10 @@
 
 <svelte:head>
 	<title>Microservices Authentication — amesh</title>
-	<meta name="description" content="Give each microservice its own hardware-bound identity. Per-service audit trail, isolated revocation, no shared API keys." />
+	<meta name="description" content="Give each microservice its own device-bound identity. Per-service audit trail, isolated revocation, no shared API keys." />
 	<link rel="canonical" href="https://authmesh.dev/use-cases/microservices" />
 	<meta property="og:title" content="Microservices Authentication — amesh" />
-	<meta property="og:description" content="Give each microservice its own hardware-bound identity. Per-service audit trail, no shared API keys." />
+	<meta property="og:description" content="Give each microservice its own device-bound identity. Per-service audit trail, no shared API keys." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases/microservices" />
 </svelte:head>
 

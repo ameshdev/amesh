@@ -2,7 +2,7 @@
  * amesh demo — client
  *
  * No API key. No Bearer token. No secret of any kind.
- * Every request is signed with a hardware-bound key.
+ * Every request is signed with a device-bound key.
  *
  * Run: npx tsx call.ts
  */

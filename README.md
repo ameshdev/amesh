@@ -1,8 +1,8 @@
 # amesh
 
-**Hardware-bound M2M authentication. Replace API keys with cryptographic device identity.**
+**Device-bound M2M authentication. Replace API keys with cryptographic device identity.**
 
-No `.env` files. No secrets in CI. No tokens in Slack. The private key lives in your chip --- there is nothing to leak.
+No `.env` files. No secrets in CI. No tokens in Slack. The private key stays on your device --- there is nothing to leak.
 
 [![CI](https://github.com/ameshdev/amesh/actions/workflows/ci.yml/badge.svg)](https://github.com/ameshdev/amesh/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE)
@@ -19,7 +19,7 @@ fetch("/api/orders", {
 ```
 
 ```js
-// After: hardware-bound signature, nothing to leak
+// After: device-bound signature, nothing to leak
 import { amesh } from '@authmesh/sdk';
 
 amesh.fetch("/api/orders", {
@@ -28,7 +28,7 @@ amesh.fetch("/api/orders", {
 });
 ```
 
-No `.env`. No secret. The request is signed with a P-256 ECDSA key stored in your machine's Secure Enclave or TPM.
+No `.env`. No secret. The request is signed with a P-256 ECDSA key that never leaves your machine.
 
 ---
 
@@ -93,7 +93,7 @@ app.use(amesh.verify());
 
 ## How It Works
 
-- **Device identity** --- each machine gets a unique P-256 ECDSA keypair. The private key is stored in Secure Enclave (macOS) or TPM 2.0 (Linux). Hardware-backed key storage is required.
+- **Device identity** --- each machine gets a unique P-256 ECDSA keypair. The private key is protected by the OS keychain (macOS) or TPM 2.0 (Linux) and never leaves the device.
 - **One-way trust** --- controllers authenticate to targets, never the reverse. A compromised server cannot call back to your laptop.
 - **Signed requests** --- every HTTP request is signed with the device's private key. The signature covers method, path, timestamp, nonce, and body.
 - **Replay protection** --- each request has a unique nonce and a 30-second timestamp window. Nonces are tracked server-side.

@@ -26,7 +26,7 @@ Common leak vectors:
 - CI/CD build logs capturing environment variable expansions
 - Developers sharing API keys in Slack/email ("just use this for now")
 
-**amesh eliminates this entire class of leaks.** There is no string to leak. The private key is generated inside a hardware chip and never exported. You can commit your entire codebase to a public repo and nothing is compromised.
+**amesh eliminates this entire class of leaks.** There is no string to leak. The private key is generated on the device and never exported. You can commit your entire codebase to a public repo and nothing is compromised.
 
 ### 2. Rotation is painful and dangerous
 
@@ -42,7 +42,7 @@ When a secret is compromised (or your compliance team mandates 90-day rotation),
 
 This is operationally expensive and error-prone. Teams delay rotation because the risk of breaking production feels higher than the risk of a compromised key.
 
-**amesh has no rotation.** Device keys don't expire. They are cryptographically bound to hardware. If a device is compromised, you revoke it instantly with `amesh revoke` — and only that device loses access. Every other device continues working.
+**amesh has no rotation.** Device keys don't expire. They are cryptographically bound to the device. If a device is compromised, you revoke it instantly with `amesh revoke` — and only that device loses access. Every other device continues working.
 
 ### 3. No identity — only access
 
@@ -66,7 +66,7 @@ A secrets manager:
 - Adds latency on every cold start
 - Costs money at scale
 
-**amesh removes the secret entirely.** There is no string to manage, fetch, cache, or protect. The signing happens inside the hardware. The only thing that crosses the wire is a cryptographic signature that is useless to an attacker — it's bound to a specific request, timestamp, and nonce.
+**amesh removes the secret entirely.** There is no string to manage, fetch, cache, or protect. The signing happens on the device. The only thing that crosses the wire is a cryptographic signature that is useless to an attacker — it's bound to a specific request, timestamp, and nonce.
 
 ### 5. No proof of origin
 
@@ -77,7 +77,7 @@ This matters for:
 - **Incident response** — when a breach is detected, you need to identify the exact source
 - **Zero-trust architecture** — "never trust, always verify" requires verifiable machine identity, not shared passwords
 
-**amesh provides cryptographic proof of origin.** Each request is signed with a key that physically cannot leave the device's hardware. The signature proves the specific device sent the request, at a specific time, with a specific body. This is non-repudiable — the device can't deny it sent the request, and no other device could have produced the same signature.
+**amesh provides cryptographic proof of origin.** Each request is signed with a key that never leaves the device. The signature proves the specific device sent the request, at a specific time, with a specific body. This is non-repudiable — the device can't deny it sent the request, and no other device could have produced the same signature.
 
 ---
 
@@ -85,9 +85,9 @@ This matters for:
 
 | | Static API keys | amesh |
 |---|---|---|
-| **What proves identity** | A string anyone can copy | A hardware-bound private key that can't be extracted |
+| **What proves identity** | A string anyone can copy | A device-bound private key that never leaves the machine |
 | **What crosses the wire** | The secret itself | A signature (useless if captured) |
-| **If compromised** | Attacker has full access until key is rotated | Attacker can't extract the key from hardware |
+| **If compromised** | Attacker has full access until key is rotated | Key is on the device — attacker needs physical access |
 | **Rotation** | Manual, risky, coordinated across services | Not needed. Revoke per device if compromised |
 | **Revocation** | Breaks everything using that key | Revokes one device. Others unaffected |
 | **Audit trail** | "Someone with this key called the API" | "Device am_8f3a (prod-api-east) called the API at 10:05:32" |
@@ -99,7 +99,7 @@ This matters for:
 
 ## Who this is for
 
-**Today:** Solo developers and small teams running APIs or microservices on hardware with Secure Enclave (macOS) or TPM (Linux) who currently manage secrets in `.env` files and want to stop worrying about leaks.
+**Today:** Solo developers and small teams running APIs or microservices who currently manage secrets in `.env` files and want to stop worrying about leaks. Works on macOS (Keychain / Secure Enclave) and Linux (TPM 2.0).
 
 **The use case:** Any time Machine A needs to prove to Machine B that it is authorized to call an API. Examples:
 
@@ -114,6 +114,6 @@ This matters for:
 
 ## The security model in one sentence
 
-**The private key never leaves the chip. The signature proves the device. The nonce prevents replay. The HMAC prevents tampering. The SAS prevents MITM. One-way trust limits blast radius — a compromised target cannot authenticate back to its controller.**
+**The private key never leaves the device. The signature proves the machine. The nonce prevents replay. The HMAC prevents tampering. The SAS prevents MITM. One-way trust limits blast radius — a compromised target cannot authenticate back to its controller.**
 
 There is no string to steal.

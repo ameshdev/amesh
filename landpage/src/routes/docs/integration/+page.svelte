@@ -42,7 +42,7 @@
 	<!-- Recipe 1 -->
 	<section class="py-8 border-t border-zinc-800">
 		<h2 class="text-xl font-semibold text-zinc-50">Recipe 1: Protect an Express API</h2>
-		<p class="mt-2 text-zinc-400">Replace Bearer token authentication with hardware-bound device identity.</p>
+		<p class="mt-2 text-zinc-400">Replace Bearer token authentication with device-bound cryptographic identity.</p>
 
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">Server</h3>
 		<div class="mt-3">

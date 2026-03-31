@@ -2,7 +2,7 @@
  * amesh demo — API server
  *
  * Zero secrets in this file. No API_KEY. No BEARER_TOKEN. No .env file.
- * Authentication is a cryptographic proof from a hardware-bound key.
+ * Authentication is a cryptographic proof from a device-bound key.
  *
  * Run: npx tsx server.ts
  */

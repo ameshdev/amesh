@@ -1,7 +1,7 @@
 # amesh Protocol Specification
 **Version:** 2.0.0
 **Status:** MVP Build Spec (Revised — P-256 hardware-compatible architecture)
-**Philosophy:** Hardware-bound identity. Zero static secrets. Peer-to-peer trust. No strings to steal.
+**Philosophy:** Device-bound identity. Zero static secrets. Peer-to-peer trust. No strings to steal.
 
 ---
 
@@ -28,9 +28,9 @@
 
 ## 1. Why This Exists
 
-Static API keys are glorified passwords stored in plaintext. They live in `.env` files, get committed to GitHub, get passed around in Slack, and when they leak — and they always leak — there is no audit trail, no revocation ceremony, and no hardware proof of who used them.
+Static API keys are glorified passwords stored in plaintext. They live in `.env` files, get committed to GitHub, get passed around in Slack, and when they leak — and they always leak — there is no audit trail, no revocation ceremony, and no cryptographic proof of who used them.
 
-`amesh` replaces the static secret with a **device-bound cryptographic identity**. The private key is generated inside hardware (Secure Enclave / TPM) and never exported. There is no string to steal. A server proves it is "itself" by signing requests with a key that physically cannot leave its chip.
+`amesh` replaces the static secret with a **device-bound cryptographic identity**. The private key is generated on the device and protected by the OS keychain (macOS) or TPM 2.0 (Linux). There is no string to steal. A server proves it is "itself" by signing requests with a key that never leaves the machine. With a code-signed binary on macOS, keys can be stored in the Secure Enclave for true hardware binding.
 
 **Target user for this MVP:** A solo developer or small team running serverless functions or API servers who currently manages secrets in `.env` files and lives in fear of a GitHub leak.
 
@@ -42,7 +42,7 @@ This document covers **one thing only**: replacing static API keys in M2M (Machi
 
 **In scope:**
 - CLI tool (`amesh`) for developers
-- Hardware-bound key generation
+- Device-bound key generation (hardware upgrade path via Secure Enclave / TPM)
 - Peer-to-peer trust handshake (invite ceremony)
 - Request signing and verification
 - Node.js/TypeScript SDK (signing client + verification middleware)
@@ -144,10 +144,10 @@ Creates the cryptographic identity root for this device. Run once per machine.
 - **Key size:** 256-bit private key, 33-byte compressed public key (65-byte uncompressed)
 - **Library:** `@noble/curves` (`p256` export)
 
-> **Why P-256 instead of Ed25519:** Ed25519 is not supported by Apple's Secure Enclave (P-256 only) or most TPM 2.0 hardware. P-256 is the industry standard for hardware-bound crypto — used by FIDO2, WebAuthn, and passkeys. This is the only way to deliver the "hardware-bound identity" promise across platforms.
+> **Why P-256 instead of Ed25519:** Ed25519 is not supported by Apple's Secure Enclave (P-256 only) or most TPM 2.0 hardware. P-256 is the industry standard for device and hardware crypto — used by FIDO2, WebAuthn, and passkeys. This keeps the door open to true hardware binding (Secure Enclave, TPM) across platforms.
 
-### Hardware storage requirement (mandatory)
-The private key **MUST** be generated inside and never exported from the hardware security module. See Section 11 for the full fallback chain.
+### Key storage requirement
+The private key **MUST** be stored in a platform-protected keystore and never written to disk as plaintext. On macOS, keys are stored in the OS Keychain (or Secure Enclave with a code-signed binary). On Linux, TPM 2.0 is used. See Section 11 for the full fallback chain.
 
 ### Outputs
 After `amesh init`, the following are written to `~/.amesh/`:
@@ -483,7 +483,7 @@ The `allow_list.json` file is the local trust store. If an attacker can write to
 
 ### The Fix: HMAC Integrity Seal
 
-The allow list is **sealed** with an HMAC keyed by the device's hardware-bound private key. Every read verifies the seal. Every write regenerates it.
+The allow list is **sealed** with an HMAC derived from the device's key material. Every read verifies the seal. Every write regenerates it.
 
 ### File Format
 

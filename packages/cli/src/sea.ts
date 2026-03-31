@@ -60,7 +60,7 @@ function getOclifRoot(): string {
 }
 
 function showHelp(): void {
-  console.log(`amesh v${VERSION} — Hardware-bound M2M authentication\n`);
+  console.log(`amesh v${VERSION} — Device-bound M2M authentication\n`);
   console.log('Usage: amesh <command> [flags]\n');
   console.log('Commands:');
   for (const [name, cmd] of Object.entries(commands)) {

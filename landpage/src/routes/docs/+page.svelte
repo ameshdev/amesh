@@ -43,7 +43,7 @@
 		{
 			icon: Shield,
 			title: 'Why amesh',
-			desc: 'The problem with static API keys and how hardware-bound identity solves it.',
+			desc: 'The problem with static API keys and how device-bound identity solves it.',
 			href: `${REPO}/blob/main/docs/why-amesh.md`,
 			external: true,
 		},
@@ -54,14 +54,14 @@
 		{ name: '@authmesh/sdk', desc: 'Signing client + Express middleware', href: `${REPO}/tree/main/packages/sdk` },
 		{ name: '@authmesh/cli', desc: 'Device management CLI', href: `${REPO}/tree/main/packages/cli` },
 		{ name: '@authmesh/core', desc: 'Crypto primitives', href: `${REPO}/tree/main/packages/core` },
-		{ name: '@authmesh/keystore', desc: 'Hardware key storage', href: `${REPO}/tree/main/packages/keystore` },
+		{ name: '@authmesh/keystore', desc: 'Device key storage', href: `${REPO}/tree/main/packages/keystore` },
 		{ name: '@authmesh/relay', desc: 'Pairing relay server', href: `${REPO}/tree/main/packages/relay` },
 	];
 </script>
 
 <svelte:head>
 	<title>Documentation — amesh</title>
-	<meta name="description" content="Guides, API reference, protocol specification, and architecture decisions for amesh hardware-bound M2M authentication." />
+	<meta name="description" content="Guides, API reference, protocol specification, and architecture decisions for amesh device-bound M2M authentication." />
 	<link rel="canonical" href="https://authmesh.dev/docs" />
 	<meta property="og:title" content="Documentation — amesh" />
 	<meta property="og:description" content="Guides, API reference, protocol specification, and architecture decisions for amesh." />
@@ -72,7 +72,7 @@
 
 	<section class="pt-16 pb-10">
 		<h1 class="text-3xl font-bold text-zinc-50">Documentation</h1>
-		<p class="mt-3 text-lg text-zinc-400">Everything you need to replace API keys with hardware-bound device identity.</p>
+		<p class="mt-3 text-lg text-zinc-400">Everything you need to replace API keys with device-bound cryptographic identity.</p>
 	</section>
 
 	<!-- Quick install -->

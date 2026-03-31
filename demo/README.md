@@ -1,6 +1,6 @@
 # amesh demo
 
-Replace an API key with hardware-bound cryptographic identity. No `.env` file. No Bearer token. No shared secret.
+Replace an API key with device-bound cryptographic identity. No `.env` file. No Bearer token. No shared secret.
 
 ## What this demo does
 

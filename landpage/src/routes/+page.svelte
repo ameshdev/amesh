@@ -35,7 +35,7 @@
 	const steps = [
 		{
 			n: '1', title: 'Create a device identity',
-			desc: 'Each machine gets a unique keypair. The private key never leaves the hardware.',
+			desc: 'Each machine gets a unique keypair. The private key never leaves the device.',
 			code: `<span class="text-zinc-500">$</span> amesh init --name "prod-api"\n\nIdentity created.\n  Device ID : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend   : <span class="text-emerald-400">secure-enclave</span>`
 		},
 		{
@@ -63,7 +63,7 @@
 		{ feature: 'Blast radius of leak', amesh: { val: 'Nothing to leak', good: true }, values: ['Unlimited', 'Per-cert', 'Token scope', 'Client scope'] },
 		{ feature: 'Setup complexity', amesh: { val: '2 CLI commands', good: true }, values: ['Copy-paste', 'CA + cert infra', 'Server + policies', 'Auth server'] },
 		{ feature: 'Per-device identity', amesh: { val: 'Yes', good: true }, values: ['No', 'Per-cert', 'No', 'Per-client'] },
-		{ feature: 'Hardware-bound', amesh: { val: 'Secure Enclave / TPM', good: true }, values: ['No', 'No', 'No', 'No'] },
+		{ feature: 'Device-bound', amesh: { val: 'OS Keychain / TPM', good: true }, values: ['No', 'No', 'No', 'No'] },
 	];
 
 	// Features
@@ -95,11 +95,11 @@
 </script>
 
 <svelte:head>
-	<title>amesh — Hardware-Bound M2M Authentication. No API Keys.</title>
-	<meta name="description" content="Replace static API keys with cryptographic device identity. Private keys live in your Secure Enclave or TPM. Nothing to leak, rotate, or steal." />
+	<title>amesh — Device-Bound M2M Authentication. No API Keys.</title>
+	<meta name="description" content="Replace static API keys with cryptographic device identity. Private keys stay on your machine. Nothing to leak, rotate, or steal." />
 	<link rel="canonical" href="https://authmesh.dev/" />
-	<meta property="og:title" content="amesh — Hardware-Bound M2M Authentication. No API Keys." />
-	<meta property="og:description" content="Replace static API keys with cryptographic device identity. Private keys live in your Secure Enclave or TPM." />
+	<meta property="og:title" content="amesh — Device-Bound M2M Authentication. No API Keys." />
+	<meta property="og:description" content="Replace static API keys with cryptographic device identity. Private keys stay on your machine." />
 	<meta property="og:url" content="https://authmesh.dev/" />
 	<meta property="og:image" content="https://authmesh.dev/og-image.png" />
 	<meta property="og:image:width" content="1200" />
@@ -124,12 +124,12 @@
 				</a>
 
 				<h1 class="mt-6 text-4xl font-bold leading-tight tracking-tight text-zinc-50 sm:text-5xl lg:text-6xl">
-					Stop managing API&nbsp;keys. Let hardware prove identity.
+					Stop managing API&nbsp;keys. Let your device prove identity.
 				</h1>
 
 				<p class="mt-6 max-w-lg text-lg text-zinc-400 sm:text-xl">
 					amesh replaces static secrets with cryptographic device identity.
-					The private key lives in your chip. There is nothing to leak.
+					The private key stays on your device. There is nothing to leak.
 				</p>
 
 				<!-- Install CTA -->

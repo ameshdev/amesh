@@ -31,7 +31,7 @@ How to add amesh to your existing application. Each recipe is self-contained —
 
 ## Recipe 1: Protect an Express API
 
-Replace Bearer token authentication with hardware-bound device identity.
+Replace Bearer token authentication with device-bound cryptographic identity.
 
 ### Server setup
 
@@ -283,7 +283,7 @@ app.post('/webhooks', amesh.verify(), (req, res) => {
 });
 ```
 
-No shared secret. The webhook sender proves its identity with a hardware-bound signature.
+No shared secret. The webhook sender proves its identity with a device-bound signature.
 
 ---
 

@@ -8,7 +8,7 @@ Key decisions made during spec review and project bootstrap (March 2026). Each e
 
 **Decision:** All device identity keys use NIST P-256 (secp256r1) with ECDSA signing.
 
-**Why:** Ed25519 is not supported by Apple's Secure Enclave (P-256 only via `kSecAttrKeyTypeECSECPrimeRandom`) or most TPM 2.0 hardware (Ed25519 added in TPM spec revision 1.59+ but rarely implemented in physical chips). Since the core value proposition is hardware-bound identity, we must use a curve that hardware actually supports.
+**Why:** Ed25519 is not supported by Apple's Secure Enclave (P-256 only via `kSecAttrKeyTypeECSECPrimeRandom`) or most TPM 2.0 hardware (Ed25519 added in TPM spec revision 1.59+ but rarely implemented in physical chips). Since the upgrade path to hardware-bound identity (Secure Enclave, TPM) requires P-256, we must use a curve that hardware supports.
 
 **Rejected alternatives:**
 - Ed25519 everywhere, software-only on macOS → defeats the purpose of hardware binding

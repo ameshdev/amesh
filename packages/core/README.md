@@ -1,6 +1,6 @@
 # @authmesh/core
 
-P-256 ECDSA crypto primitives for [amesh](https://github.com/ameshdev/amesh) --- hardware-bound M2M authentication.
+P-256 ECDSA crypto primitives for [amesh](https://github.com/ameshdev/amesh) --- device-bound M2M authentication.
 
 ## Install
 

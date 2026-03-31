@@ -39,7 +39,7 @@ This creates two files:
 - `~/.amesh/identity.json` — your device ID, public key, friendly name
 - `~/.amesh/allow_list.json` — HMAC-sealed trust store (starts empty)
 
-The private key is stored in the OS keychain or hardware module and never written to disk.
+The private key is protected by the OS keychain (macOS) or TPM (Linux) and never written to disk as plaintext.
 
 To use a custom directory (useful for testing):
 ```bash

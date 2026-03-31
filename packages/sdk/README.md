@@ -1,6 +1,6 @@
 # @authmesh/sdk
 
-Signing fetch client and verification middleware for [amesh](https://github.com/ameshdev/amesh) --- hardware-bound M2M authentication that replaces API keys.
+Signing fetch client and verification middleware for [amesh](https://github.com/ameshdev/amesh) --- device-bound M2M authentication that replaces API keys.
 
 ## Install
 
@@ -20,7 +20,7 @@ const res = await amesh.fetch('https://api.example.com/orders', {
 });
 ```
 
-`amesh.fetch()` loads your device identity from `~/.amesh/`, signs the request with your hardware-bound P-256 key, and adds the `Authorization` header.
+`amesh.fetch()` loads your device identity from `~/.amesh/`, signs the request with your device-bound P-256 key, and adds the `Authorization` header.
 
 ## Verify requests (server)
 
