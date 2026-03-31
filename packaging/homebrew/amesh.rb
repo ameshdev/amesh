@@ -30,6 +30,7 @@ class Amesh < Formula
 
   def install
     bin.install "amesh"
+    bin.install "amesh-se-helper" if File.exist?("amesh-se-helper")
   end
 
   test do

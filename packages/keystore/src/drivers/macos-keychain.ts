@@ -1,13 +1,40 @@
 import { spawn } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { randomBytes } from '@noble/ciphers/utils.js';
 import { p256 } from '@noble/curves/nist.js';
 import type { KeyStore } from '../interface.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const HELPER_PATH = join(__dirname, '../../swift/amesh-se-helper');
+
+/**
+ * Resolve the Swift helper binary path.
+ *
+ * Search order:
+ *   1. Next to the running executable (Homebrew / compiled binary)
+ *   2. In libexec/ next to the executable (Homebrew convention)
+ *   3. Source tree relative path (development)
+ */
+async function resolveHelperPath(): Promise<string> {
+  const execDir = dirname(process.execPath);
+  const candidates = [
+    join(execDir, 'amesh-se-helper'),
+    join(execDir, '..', 'libexec', 'amesh-se-helper'),
+    join(__dirname, '../../swift/amesh-se-helper'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      await access(candidate);
+      return candidate;
+    } catch {
+      // not found, try next
+    }
+  }
+  throw new Error('amesh-se-helper not found');
+}
+
+let _helperPath: string | undefined;
 
 interface HelperResponse {
   success: boolean;
@@ -18,8 +45,9 @@ interface HelperResponse {
 }
 
 async function callHelper(command: Record<string, unknown>): Promise<HelperResponse> {
+  if (!_helperPath) _helperPath = await resolveHelperPath();
   return new Promise((resolve, reject) => {
-    const child = spawn(HELPER_PATH, [], { timeout: 10_000 });
+    const child = spawn(_helperPath!, [], { timeout: 10_000 });
     const chunks: Buffer[] = [];
 
     child.stdout.on('data', (chunk: Buffer) => chunks.push(chunk));

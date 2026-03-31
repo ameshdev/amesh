@@ -43,7 +43,7 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.VERSION }}
           TARBALL="amesh-${VERSION}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz"
-          tar -czf "$TARBALL" -C packaging/dist amesh
+          tar -czf "$TARBALL" -C packaging/dist .
           echo "TARBALL=${TARBALL}" >> "$GITHUB_ENV"
 
       - name: Upload to GitHub Release
@@ -158,6 +158,7 @@ jobs:
 
             def install
               bin.install "amesh"
+              bin.install "amesh-se-helper" if File.exist?("amesh-se-helper")
             end
 
             test do

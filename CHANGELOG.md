@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.3] - 2026-03-31
+
+### Fixed
+
+- **macOS Keychain not detected in Homebrew installs** — the Swift Secure Enclave helper (`amesh-se-helper`) was not bundled in release tarballs, causing silent fallback to the passphrase-based encrypted-file backend on macOS.
+
+### Changed
+
+- **Swift helper bundled in macOS releases** — `amesh-se-helper` is now compiled and included in darwin tarballs. Homebrew installs it alongside the `amesh` binary.
+- **Helper path resolution** — `macos-keychain.ts` now searches next to the running executable first (compiled/Homebrew), then falls back to the source tree path (development).
+- **Build script** (`packaging/build-bun.mjs`) compiles the Swift helper automatically on macOS targets.
+
 ## [0.1.2] - 2026-03-31
 
 ### Changed
@@ -56,6 +68,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Documentation**: guide, architecture decisions (8 ADRs), hardware implementation details, Redis nonce adapter guide, automated provisioning guide, value proposition doc.
 - **Demo**: working end-to-end example showing signed requests, body verification, and replay detection.
 
+[0.1.3]: https://github.com/ameshdev/amesh/releases/tag/v0.1.3
 [0.1.2]: https://github.com/ameshdev/amesh/releases/tag/v0.1.2
 [0.1.1]: https://github.com/ameshdev/amesh/releases/tag/v0.1.1
 [0.1.0]: https://github.com/ameshdev/amesh/releases/tag/v0.1.0
