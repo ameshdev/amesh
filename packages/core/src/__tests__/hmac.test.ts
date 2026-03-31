@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { computeHmac, verifyHmac } from '../hmac.js';
 
 const key = new TextEncoder().encode('test-key-for-hmac');

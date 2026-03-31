@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { InMemoryNonceStore } from '../nonce.js';
 import type { NonceStore } from '../nonce.js';
 

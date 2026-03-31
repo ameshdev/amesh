@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'bun:test';
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
 import { p256 } from '@noble/curves/nist.js';
 import { randomBytes } from '@noble/ciphers/utils.js';

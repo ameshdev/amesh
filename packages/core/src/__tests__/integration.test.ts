@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { p256 } from '@noble/curves/nist.js';
 import { signMessage, verifyMessage } from '../crypto.js';
 import { buildCanonicalString } from '../canonical.js';

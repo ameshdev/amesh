@@ -1,16 +1,16 @@
-FROM node:24-slim AS build
+FROM oven/bun:1.3-slim AS build
 
 WORKDIR /app
 
 # Copy workspace config
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json turbo.json ./
+COPY package.json bun.lock turbo.json tsconfig.base.json ./
 
 # Copy only the packages needed for the relay
 COPY packages/core/package.json packages/core/
 COPY packages/relay/package.json packages/relay/
 
 # Install dependencies
-RUN corepack enable pnpm && pnpm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 # Copy source
 COPY packages/core/src packages/core/src
@@ -19,7 +19,7 @@ COPY packages/relay/src packages/relay/src
 COPY packages/relay/tsconfig.json packages/relay/
 
 # Build
-RUN pnpm build --filter=@authmesh/relay
+RUN bun run build --filter=@authmesh/relay
 
 # --- Production stage (Bun runtime) ---
 FROM oven/bun:1.3-slim

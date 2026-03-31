@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { RedisNonceStore } from '../redis-nonce-store.js';
 
 const REDIS_URL = process.env.REDIS_URL;

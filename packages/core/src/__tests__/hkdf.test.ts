@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { deriveKey } from '../hkdf.js';
 
 const ikm = new Uint8Array(32).fill(0xab);

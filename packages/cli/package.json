@@ -34,8 +34,7 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "echo 'no tests'",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "clean": "rm -rf dist *.tsbuildinfo"
@@ -52,7 +51,6 @@
     "@types/node": "^22.0.0",
     "eslint": "^9.0.0",
     "typescript": "^5.7.0",
-    "typescript-eslint": "^8.0.0",
-    "vitest": "^4.0.0"
+    "typescript-eslint": "^8.0.0"
   }
 }
