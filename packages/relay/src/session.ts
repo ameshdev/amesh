@@ -1,9 +1,10 @@
-import type { WebSocket } from 'ws';
+import type { ServerWebSocket } from 'bun';
+import type { WebSocketData } from './server.js';
 
 export interface PairingSession {
   otc: string;
-  target: WebSocket;
-  controller: WebSocket | null;
+  target: ServerWebSocket<WebSocketData>;
+  controller: ServerWebSocket<WebSocketData> | null;
   createdAt: number;
   expiresAt: number;
 }
@@ -21,7 +22,7 @@ export class SessionStore {
     this.cleanupTimer = setInterval(() => this.purge(), 10_000);
   }
 
-  create(otc: string, target: WebSocket, ttlSeconds = 120): PairingSession {
+  create(otc: string, target: ServerWebSocket<WebSocketData>, ttlSeconds = 120): PairingSession {
     if (this.sessions.has(otc)) {
       throw new Error('OTC already in use');
     }
