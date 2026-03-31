@@ -43,7 +43,6 @@ async function ameshFetch(url: string | URL, init?: RequestInit): Promise<Respon
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     join(getAmeshDir(), 'keys'),
-    process.env.AUTH_MESH_PASSPHRASE,
   );
 
   const parsedUrl = new URL(url);
@@ -98,7 +97,6 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
     const keyStore = await createForBackend(
       identity.storageBackend as StorageBackend,
       join(getAmeshDir(), 'keys'),
-      process.env.AUTH_MESH_PASSPHRASE,
     );
     const hmacKey = await keyStore.getHmacKeyMaterial(identity.deviceId);
     allowList = new AllowList(join(getAmeshDir(), 'allow_list.json'), hmacKey, identity.deviceId);

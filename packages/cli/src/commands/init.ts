@@ -18,12 +18,7 @@ export default class Init extends Command {
     backend: Flags.string({
       char: 'b',
       description: 'Force a specific storage backend',
-      options: ['secure-enclave', 'keychain', 'tpm2', 'encrypted-file'],
-    }),
-    passphrase: Flags.string({
-      char: 'p',
-      description: 'Passphrase for encrypted-file backend',
-      env: 'AUTH_MESH_PASSPHRASE',
+      options: ['secure-enclave', 'keychain', 'tpm2'],
     }),
     force: Flags.boolean({
       description: 'Overwrite existing identity',
@@ -48,9 +43,9 @@ export default class Init extends Command {
 
     if (flags.backend) {
       backend = flags.backend as StorageBackend;
-      keyStore = await createForBackend(backend, keysDir, flags.passphrase);
+      keyStore = await createForBackend(backend, keysDir);
     } else {
-      const result = await detectAndCreate(keysDir, flags.passphrase);
+      const result = await detectAndCreate(keysDir);
       backend = result.backend;
       keyStore = result.keyStore;
       if (result.warning) {
@@ -62,20 +57,9 @@ export default class Init extends Command {
     const { publicKey } = await keyStore.generateAndStore(deviceIdPlaceholder);
     const deviceId = generateDeviceId(publicKey);
 
-    // Rename key to use real device ID (encrypted-file only — keychain/TPM keep original tag)
-    if (backend === 'encrypted-file') {
-      const { readFile, writeFile, unlink } = await import('node:fs/promises');
-      const { join } = await import('node:path');
-      const pendingPath = join(keysDir, `${deviceIdPlaceholder}.key.json`);
-      const realPath = join(keysDir, `${deviceId}.key.json`);
-      await writeFile(realPath, await readFile(pendingPath));
-      await unlink(pendingPath);
-    }
-    // For keychain/TPM: key stays stored under deviceIdPlaceholder
-    // context.ts maps deviceId → internal key name via identity.keyAlias
-
-    // keyAlias: the name used in the keystore (matches deviceId for encrypted-file, am_init for keychain/TPM)
-    const keyAlias = backend === 'encrypted-file' ? deviceId : deviceIdPlaceholder;
+    // Hardware keystores can't rename keys — key stays stored under deviceIdPlaceholder.
+    // context.ts maps deviceId → internal key name via identity.keyAlias.
+    const keyAlias = deviceIdPlaceholder;
 
     const identity = {
       version: '2.0.0' as const,

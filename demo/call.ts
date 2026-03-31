@@ -70,7 +70,7 @@ async function run() {
   const ameshDir = process.env.AUTH_MESH_DIR ?? join(homedir(), '.amesh');
   const identity = JSON.parse(await readFile(join(ameshDir, 'identity.json'), 'utf-8'));
   const keyAlias = identity.keyAlias ?? identity.deviceId;
-  const keyStore = await createForBackend(identity.storageBackend as StorageBackend, join(ameshDir, 'keys'), process.env.AUTH_MESH_PASSPHRASE);
+  const keyStore = await createForBackend(identity.storageBackend as StorageBackend, join(ameshDir, 'keys'));
 
   const ts = Math.floor(Date.now() / 1000).toString();
   const nonce = Buffer.from(randomBytes(16)).toString('base64url');

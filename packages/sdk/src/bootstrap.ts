@@ -73,7 +73,7 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
   // Generate our identity
   const ameshDir = getAmeshDir();
   const keysDir = join(ameshDir, 'keys');
-  const { backend, keyStore } = await detectAndCreate(keysDir, process.env.AUTH_MESH_PASSPHRASE);
+  const { backend, keyStore } = await detectAndCreate(keysDir);
 
   const { publicKey } = await keyStore.generateAndStore('am_pending');
 
@@ -151,42 +151,27 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
           const { sha256 } = await import('@noble/hashes/sha2.js');
           const deviceId = `am_${Buffer.from(sha256(publicKey)).toString('base64url').slice(0, 16)}`;
 
-          // Rename key from am_pending to real ID
-          if (backend === 'encrypted-file') {
-            const { readFile: rf, writeFile: wf, unlink } = await import('node:fs/promises');
-            const pendingPath = join(keysDir, 'am_pending.key.json');
-            const realPath = join(keysDir, `${deviceId}.key.json`);
-            await wf(realPath, await rf(pendingPath), { mode: 0o600 });
-            await unlink(pendingPath);
-          } else {
-            // Hardware keystores can't rename keys. Store a keyAlias mapping
-            // so the real deviceId maps to the 'am_pending' key in hardware.
-            // The publicKey stays the same — no re-generation needed.
-          }
+          // Hardware keystores can't rename keys. Store a keyAlias mapping
+          // so the real deviceId maps to the 'am_pending' key in hardware.
 
           // Write identity.json
           const { writeFile, mkdir } = await import('node:fs/promises');
           const { dirname } = await import('node:path');
           const identityPath = join(ameshDir, 'identity.json');
           await mkdir(dirname(identityPath), { recursive: true, mode: 0o700 });
-          const identityData: Record<string, unknown> = {
+          const identityData = {
             version: '2.0.0',
             deviceId,
+            keyAlias: 'am_pending',
             publicKey: Buffer.from(publicKey).toString('base64'),
             friendlyName: payload.name,
             createdAt: new Date().toISOString(),
             storageBackend: backend,
           };
-          // Hardware backends can't rename keys — store alias to the pending key
-          if (backend !== 'encrypted-file') {
-            identityData.keyAlias = 'am_pending';
-          }
           await writeFile(identityPath, JSON.stringify(identityData, null, 2), { mode: 0o600 });
 
           // Write allow list with controller
-          // Use the actual key alias (am_pending for hardware, deviceId for encrypted-file)
-          const hmacAlias = backend === 'encrypted-file' ? deviceId : 'am_pending';
-          const hmacKey = await keyStore.getHmacKeyMaterial(hmacAlias);
+          const hmacKey = await keyStore.getHmacKeyMaterial('am_pending');
           const allowList = new AllowList(join(ameshDir, 'allow_list.json'), hmacKey, deviceId);
           await allowList.addDevice({
             deviceId: payload.iss,
