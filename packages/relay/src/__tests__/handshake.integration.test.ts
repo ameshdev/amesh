@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { p256 } from '@noble/curves/nist.js';
 import { signMessage } from '@authmesh/core';
 import { createRelayServer } from '../server.js';
@@ -8,18 +8,17 @@ import {
   computeSAS,
 } from '../../../cli/src/handshake.js';
 
-let relay: Awaited<ReturnType<typeof createRelayServer>>;
+let relay: ReturnType<typeof createRelayServer>;
 let relayUrl: string;
 
-beforeAll(async () => {
-  relay = await createRelayServer({ host: '127.0.0.1', port: 0 });
-  await relay.app.listen({ host: '127.0.0.1', port: 0 });
-  const port = (relay.app.server.address() as { port: number }).port;
-  relayUrl = `ws://127.0.0.1:${port}/ws`;
+beforeAll(() => {
+  relay = createRelayServer({ host: '127.0.0.1', port: 0 });
+  const addr = relay.start();
+  relayUrl = `ws://127.0.0.1:${addr.port}/ws`;
 });
 
-afterAll(async () => {
-  await relay.stop();
+afterAll(() => {
+  relay.stop();
 });
 
 function makeIdentity() {
@@ -82,7 +81,7 @@ describe('full handshake integration', () => {
   it('controller gets error for nonexistent OTC', async () => {
     const controller = makeIdentity();
 
-    await expect(
+    expect(
       runControllerHandshake(
         relayUrl,
         '999999',

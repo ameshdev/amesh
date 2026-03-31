@@ -16,7 +16,7 @@
     "relay",
     "websocket",
     "handshake",
-    "fastify",
+    "bun",
     "pairing"
   ],
   "publishConfig": {
@@ -31,26 +31,21 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsc -b",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "bun test src/__tests__/",
+    "test:watch": "bun test --watch src/__tests__/",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "start": "node dist/start.js"
+    "start": "bun dist/start.js"
   },
   "dependencies": {
-    "@authmesh/core": "workspace:*",
-    "fastify": "^5.0.0",
-    "@fastify/websocket": "^11.0.0",
-    "ws": "^8.0.0",
-    "@fastify/rate-limit": "^10.0.0"
+    "@authmesh/core": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@noble/curves": "2.0.1",
     "@noble/hashes": "2.0.1",
-    "@types/node": "^22.0.0",
-    "@types/ws": "^8.0.0",
+    "@types/bun": "^1.3.0",
     "eslint": "^9.0.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.0.0",

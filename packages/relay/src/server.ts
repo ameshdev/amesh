@@ -1,6 +1,4 @@
-import Fastify from 'fastify';
-import websocket from '@fastify/websocket';
-import type { WebSocket } from 'ws';
+import type { ServerWebSocket } from 'bun';
 import { SessionStore } from './session.js';
 import { RateLimiter, OTCAttemptTracker } from './rate-limit.js';
 
@@ -9,179 +7,128 @@ interface RelayMessage {
   otc?: string;
   payload?: string;
   jti?: string;
+  token?: string;
+  targetPubKey?: string;
   [key: string]: unknown;
+}
+
+export interface WebSocketData {
+  otc?: string;
+  btJti?: string;
+  ip: string;
 }
 
 const MAX_PAYLOAD = 65_536; // 64 KB — generous for handshake messages
 const MAX_CONNECTIONS = 10_000;
 const BOOTSTRAP_WATCHER_TTL_MS = 300_000; // 5 minutes
 
-export async function createRelayServer(opts?: { host?: string; port?: number }) {
-  const app = Fastify({ logger: false });
+export function createRelayServer(opts?: { host?: string; port?: number }) {
   const sessions = new SessionStore();
   const rateLimiter = new RateLimiter(5, 60_000);
   const otcAttempts = new OTCAttemptTracker(10);
   // Bootstrap watchers: jti → { socket, createdAt }
-  const bootstrapWatchers = new Map<string, { socket: WebSocket; createdAt: number }>();
+  const bootstrapWatchers = new Map<string, { socket: ServerWebSocket<WebSocketData>; createdAt: number }>();
+  // Track all connected sockets for bootstrap response routing
+  const connectedSockets = new Set<ServerWebSocket<WebSocketData>>();
   let connectionCount = 0;
-
-  await app.register(websocket, {
-    options: { maxPayload: MAX_PAYLOAD },
-  });
-
-  app.get('/health', async () => ({ status: 'ok', sessions: sessions.size }));
 
   // Purge stale bootstrap watchers every 30 seconds
   const bootstrapCleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [jti, entry] of bootstrapWatchers) {
-      if (now - entry.createdAt > BOOTSTRAP_WATCHER_TTL_MS || entry.socket.readyState !== 1) {
+      if (now - entry.createdAt > BOOTSTRAP_WATCHER_TTL_MS || entry.socket.readyState !== WebSocket.OPEN) {
         bootstrapWatchers.delete(jti);
       }
     }
   }, 30_000);
   bootstrapCleanupTimer.unref();
 
-  app.register(async function (fastify) {
-    fastify.get('/ws', { websocket: true }, (socket: WebSocket, req) => {
-      // Connection limit
-      connectionCount++;
-      if (connectionCount > MAX_CONNECTIONS) {
-        socket.close(1013, 'too_many_connections');
-        connectionCount--;
-        return;
-      }
+  const host = opts?.host ?? '0.0.0.0';
+  const port = opts?.port ?? 3001;
 
-      const ip = req.ip;
-
-      socket.on('message', (raw: Buffer) => {
-        let msg: RelayMessage;
-        try {
-          msg = JSON.parse(raw.toString());
-        } catch {
-          socket.send(JSON.stringify({ type: 'error', code: 'invalid_message' }));
-          return;
-        }
-
-        switch (msg.type) {
-          case 'listen':
-            handleListen(socket, msg, ip);
-            break;
-          case 'connect':
-            handleConnect(socket, msg, ip);
-            break;
-          case 'data':
-            handleData(socket, msg);
-            break;
-          case 'done':
-            handleDone(socket);
-            break;
-          case 'bootstrap_watch':
-            handleBootstrapWatch(socket, msg);
-            break;
-          case 'bootstrap_init':
-            handleBootstrapInit(socket, msg);
-            break;
-          case 'bootstrap_ack':
-          case 'bootstrap_reject':
-            handleBootstrapResponse(socket, msg);
-            break;
-          default:
-            socket.send(JSON.stringify({ type: 'error', code: 'unknown_type' }));
-        }
-      });
-
-      socket.on('close', () => {
-        connectionCount--;
-        cleanupSocket(socket);
-      });
-    });
-  });
-
-  function handleListen(socket: WebSocket, msg: RelayMessage, ip: string) {
+  function handleListen(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
     const otc = msg.otc;
     if (!otc || !/^\d{6}$/.test(otc)) {
-      socket.send(JSON.stringify({ type: 'error', code: 'invalid_otc' }));
+      ws.send(JSON.stringify({ type: 'error', code: 'invalid_otc' }));
       return;
     }
 
-    if (!rateLimiter.check(ip)) {
-      socket.send(JSON.stringify({ type: 'error', code: 'rate_limited' }));
+    if (!rateLimiter.check(ws.data.ip)) {
+      ws.send(JSON.stringify({ type: 'error', code: 'rate_limited' }));
       return;
     }
 
     try {
-      sessions.create(otc, socket);
-      socket.send(JSON.stringify({ type: 'ack', message: 'session_open' }));
-      // Store OTC on socket for cleanup
-      (socket as WebSocket & { _otc?: string })._otc = otc;
+      sessions.create(otc, ws);
+      ws.send(JSON.stringify({ type: 'ack', message: 'session_open' }));
+      ws.data.otc = otc;
     } catch {
-      socket.send(JSON.stringify({ type: 'error', code: 'otc_in_use' }));
+      ws.send(JSON.stringify({ type: 'error', code: 'otc_in_use' }));
     }
   }
 
-  function handleConnect(socket: WebSocket, msg: RelayMessage, ip: string) {
+  function handleConnect(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
     const otc = msg.otc;
     if (!otc || !/^\d{6}$/.test(otc)) {
-      socket.send(JSON.stringify({ type: 'error', code: 'invalid_otc' }));
+      ws.send(JSON.stringify({ type: 'error', code: 'invalid_otc' }));
       return;
     }
 
-    if (!rateLimiter.check(ip)) {
-      socket.send(JSON.stringify({ type: 'error', code: 'rate_limited' }));
+    if (!rateLimiter.check(ws.data.ip)) {
+      ws.send(JSON.stringify({ type: 'error', code: 'rate_limited' }));
       return;
     }
 
     const session = sessions.get(otc);
     if (!session) {
-      rateLimiter.recordFailure(ip);
+      rateLimiter.recordFailure(ws.data.ip);
       // Per-OTC attempt tracking: invalidate OTC after too many failures
       if (!otcAttempts.recordAndCheck(otc)) {
         // OTC exhausted by brute-force — silently drop (already removed or expired)
       }
-      socket.send(JSON.stringify({ type: 'error', code: 'otc_not_found' }));
+      ws.send(JSON.stringify({ type: 'error', code: 'otc_not_found' }));
       return;
     }
 
     if (session.controller) {
-      socket.send(JSON.stringify({ type: 'error', code: 'peer_already_connected' }));
+      ws.send(JSON.stringify({ type: 'error', code: 'peer_already_connected' }));
       return;
     }
 
-    session.controller = socket;
-    (socket as WebSocket & { _otc?: string })._otc = otc;
+    session.controller = ws;
+    ws.data.otc = otc;
     // Successful connect — clean up OTC attempt tracking
     otcAttempts.remove(otc);
 
     // Notify both sides
     session.target.send(JSON.stringify({ type: 'peer_found' }));
-    socket.send(JSON.stringify({ type: 'peer_found' }));
+    ws.send(JSON.stringify({ type: 'peer_found' }));
   }
 
-  function handleData(socket: WebSocket, msg: RelayMessage) {
-    const otc = (socket as WebSocket & { _otc?: string })._otc;
+  function handleData(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
+    const otc = ws.data.otc;
     if (!otc) return;
 
     const session = sessions.get(otc);
     if (!session) return;
 
     // Forward to the other peer (opaque blob forwarding)
-    const peer = socket === session.target ? session.controller : session.target;
-    if (peer && peer.readyState === 1) {
+    const peer = ws === session.target ? session.controller : session.target;
+    if (peer && peer.readyState === WebSocket.OPEN) {
       peer.send(JSON.stringify({ type: 'data', payload: msg.payload }));
     }
   }
 
-  function handleDone(socket: WebSocket) {
-    const otc = (socket as WebSocket & { _otc?: string })._otc;
+  function handleDone(ws: ServerWebSocket<WebSocketData>) {
+    const otc = ws.data.otc;
     if (!otc) return;
 
     const session = sessions.get(otc);
     if (!session) return;
 
     // Notify peer and clean up
-    const peer = socket === session.target ? session.controller : session.target;
-    if (peer && peer.readyState === 1) {
+    const peer = ws === session.target ? session.controller : session.target;
+    if (peer && peer.readyState === WebSocket.OPEN) {
       peer.send(JSON.stringify({ type: 'done' }));
     }
 
@@ -189,22 +136,22 @@ export async function createRelayServer(opts?: { host?: string; port?: number })
   }
 
   // Bootstrap: controller registers to watch for a specific jti
-  function handleBootstrapWatch(socket: WebSocket, msg: RelayMessage) {
-    if (!msg.jti) { socket.send(JSON.stringify({ type: 'error', code: 'missing_jti' })); return; }
-    bootstrapWatchers.set(msg.jti, { socket, createdAt: Date.now() });
-    socket.send(JSON.stringify({ type: 'bootstrap_watching', jti: msg.jti }));
+  function handleBootstrapWatch(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
+    if (!msg.jti) { ws.send(JSON.stringify({ type: 'error', code: 'missing_jti' })); return; }
+    bootstrapWatchers.set(msg.jti, { socket: ws, createdAt: Date.now() });
+    ws.send(JSON.stringify({ type: 'bootstrap_watching', jti: msg.jti }));
   }
 
   // Bootstrap: target initiates pairing with a token
-  function handleBootstrapInit(socket: WebSocket, msg: RelayMessage) {
-    if (!msg.jti) { socket.send(JSON.stringify({ type: 'error', code: 'missing_jti' })); return; }
+  function handleBootstrapInit(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
+    if (!msg.jti) { ws.send(JSON.stringify({ type: 'error', code: 'missing_jti' })); return; }
     const entry = bootstrapWatchers.get(msg.jti);
-    if (!entry || entry.socket.readyState !== 1) {
-      socket.send(JSON.stringify({ type: 'bootstrap_reject', error: 'no_watcher' }));
+    if (!entry || entry.socket.readyState !== WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'bootstrap_reject', error: 'no_watcher' }));
       return;
     }
     // Store target socket for response routing
-    (socket as WebSocket & { _btJti?: string })._btJti = msg.jti;
+    ws.data.btJti = msg.jti;
     // Whitelist forwarded fields — do not forward arbitrary attacker-controlled data
     entry.socket.send(JSON.stringify({
       type: msg.type,
@@ -215,28 +162,27 @@ export async function createRelayServer(opts?: { host?: string; port?: number })
   }
 
   // Bootstrap: controller responds (ack or reject) — forward to target
-  function handleBootstrapResponse(socket: WebSocket, msg: RelayMessage) {
-    const jti = msg.jti ?? (socket as WebSocket & { _btWatchJti?: string })._btWatchJti;
+  function handleBootstrapResponse(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
+    const jti = msg.jti;
     if (!jti) return;
     // Find target socket by jti
-    // Simple approach: iterate connected sockets (relay is small)
-    app.websocketServer?.clients.forEach((client: WebSocket) => {
-      if ((client as WebSocket & { _btJti?: string })._btJti === jti && client.readyState === 1) {
+    for (const client of connectedSockets) {
+      if (client.data.btJti === jti && client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(msg));
       }
-    });
+    }
     // Clean up watcher
     bootstrapWatchers.delete(jti);
   }
 
-  function cleanupSocket(socket: WebSocket) {
+  function cleanupSocket(ws: ServerWebSocket<WebSocketData>) {
     // Clean up pairing sessions
-    const otc = (socket as WebSocket & { _otc?: string })._otc;
+    const otc = ws.data.otc;
     if (otc) {
       const session = sessions.get(otc);
       if (session) {
-        const peer = socket === session.target ? session.controller : session.target;
-        if (peer && peer.readyState === 1) {
+        const peer = ws === session.target ? session.controller : session.target;
+        if (peer && peer.readyState === WebSocket.OPEN) {
           peer.send(JSON.stringify({ type: 'error', code: 'peer_disconnected' }));
         }
         sessions.remove(otc);
@@ -244,33 +190,107 @@ export async function createRelayServer(opts?: { host?: string; port?: number })
     }
 
     // Clean up bootstrap watchers
-    const btJti = (socket as WebSocket & { _btJti?: string })._btJti;
+    const btJti = ws.data.btJti;
     if (btJti) bootstrapWatchers.delete(btJti);
     // Also check if this socket was a watcher
     for (const [jti, entry] of bootstrapWatchers) {
-      if (entry.socket === socket) {
+      if (entry.socket === ws) {
         bootstrapWatchers.delete(jti);
         break;
       }
     }
   }
 
-  const host = opts?.host ?? '0.0.0.0';
-  const port = opts?.port ?? 3001;
+  let server: ReturnType<typeof Bun.serve<WebSocketData>>;
 
   return {
-    app,
     sessions,
-    async start() {
-      await app.listen({ host, port });
-      return { host, port };
+    get server() { return server; },
+    start() {
+      server = Bun.serve<WebSocketData>({
+        hostname: host,
+        port,
+        fetch(req, srv) {
+          const url = new URL(req.url);
+
+          if (url.pathname === '/health') {
+            return Response.json({ status: 'ok', sessions: sessions.size });
+          }
+
+          if (url.pathname === '/ws') {
+            const ip = srv.requestIP(req)?.address ?? 'unknown';
+            const upgraded = srv.upgrade(req, {
+              data: { ip },
+            });
+            if (upgraded) return undefined;
+            return new Response('WebSocket upgrade failed', { status: 400 });
+          }
+
+          return new Response('Not found', { status: 404 });
+        },
+        websocket: {
+          maxPayloadLength: MAX_PAYLOAD,
+          open(ws) {
+            connectionCount++;
+            connectedSockets.add(ws);
+            if (connectionCount > MAX_CONNECTIONS) {
+              ws.close(1013, 'too_many_connections');
+              connectionCount--;
+              connectedSockets.delete(ws);
+            }
+          },
+          message(ws, raw) {
+            let msg: RelayMessage;
+            try {
+              msg = JSON.parse(typeof raw === 'string' ? raw : Buffer.from(raw).toString());
+            } catch {
+              ws.send(JSON.stringify({ type: 'error', code: 'invalid_message' }));
+              return;
+            }
+
+            switch (msg.type) {
+              case 'listen':
+                handleListen(ws, msg);
+                break;
+              case 'connect':
+                handleConnect(ws, msg);
+                break;
+              case 'data':
+                handleData(ws, msg);
+                break;
+              case 'done':
+                handleDone(ws);
+                break;
+              case 'bootstrap_watch':
+                handleBootstrapWatch(ws, msg);
+                break;
+              case 'bootstrap_init':
+                handleBootstrapInit(ws, msg);
+                break;
+              case 'bootstrap_ack':
+              case 'bootstrap_reject':
+                handleBootstrapResponse(ws, msg);
+                break;
+              default:
+                ws.send(JSON.stringify({ type: 'error', code: 'unknown_type' }));
+            }
+          },
+          close(ws) {
+            connectionCount--;
+            connectedSockets.delete(ws);
+            cleanupSocket(ws);
+          },
+        },
+      });
+
+      return { host, port: server.port };
     },
-    async stop() {
+    stop() {
       clearInterval(bootstrapCleanupTimer);
       sessions.destroy();
       rateLimiter.destroy();
       otcAttempts.destroy();
-      await app.close();
+      server?.stop();
     },
   };
 }
