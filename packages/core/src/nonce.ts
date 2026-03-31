@@ -10,7 +10,7 @@ export interface NonceStore {
 
 /**
  * In-memory nonce store. Works for single-instance deployments.
- * WARNING: Does NOT work for multi-instance (Lambda, K8s replicas, auto-scaling).
+ * WARNING: Does NOT work for multi-instance deployments (replicas, auto-scaling).
  */
 export class InMemoryNonceStore implements NonceStore {
   private store = new Map<string, number>();

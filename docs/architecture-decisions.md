@@ -42,10 +42,11 @@ Key decisions made during spec review and project bootstrap (March 2026). Each e
 **Approach by tier:**
 | Tier | Platform | Method |
 |------|----------|--------|
-| 1 | macOS Secure Enclave | napi-rs → `SecKeyCreateRandomKey` + `kSecAttrTokenIDSecureEnclave` |
-| 2 | Linux TPM 2.0 | `tpm2-tools` subprocess via `execFile` (not `exec`) |
-| 3 | OS keyring fallback | `security` CLI (macOS) / `secret-tool` (Linux libsecret) |
-| 4 | Encrypted file | AES-256-GCM + Argon2id via `@noble/hashes/argon2` + `@noble/ciphers` |
+| 1 | macOS Secure Enclave | Swift helper → `SecKeyCreateRandomKey` + `kSecAttrTokenIDSecureEnclave` |
+| 2 | macOS Keychain | Swift helper → software keychain (unsigned binary fallback) |
+| 3 | Linux TPM 2.0 | `tpm2-tools` subprocess via `execFile` (not `exec`) |
+
+Note: The encrypted-file fallback (Tier 4) was removed in v0.1.3. amesh now requires hardware-backed key storage.
 
 ---
 
@@ -114,7 +115,7 @@ Both CLIs display this number; the developer confirms they match. Same approach 
 **Why:** NIST SP 800-56A specifies extracting just the x-coordinate. The compressed point prefix byte (0x02/0x03) is not uniformly distributed and leaks information about y-coordinate parity. While HKDF hashes it away in practice, the standard extraction is correct.
 
 ### AllowList HMAC keyed from `getHmacKeyMaterial()`, not public key
-**Decision:** Added `getHmacKeyMaterial(deviceId)` to the KeyStore interface. For encrypted-file, it decrypts the private key and derives via HKDF. For hardware keystores, a random 32-byte secret is stored in a file with 0600 permissions.
+**Decision:** Added `getHmacKeyMaterial(deviceId)` to the KeyStore interface. A random 32-byte secret is stored in a file with 0600 permissions per device.
 
 **Why:** The AllowList constructor parameter was named `privateKeyMaterial` but all callers were passing the public key (from `getPublicKey()`). Since the public key is in `identity.json`, any attacker with filesystem access could derive the HMAC key and forge the allow list. This was the most critical finding.
 
@@ -136,6 +137,6 @@ Both CLIs display this number; the developer confirms they match. Same approach 
 **Why:** The relay was vulnerable to distributed OTC brute-force (per-IP limiting only), memory exhaustion via large payloads or unlimited connections, and stale bootstrap watcher leaks.
 
 ### deviceId path traversal prevention
-**Decision:** Validate deviceId against `/^[a-zA-Z0-9_-]+$/` in encrypted-file driver.
+**Decision:** Validate deviceId against `/^[a-zA-Z0-9_-]+$/` in all keystore drivers.
 
 **Why:** `path.join(basePath, deviceId + ".key.json")` does not prevent `../` traversal. A malicious deviceId could write outside the keys directory.
