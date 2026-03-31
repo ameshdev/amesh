@@ -106,9 +106,6 @@ importers:
       '@oclif/core':
         specifier: ^4.0.0
         version: 4.10.3
-      ws:
-        specifier: ^8.0.0
-        version: 8.20.0
     devDependencies:
       '@eslint/js':
         specifier: ^9.0.0
@@ -116,18 +113,9 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.15
-      '@types/ws':
-        specifier: ^8.0.0
-        version: 8.18.1
-      esbuild:
-        specifier: ^0.27.4
-        version: 0.27.4
       eslint:
         specifier: ^9.0.0
         version: 9.39.4(jiti@2.6.1)
-      postject:
-        specifier: 1.0.0-alpha.6
-        version: 1.0.0-alpha.6
       typescript:
         specifier: ^5.7.0
         version: 5.9.3

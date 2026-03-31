@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.2] - 2026-03-31
+
+### Changed
+
+- **CLI binary migrated from Node.js SEA to Bun compile** — binary size reduced from 123MB to 61MB (~50%), fixes segfault on macOS.
+- **WebSocket client switched from `ws` to native WebSocket API** — works in both Bun and Node.js, removes a runtime dependency.
+- **Release pipeline simplified** — 4-step SEA build (esbuild + blob + postject + codesign) replaced with single `bun build --compile`.
+
+### Removed
+
+- `ws`, `@types/ws`, `esbuild`, `postject` dependencies from CLI package.
+- Node.js SEA config (`sea-config.json`) and build script (`build-sea.mjs`).
+
 ## [0.1.1] - 2026-03-30
 
 ### Security
@@ -43,5 +56,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Documentation**: guide, architecture decisions (8 ADRs), hardware implementation details, Redis nonce adapter guide, automated provisioning guide, value proposition doc.
 - **Demo**: working end-to-end example showing signed requests, body verification, and replay detection.
 
+[0.1.2]: https://github.com/ameshdev/amesh/releases/tag/v0.1.2
 [0.1.1]: https://github.com/ameshdev/amesh/releases/tag/v0.1.1
 [0.1.0]: https://github.com/ameshdev/amesh/releases/tag/v0.1.0

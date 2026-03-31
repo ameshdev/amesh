@@ -1,4 +1,3 @@
-import { WebSocket } from 'ws';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { chacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { randomBytes } from '@noble/ciphers/utils.js';
@@ -26,13 +25,15 @@ function send(ws: WebSocket, msg: object): void {
 /**
  * Create a buffered message reader for a WebSocket.
  * Messages that arrive before read() is called are queued.
+ * Uses the standard WebSocket API (works in Bun and browsers).
  */
 function createMessageReader(ws: WebSocket) {
   const queue: Record<string, unknown>[] = [];
   let waiter: { resolve: (msg: Record<string, unknown>) => void; reject: (err: Error) => void } | null = null;
 
-  ws.on('message', (raw: Buffer) => {
-    const msg = JSON.parse(raw.toString());
+  ws.addEventListener('message', (event: MessageEvent) => {
+    const raw = typeof event.data === 'string' ? event.data : String(event.data);
+    const msg = JSON.parse(raw);
     if (waiter) {
       const w = waiter;
       waiter = null;
@@ -141,8 +142,8 @@ export async function runTargetHandshake(
 ): Promise<HandshakeResult> {
   const ws = new WebSocket(relayUrl);
   await new Promise<void>((resolve, reject) => {
-    ws.on('open', resolve);
-    ws.on('error', reject);
+    ws.addEventListener('open', () => resolve());
+    ws.addEventListener('error', (e) => reject(e));
   });
   const reader = createMessageReader(ws);
 
@@ -224,8 +225,8 @@ export async function runControllerHandshake(
 ): Promise<HandshakeResult> {
   const ws = new WebSocket(relayUrl);
   await new Promise<void>((resolve, reject) => {
-    ws.on('open', resolve);
-    ws.on('error', reject);
+    ws.addEventListener('open', () => resolve());
+    ws.addEventListener('error', (e) => reject(e));
   });
   const reader = createMessageReader(ws);
 

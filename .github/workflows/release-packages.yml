@@ -12,12 +12,15 @@ jobs:
           - os: macos-latest
             platform: darwin
             arch: arm64
+            bun-target: bun-darwin-arm64
           - os: macos-15
             platform: darwin
             arch: x64
+            bun-target: bun-darwin-x64
           - os: ubuntu-latest
             platform: linux
             arch: x64
+            bun-target: bun-linux-x64
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -31,6 +34,8 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - uses: oven-sh/setup-bun@v2
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
@@ -38,28 +43,14 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Bundle with esbuild
-        run: node packaging/build-sea.mjs
-
-      - name: Generate SEA blob
-        working-directory: packaging
-        run: node --experimental-sea-config sea-config.json
-
-      - name: Create SEA binary
-        run: |
-          cp "$(which node)" amesh
-          npx postject amesh NODE_SEA_BLOB packaging/dist/amesh-sea.blob \
-            --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
-
-      - name: Sign binary (macOS)
-        if: runner.os == 'macOS'
-        run: codesign --sign - --force amesh
+      - name: Build binary
+        run: bun packaging/build-bun.mjs --target ${{ matrix.bun-target }}
 
       - name: Package tarball
         run: |
           VERSION=${{ steps.version.outputs.VERSION }}
           TARBALL="amesh-${VERSION}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz"
-          tar -czf "$TARBALL" amesh
+          tar -czf "$TARBALL" -C packaging/dist amesh
           echo "TARBALL=${TARBALL}" >> "$GITHUB_ENV"
 
       - name: Upload to GitHub Release
