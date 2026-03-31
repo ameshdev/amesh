@@ -7,10 +7,10 @@ What you can do with amesh, step by step.
 ## 1. Run the Tests
 
 ```bash
-pnpm install
-pnpm build
-pnpm test       # 143 tests across 5 packages
-pnpm lint       # eslint + prettier check
+bun install
+bun run build
+bun run test    # 137 tests across 5 packages
+bun run lint    # eslint + prettier check
 ```
 
 ---
@@ -242,7 +242,7 @@ Both sides display a verification code — confirm they match. After that, each 
 To run the handshake as an integration test:
 ```bash
 cd packages/relay
-pnpm test
+bun test
 ```
 
 ---

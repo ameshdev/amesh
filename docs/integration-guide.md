@@ -102,7 +102,7 @@ amesh init --name "prod-api"
 amesh init --name "my-laptop"
 
 # Start the relay (needed only for pairing)
-npx @authmesh/relay
+bunx @authmesh/relay
 
 # On the server: start listening for pairing
 amesh listen
@@ -136,7 +136,7 @@ amesh invite 482916 --relay wss://relay.authmesh.dev/ws
 
 ```bash
 # On the remote server
-npx @authmesh/relay                                      # starts on port 3001
+bunx @authmesh/relay                                      # starts on port 3001
 amesh listen --relay ws://localhost:3001/ws
 
 # On your laptop (use the server's public IP or domain)
@@ -304,8 +304,8 @@ spec:
     spec:
       containers:
         - name: relay
-          image: node:24-slim
-          command: ["npx", "@authmesh/relay"]
+          image: oven/bun:1.3-slim
+          command: ["bunx", "@authmesh/relay"]
           ports:
             - containerPort: 3001
 ---
@@ -325,8 +325,8 @@ spec:
 ```yaml
 initContainers:
   - name: amesh-init
-    image: node:24-slim
-    command: ["npx", "@authmesh/cli", "init", "--name", "$(POD_NAME)"]
+    image: oven/bun:1.3-slim
+    command: ["bunx", "@authmesh/cli", "init", "--name", "$(POD_NAME)"]
     env:
       - name: POD_NAME
         valueFrom:

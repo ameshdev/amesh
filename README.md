@@ -167,10 +167,10 @@ The SDK has two main functions: `amesh.fetch()` (client) and `amesh.verify()` (s
 ## Development
 
 ```bash
-pnpm install        # install all deps
-pnpm build          # turbo build (tsc -b per package)
-pnpm test           # 143 tests across all packages
-pnpm lint           # eslint + prettier
+bun install         # install all deps
+bun run build       # turbo build (tsc -b per package)
+bun run test        # 137 tests across all packages
+bun run lint        # eslint + prettier
 ```
 
 ---

@@ -7,7 +7,7 @@ The relay is **only needed during initial device pairing**. After two devices ex
 ## Install & Run
 
 ```bash
-npx @authmesh/relay                    # run directly
+bunx @authmesh/relay                   # run directly
 # or
 npm install @authmesh/relay && node -e "import('@authmesh/relay').then(m => m.createRelay())"
 ```

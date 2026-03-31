@@ -63,22 +63,21 @@ Both CLIs display this number; the developer confirms they match. Same approach 
 
 ---
 
-## ADR-005: pnpm over bun
+## ADR-005: Bun as runtime and package manager
 
-**Decision:** Use pnpm 10.x as the package manager.
+**Decision:** Use Bun for package management, test runner (`bun:test`), CLI binary compilation (`bun build --compile`), and relay server runtime (`Bun.serve()`).
 
-**Why:** Bun installs are ~30x faster, but:
-- Native module compilation (node-gyp for napi-rs addon) has known issues with Bun
-- Binary lockfile is harder to audit — bad for security-critical projects
-- pnpm's strict dependency isolation catches phantom dependency bugs
+**Why:** The project has zero native addons (all crypto via pure-JS `@noble/*`), eliminating Bun's node-gyp concern. Bun provides faster installs, a built-in test runner with the same `describe/it/expect` API, and `bun build --compile` produces ~65MB binaries (vs ~123MB with Node.js SEA). The relay runs on `Bun.serve()` with zero framework deps.
+
+**Supersedes:** Original decision was pnpm over Bun due to native module and lockfile audit concerns. Both are no longer relevant — no native modules exist, and `bun.lock` supports text format.
 
 ---
 
-## ADR-006: Fastify v5 + @fastify/websocket
+## ADR-006: Bun.serve() for relay
 
-**Decision:** Use Fastify v5 (not v4) with `@fastify/websocket` for the relay server.
+**Decision:** Use `Bun.serve()` native HTTP + WebSocket server for the relay.
 
-**Why:** Fastify v4 reached EOL June 30, 2025. `@fastify/websocket` wraps `ws` internally with route-level WebSocket handlers and TypeScript support, instead of using raw `ws` alongside Fastify.
+**Why:** Zero dependencies — no Fastify, no `ws`. Bun's built-in WebSocket support handles upgrade, message routing, and backpressure natively. Eliminates 62 transitive deps from the relay package.
 
 ---
 

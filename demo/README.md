@@ -30,13 +30,13 @@ For the demo, both server and client run on the same machine with the same ident
 
 ```bash
 cd demo
-pnpm install
+bun install
 ```
 
 ### 4. Start the server
 
 ```bash
-npx tsx server.ts
+bun run server.ts
 ```
 
 ### 5. Run the client
@@ -45,7 +45,7 @@ In another terminal:
 
 ```bash
 export AUTH_MESH_PASSPHRASE="demo"
-npx tsx call.ts
+bun run call.ts
 ```
 
 ## What you'll see

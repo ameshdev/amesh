@@ -71,11 +71,11 @@ Every choice below is made for a reason. Do not substitute without understanding
 | **Hardware — macOS** | Custom `napi-rs` native module → Apple Security.framework | Direct Secure Enclave access via `SecKeyCreateRandomKey` with `kSecAttrTokenIDSecureEnclave`. Generates P-256 keys in hardware. `node-keytar` is deprecated (archived Dec 2022) and cannot access Secure Enclave — it is only a password store. |
 | **Hardware — Linux** | `tpm2-tools` (subprocess via `execFile`) | Industry standard TPM 2.0 interface. P-256 universally supported. |
 | **Hardware — Fallback** | OS keyring via platform CLI (`security`/`secret-tool`), then encrypted file | See Section 11. Replaces `keytar` which is deprecated. |
-| **Relay Server** | Fastify v5 + `@fastify/websocket` | Fastify v4 reached EOL June 2025. `@fastify/websocket` wraps `ws` with route-level handlers. |
+| **Relay Server** | Bun.serve() native | Zero deps — no Fastify, no ws. |
 | **Allow List Storage** | JSON file + HMAC integrity seal | See Section 9 — the plaintext JSON without integrity protection is a critical vulnerability |
-| **Package Manager** | `pnpm` workspaces | Monorepo-friendly, faster than npm, deterministic installs |
-| **Testing** | `vitest` v4 | Fast, native ESM, Oxc-powered in v4, monorepo `projects` config |
-| **Build — CLI** | `tsdown` | Rolldown-powered bundler (tsup successor, tsup is in maintenance mode) |
+| **Package Manager** | Bun workspaces | Monorepo-friendly, fast installs, native test runner |
+| **Testing** | `bun:test` | Native Bun test runner, same describe/it/expect API |
+| **Build — CLI** | `bun build --compile` | Single-executable binary (~65MB) |
 | **Build — Libraries** | `tsc -b` (project references) | Standard approach for npm-published packages, no bundler needed |
 | **Linting** | `eslint` + `@typescript-eslint` + `prettier` | Non-negotiable for a security-critical codebase |
 
@@ -83,7 +83,7 @@ Every choice below is made for a reason. Do not substitute without understanding
 
 ## 4. Repository Structure
 
-Use a **pnpm monorepo**. Every package is independently publishable.
+Use a **Bun monorepo**. Every package is independently publishable.
 
 ```
 amesh/
@@ -129,8 +129,7 @@ amesh/
 │       │   └── session.ts
 │       └── package.json
 │
-├── pnpm-workspace.yaml
-├── package.json
+├── package.json              # workspaces config
 └── turbo.json                 # Turborepo for parallel builds
 ```
 
@@ -768,7 +767,7 @@ The specific error code is logged server-side but never returned to the client (
 ### Week 1 — Core Primitives
 **Goal:** All crypto is correct and tested before any other code is written.
 
-- [ ] Bootstrap monorepo (`pnpm`, `turbo`, `vitest`, `eslint`)
+- [ ] Bootstrap monorepo (`bun`, `turbo`, `bun:test`, `eslint`)
 - [ ] `@authmesh/core`: implement `buildCanonicalString()`, `signMessage()`, `verifyMessage()`
 - [ ] `@authmesh/core`: implement `NonceStore` class
 - [ ] Write 100% unit test coverage for core — including edge cases: empty body, query string ordering, clock boundary conditions, replay attempts
@@ -776,7 +775,7 @@ The specific error code is logged server-side but never returned to the client (
 - [ ] `@authmesh/keystore`: implement encrypted-file driver (runs everywhere, easiest to test)
 - [ ] `@authmesh/keystore`: implement OS keyring driver (platform CLI: `security` on macOS, `secret-tool` on Linux)
 
-**Exit criteria:** `vitest` passes. P-256 ECDSA `signMessage` + `verifyMessage` round-trips. Nonce store correctly rejects replays.
+**Exit criteria:** `bun:test` passes. P-256 ECDSA `signMessage` + `verifyMessage` round-trips. Nonce store correctly rejects replays.
 
 ---
 
@@ -827,7 +826,7 @@ The specific error code is logged server-side but never returned to the client (
 
 ## 16. Testing Strategy
 
-### Unit Tests (vitest)
+### Unit Tests (bun:test)
 - Every function in `@authmesh/core` has unit tests
 - Nonce store: test insert, reject replay, expiry purge
 - Canonical string: test all field combinations, empty body, sorted query params
@@ -901,7 +900,7 @@ dGVzdG5vbmNl
   "@oclif/core": "4.x",
   "fastify": "5.x",
   "@fastify/websocket": "11.x",
-  "vitest": "4.x"
+  "bun:test": "4.x"
 }
 ```
 
@@ -913,4 +912,4 @@ Pin **exact versions** for crypto libraries (`@noble/*`). Use `^` only for tooli
 
 *End of amesh-spec-v2.0.md*
 *Revised from v1.1.0: Ed25519→P-256 for hardware compatibility, keytar→napi-rs native module, added SAS verification, updated all dependency versions.*
-*Next step: Create the monorepo, run `pnpm init`, and begin Week 1 tasks. The first PR should be nothing but `@authmesh/core` with 100% test coverage.*
+*Next step: Create the monorepo, run `bun init`, and begin Week 1 tasks. The first PR should be nothing but `@authmesh/core` with 100% test coverage.*
