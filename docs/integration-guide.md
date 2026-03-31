@@ -304,7 +304,7 @@ spec:
     spec:
       containers:
         - name: relay
-          image: node:20-slim
+          image: node:24-slim
           command: ["npx", "@authmesh/relay"]
           ports:
             - containerPort: 3001
@@ -325,7 +325,7 @@ spec:
 ```yaml
 initContainers:
   - name: amesh-init
-    image: node:20-slim
+    image: node:24-slim
     command: ["npx", "@authmesh/cli", "init", "--name", "$(POD_NAME)"]
     env:
       - name: POD_NAME

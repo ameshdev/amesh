@@ -1,0 +1,5 @@
+{
+  "main": "dist/amesh-sea.cjs",
+  "output": "dist/amesh-sea.blob",
+  "disableExperimentalSEAWarning": true
+}

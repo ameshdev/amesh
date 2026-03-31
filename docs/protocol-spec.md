@@ -63,7 +63,7 @@ Every choice below is made for a reason. Do not substitute without understanding
 
 | Layer | Choice | Reason |
 |---|---|---|
-| **Language** | TypeScript (Node.js 20 LTS) | Strong crypto ecosystem, fast prototyping, first-class async, runs natively on Lambda/Vercel |
+| **Language** | TypeScript (Node.js 24 LTS) | Strong crypto ecosystem, fast prototyping, first-class async, runs natively on Lambda/Vercel |
 | **CLI Framework** | `oclif` v4 | Industry-standard, supports plugin architecture, generates proper help docs, used by Heroku/Salesforce CLIs |
 | **Crypto — Curves** | `@noble/curves` (P-256 ECDSA + P-256 ECDH) | Audited, zero-dependency, constant-time, actively maintained by Paulmillr. P-256 chosen for universal hardware support (Secure Enclave, TPM 2.0). Replaces `@noble/ed25519` which is incompatible with hardware security modules. |
 | **Crypto — Hashes** | `@noble/hashes` (SHA-256, HKDF, HMAC, Argon2id) | Same author, same audit lineage. Argon2id built-in — no extra dependency for encrypted-file fallback. |

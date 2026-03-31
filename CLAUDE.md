@@ -14,7 +14,7 @@ Hardware-bound M2M authentication. Replaces static API keys with P-256 ECDSA dev
 
 | Concern | Choice | Notes |
 |---------|--------|-------|
-| Language | TypeScript, Node.js 20 LTS | ESM (`"type": "module"`) |
+| Language | TypeScript, Node.js 24 LTS | ESM (`"type": "module"`) |
 | Package manager | pnpm 10.x | Monorepo workspaces. No bun (native module issues). |
 | Build | `tsc -b` (libs), Turborepo v2 | `turbo.json` at root |
 | Test | vitest v4 | `passWithNoTests: true` in all configs |
