@@ -6,7 +6,14 @@
  * Statically imports all commands to bypass oclif's filesystem-based
  * command discovery, which doesn't work inside a single-file bundle.
  * Help is handled here; flag parsing delegates to oclif's Command.run().
+ *
+ * oclif requires a valid package.json root to initialize. Since compiled
+ * binaries don't have a filesystem, we create a minimal one at startup.
  */
+
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 import Init from './commands/init.js';
 import Invite from './commands/invite.js';
@@ -16,10 +23,10 @@ import Provision from './commands/provision.js';
 import Revoke from './commands/revoke.js';
 
 declare const __VERSION__: string;
-const VERSION = __VERSION__; // replaced at build time by esbuild
+const VERSION = __VERSION__; // replaced at build time by esbuild/bun
 
 interface CommandMeta {
-  run(argv?: string[]): Promise<unknown>;
+  run(argv?: string[], opts?: string): Promise<unknown>;
   description?: string;
   flags?: Record<string, { char?: string; description?: string; required?: boolean; default?: unknown; options?: readonly string[] }>;
   args?: Record<string, { description?: string; required?: boolean }>;
@@ -33,6 +40,24 @@ const commands: Record<string, CommandMeta> = {
   provision: Provision,
   revoke: Revoke,
 };
+
+/**
+ * Create a minimal oclif root so Config.load() works in compiled binaries.
+ * Without this, oclif tries to find package.json at the build-time path.
+ */
+function getOclifRoot(): string {
+  const root = join(tmpdir(), 'amesh-oclif');
+  const pjsonPath = join(root, 'package.json');
+  if (!existsSync(pjsonPath)) {
+    mkdirSync(root, { recursive: true });
+    writeFileSync(pjsonPath, JSON.stringify({
+      name: '@authmesh/cli',
+      version: VERSION,
+      oclif: { bin: 'amesh' },
+    }));
+  }
+  return root;
+}
 
 function showHelp(): void {
   console.log(`amesh v${VERSION} — Hardware-bound M2M authentication\n`);
@@ -97,7 +122,8 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  await Cmd.run(rest);
+  const oclifRoot = getOclifRoot();
+  await Cmd.run(rest, oclifRoot);
 }
 
 main().catch((error: unknown) => {

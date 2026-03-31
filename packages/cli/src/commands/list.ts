@@ -5,6 +5,7 @@ export default class List extends Command {
   static override description = 'Show trusted devices in the allow list';
 
   async run(): Promise<void> {
+    await this.parse(List);
     const { identity, allowList } = await loadContext().catch(() => {
       this.error('No identity found. Run `amesh init` first.');
     });
