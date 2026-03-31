@@ -9,6 +9,7 @@ export interface Identity {
   friendlyName: string;
   createdAt: string; // ISO 8601
   storageBackend: string;
+  maxControllers?: number; // default 1 — max controllers allowed on this target
 }
 
 /**

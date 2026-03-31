@@ -179,6 +179,7 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
             friendlyName: 'controller',
             addedAt: new Date().toISOString(),
             addedBy: 'handshake',
+            role: 'controller',
           });
 
           // Clear token from environment

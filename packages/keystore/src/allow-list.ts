@@ -8,6 +8,7 @@ export interface AllowListDevice {
   friendlyName: string;
   addedAt: string; // ISO 8601
   addedBy: 'handshake' | 'manual';
+  role: 'controller' | 'target';
 }
 
 export interface AllowListData {
@@ -71,6 +72,20 @@ export class AllowList {
 
     const data = JSON.parse(content) as AllowListData;
     this.verifyIntegrity(data);
+
+    // Migrate legacy entries without role field (default to 'controller' — permissive)
+    let needsReseal = false;
+    for (const device of data.devices) {
+      if (!device.role) {
+        (device as AllowListDevice).role = 'controller';
+        needsReseal = true;
+      }
+    }
+    if (needsReseal) {
+      data.updatedAt = new Date().toISOString();
+      await this.writeSealed(data);
+    }
+
     return data;
   }
 
@@ -115,6 +130,27 @@ export class AllowList {
   async findByPublicKey(publicKeyBase64: string): Promise<AllowListDevice | undefined> {
     const data = await this.read();
     return data.devices.find((d) => d.publicKey === publicKeyBase64);
+  }
+
+  /**
+   * Count devices by role.
+   */
+  async countByRole(role: 'controller' | 'target'): Promise<number> {
+    const data = await this.read();
+    return data.devices.filter((d) => d.role === role).length;
+  }
+
+  /**
+   * Replace all devices with the given role with a single new device.
+   * Used to enforce single-controller limit on targets.
+   */
+  async replaceByRole(role: 'controller' | 'target', device: AllowListDevice): Promise<AllowListData> {
+    const data = await this.read();
+    data.devices = data.devices.filter((d) => d.role !== role);
+    data.devices.push(device);
+    data.updatedAt = new Date().toISOString();
+    await this.writeSealed(data);
+    return data;
   }
 
   /**

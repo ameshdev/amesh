@@ -46,7 +46,7 @@ This is operationally expensive and error-prone. Teams delay rotation because th
 
 ### 3. No identity — only access
 
-A Bearer token doesn't tell you *who* is calling. If three Lambda functions and a developer laptop all share the same API key, your server sees identical requests from all four. You can't:
+A Bearer token doesn't tell you *who* is calling. If three servers and a developer laptop all share the same API key, your API sees identical requests from all four. You can't:
 
 - Audit which machine made a specific request
 - Rate-limit per device
@@ -62,7 +62,7 @@ Services like AWS Secrets Manager, HashiCorp Vault, and Doppler improve *managem
 A secrets manager:
 - Adds a dependency (if Vault is down, your service can't authenticate)
 - Still delivers the secret as a string to your application
-- Requires its own authentication (how does your Lambda authenticate to Secrets Manager? With... another secret)
+- Requires its own authentication (how does your server authenticate to Secrets Manager? With... another secret)
 - Adds latency on every cold start
 - Costs money at scale
 
@@ -90,7 +90,7 @@ This matters for:
 | **If compromised** | Attacker has full access until key is rotated | Attacker can't extract the key from hardware |
 | **Rotation** | Manual, risky, coordinated across services | Not needed. Revoke per device if compromised |
 | **Revocation** | Breaks everything using that key | Revokes one device. Others unaffected |
-| **Audit trail** | "Someone with this key called the API" | "Device am_8f3a (prod-lambda-east) called the API at 10:05:32" |
+| **Audit trail** | "Someone with this key called the API" | "Device am_8f3a (prod-api-east) called the API at 10:05:32" |
 | **Replay protection** | None (same token works forever) | Every request has a unique nonce + 30-second timestamp window |
 | **What to protect** | .env files, CI variables, Vault access, Slack threads | Physical access to the machine (same as SSH keys, passkeys) |
 | **What you store in git** | Nothing (and hope you never accidentally do) | Everything. There are no secrets in the codebase |
@@ -99,13 +99,12 @@ This matters for:
 
 ## Who this is for
 
-**Today:** Solo developers and small teams running APIs, Lambda functions, or microservices who currently manage secrets in `.env` files and want to stop worrying about leaks.
+**Today:** Solo developers and small teams running APIs or microservices on hardware with Secure Enclave (macOS) or TPM (Linux) who currently manage secrets in `.env` files and want to stop worrying about leaks.
 
 **The use case:** Any time Machine A needs to prove to Machine B that it is authorized to call an API. Examples:
 
-- A Lambda function calling your internal API
+- A server calling your internal API
 - A cron job hitting a payment service
-- A CI/CD pipeline deploying to production
 - Microservices authenticating to each other
 - A webhook sender proving its identity to a receiver
 
@@ -115,6 +114,6 @@ This matters for:
 
 ## The security model in one sentence
 
-**The private key never leaves the chip. The signature proves the device. The nonce prevents replay. The HMAC prevents tampering. The SAS prevents MITM.**
+**The private key never leaves the chip. The signature proves the device. The nonce prevents replay. The HMAC prevents tampering. The SAS prevents MITM. One-way trust limits blast radius — a compromised target cannot authenticate back to its controller.**
 
 There is no string to steal.

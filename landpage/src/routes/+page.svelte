@@ -40,8 +40,8 @@
 		},
 		{
 			n: '2', title: 'Pair two machines',
-			desc: 'One runs amesh listen, the other amesh invite. A 6-digit code confirms no one is in the middle.',
-			code: `<span class="text-zinc-500">$</span> amesh listen\n\n  Pairing code: <span class="text-emerald-400">482916</span>\n\n<span class="text-emerald-400">✔</span> Controller connected.\n  Verification code: <span class="text-emerald-400">847291</span>\n  Codes match? (Y/n): y\n<span class="text-emerald-400">✔</span> "Dev Laptop" added to allow list.`
+			desc: 'The server runs amesh listen, your laptop runs amesh invite. Trust is one-way: your laptop controls the server, not the other way around.',
+			code: `<span class="text-zinc-500">$</span> amesh listen\n\n  Pairing code: <span class="text-emerald-400">482916</span>\n\n<span class="text-emerald-400">✔</span> Controller connected.\n  Verification code: <span class="text-emerald-400">847291</span>\n  Codes match? (Y/n): y\n<span class="text-emerald-400">✔</span> "Dev Laptop" added as controller.`
 		},
 		{
 			n: '3', title: 'Sign requests — 2 lines',
@@ -71,8 +71,8 @@
 		{ icon: ShieldOff, title: 'Nothing to leak', desc: 'No .env file. No secret in CI. No token in Slack. The key is in silicon.' },
 		{ icon: RotateCcw, title: 'Nothing to rotate', desc: 'Device keys don\'t expire. Revoke a device instantly with amesh revoke.' },
 		{ icon: Fingerprint, title: 'Replay-proof', desc: 'Every request has a unique nonce and a 30-second timestamp window.' },
-		{ icon: FileLock2, title: 'Tamper-proof trust store', desc: 'The allow list is HMAC-sealed. Any file edit is detected immediately.' },
-		{ icon: ShieldCheck, title: 'MITM-proof pairing', desc: 'Encrypted key exchange with 6-digit verification. Same as Signal and Bluetooth.' },
+		{ icon: FileLock2, title: 'One-way trust', desc: 'Controllers authenticate to targets, never the reverse. A compromised server can\'t call back to your laptop.' },
+		{ icon: ShieldCheck, title: 'MITM-proof pairing', desc: 'Encrypted key exchange with 6-digit verification and HMAC-sealed allow list. Same as Signal and Bluetooth.' },
 		{ icon: Code, title: 'Open source', desc: 'MIT licensed. Audit the crypto, fork the relay, self-host everything.' },
 	];
 
@@ -80,11 +80,11 @@
 	const cliTabs = [
 		{
 			label: 'Device Management',
-			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh list</span>\n\n  Trusted Devices (2)\n  <span class="text-zinc-600">──────────────────────────────────────────</span>\n  <span class="text-emerald-400">am_1a2b3c4d</span>  Dev Laptop     added 2026-03-28\n  <span class="text-emerald-400">am_9f8e7d6c</span>  staging-api    added 2026-03-29\n  <span class="text-zinc-600">──────────────────────────────────────────</span>\n\n<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh revoke am_1a2b3c4d</span>\n\n  Are you sure? (y/N): <span class="text-zinc-50">y</span>\n<span class="text-emerald-400">✔</span> Removed. Access revoked immediately.`
+			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh list</span>\n\n  Trusted Devices (2)\n  <span class="text-zinc-600">──────────────────────────────────────────────────────</span>\n  <span class="text-emerald-400">am_1a2b3c4d</span>  Dev Laptop     <span class="text-zinc-500">[controller]</span>   added 2026-03-28\n  <span class="text-emerald-400">am_9f8e7d6c</span>  staging-api    <span class="text-zinc-500">[target]</span>       added 2026-03-29\n  <span class="text-zinc-600">──────────────────────────────────────────────────────</span>\n\n<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh revoke am_1a2b3c4d</span>\n\n  Are you sure? (y/N): <span class="text-zinc-50">y</span>\n<span class="text-emerald-400">✔</span> Removed. Access revoked immediately.`
 		},
 		{
 			label: 'Pairing',
-			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh invite relay.authmesh.dev</span>\n\n  Pairing code: <span class="text-emerald-400">482916</span>\n  Waiting for target device...\n\n<span class="text-emerald-400">✔</span> Target connected.\n  Verification code: <span class="text-emerald-400">847291</span>\n  Codes match? (Y/n): y\n<span class="text-emerald-400">✔</span> Paired. "prod-api" added to allow list.`
+			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh invite 482916</span>\n\n  Connecting to relay with code 482916...\n\n<span class="text-emerald-400">✔</span> Peer found.\n  Verification code: <span class="text-emerald-400">847291</span>\n  Codes match? (Y/n): y\n<span class="text-emerald-400">✔</span> "prod-api" added as target.`
 		},
 		{
 			label: 'Init',

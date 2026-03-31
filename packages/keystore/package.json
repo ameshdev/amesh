@@ -1,7 +1,7 @@
 {
   "name": "@authmesh/keystore",
   "version": "0.1.3",
-  "description": "Secure Enclave, TPM 2.0, and encrypted-file key storage for amesh",
+  "description": "Secure Enclave, macOS Keychain, and TPM 2.0 key storage for amesh",
   "type": "module",
   "license": "MIT",
   "author": "Yair Etzion",

@@ -13,13 +13,14 @@ function filePath() {
   return join(tempDir, 'allow_list.json');
 }
 
-function makeDevice(id: string, name: string): AllowListDevice {
+function makeDevice(id: string, name: string, role: 'controller' | 'target' = 'controller'): AllowListDevice {
   return {
     deviceId: id,
     publicKey: Buffer.from(new Uint8Array(33).fill(0x02)).toString('base64'),
     friendlyName: name,
     addedAt: new Date().toISOString(),
     addedBy: 'handshake',
+    role,
   };
 }
 
@@ -141,6 +142,91 @@ describe('AllowList', () => {
 
       const found = await al.findByPublicKey('unknown-key');
       expect(found).toBeUndefined();
+    });
+  });
+
+  describe('role field', () => {
+    it('stores and retrieves device role', async () => {
+      const al = new AllowList(filePath(), PRIVATE_KEY_MATERIAL, DEVICE_ID);
+      await al.addDevice(makeDevice('am_ctrl', 'Controller', 'controller'));
+      await al.addDevice(makeDevice('am_tgt', 'Target', 'target'));
+
+      const data = await al.read();
+      expect(data.devices[0].role).toBe('controller');
+      expect(data.devices[1].role).toBe('target');
+    });
+
+    it('countByRole returns correct counts', async () => {
+      const al = new AllowList(filePath(), PRIVATE_KEY_MATERIAL, DEVICE_ID);
+      await al.addDevice(makeDevice('am_c1', 'Ctrl 1', 'controller'));
+      await al.addDevice(makeDevice('am_c2', 'Ctrl 2', 'controller'));
+      await al.addDevice(makeDevice('am_t1', 'Target 1', 'target'));
+
+      expect(await al.countByRole('controller')).toBe(2);
+      expect(await al.countByRole('target')).toBe(1);
+    });
+
+    it('replaceByRole removes old entries and adds new one', async () => {
+      const al = new AllowList(filePath(), PRIVATE_KEY_MATERIAL, DEVICE_ID);
+      await al.addDevice(makeDevice('am_old', 'Old Controller', 'controller'));
+      await al.addDevice(makeDevice('am_tgt', 'Target', 'target'));
+
+      const newCtrl = makeDevice('am_new', 'New Controller', 'controller');
+      await al.replaceByRole('controller', newCtrl);
+
+      const data = await al.read();
+      const controllers = data.devices.filter((d) => d.role === 'controller');
+      expect(controllers).toHaveLength(1);
+      expect(controllers[0].deviceId).toBe('am_new');
+      // Target should be untouched
+      expect(data.devices.find((d) => d.role === 'target')?.deviceId).toBe('am_tgt');
+    });
+
+    it('migrates legacy entries without role to controller', async () => {
+      const al = new AllowList(filePath(), PRIVATE_KEY_MATERIAL, DEVICE_ID);
+      await al.addDevice(makeDevice('am_legacy', 'Legacy'));
+
+      // Manually strip the role field from the file (simulate legacy data)
+      const content = JSON.parse(await readFile(filePath(), 'utf-8'));
+      delete content.devices[0].role;
+      // Reseal manually — need to write without role and fix HMAC
+      // Easier: write with the AllowList to get valid HMAC, then strip role and re-verify
+      // We'll use a fresh AllowList instance that writes without role by writing raw JSON
+      // Actually, we need to write valid HMAC. Let's use a workaround:
+      // Just write the stripped JSON and create a new AllowList to re-seal it
+      // The migration happens on read(), but read() first verifies HMAC.
+      // So legacy files would have been sealed without the role field.
+      // We need to simulate that by sealing content without role.
+
+      // Create a brand new file with a device that has no role field,
+      // sealed with valid HMAC (simulating pre-role allow list)
+      const { computeHmac } = await import('@authmesh/core');
+      const { deriveKey } = await import('@authmesh/core');
+      const hmacKey = deriveKey(PRIVATE_KEY_MATERIAL, 'amesh-allow-list-integrity-v1', DEVICE_ID, 32);
+      const legacyData = {
+        version: '2.0.0',
+        devices: [{
+          deviceId: 'am_legacy',
+          publicKey: content.devices[0].publicKey,
+          friendlyName: 'Legacy',
+          addedAt: content.devices[0].addedAt,
+          addedBy: 'handshake',
+        }],
+        updatedAt: new Date().toISOString(),
+      };
+      const canonical = JSON.stringify({
+        version: legacyData.version,
+        devices: legacyData.devices,
+        updatedAt: legacyData.updatedAt,
+      });
+      const hmac = computeHmac(hmacKey, new TextEncoder().encode(canonical));
+      const fileData = { ...legacyData, hmac: Buffer.from(hmac).toString('base64') };
+      await writeFile(filePath(), JSON.stringify(fileData, null, 2));
+
+      // Now read — should migrate and add role: 'controller'
+      const al2 = new AllowList(filePath(), PRIVATE_KEY_MATERIAL, DEVICE_ID);
+      const data = await al2.read();
+      expect(data.devices[0].role).toBe('controller');
     });
   });
 

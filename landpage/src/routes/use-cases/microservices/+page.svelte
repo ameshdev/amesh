@@ -40,13 +40,15 @@ app.post(<span class="text-emerald-400">'/check'</span>, (req, res) => {
   console.log(<span class="text-emerald-400">\`Caller: \${req.authMesh.friendlyName}\`</span>);
   <span class="text-zinc-500">// "Caller: orders-service" — not "someone with API_KEY"</span>
 });` },
-		{ filename: 'Terminal', code: `<span class="text-zinc-500"># On the orders service machine:</span>
-<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh init --name "orders-service"</span>
+		{ filename: 'Terminal', code: `<span class="text-zinc-500"># On the API gateway (target):</span>
+<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh init --name "api-gateway"</span>
+<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh listen</span>
 
-<span class="text-zinc-500"># Pair with the API gateway:</span>
+<span class="text-zinc-500"># On the orders service (controller):</span>
+<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh init --name "orders-service"</span>
 <span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh invite 482916</span>
 
-<span class="text-zinc-500"># Each service has its own identity. Revoke one without touching others.</span>` },
+<span class="text-zinc-500"># One-way trust: orders-service &rarr; api-gateway. Revoke one without touching others.</span>` },
 	]}
 	changes={[
 		{ before: 'Shared API key across services', after: 'Unique identity per service' },

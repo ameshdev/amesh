@@ -72,16 +72,34 @@ export default class Listen extends Command {
       return;
     }
 
-    await allowList.addDevice({
+    const newDevice = {
       deviceId: `am_${Buffer.from(result.peerPublicKey).toString('base64url').slice(0, 16)}`,
       publicKey: Buffer.from(result.peerPublicKey).toString('base64'),
       friendlyName: result.peerFriendlyName,
       addedAt: new Date().toISOString(),
-      addedBy: 'handshake',
-    });
+      addedBy: 'handshake' as const,
+      role: 'controller' as const,
+    };
+
+    // Enforce maxControllers limit (default: 1)
+    const maxControllers = (identity as typeof identity & { maxControllers?: number }).maxControllers ?? 1;
+    const currentControllers = await allowList.countByRole('controller');
+
+    if (currentControllers >= maxControllers) {
+      this.log(`  This device already has ${currentControllers} controller(s) (max: ${maxControllers}).`);
+      const replace = await this.confirm('  Replace existing controller(s)? (Y/n): ');
+      if (!replace) {
+        this.log('');
+        this.log('  Pairing cancelled. No changes made.');
+        return;
+      }
+      await allowList.replaceByRole('controller', newDevice);
+    } else {
+      await allowList.addDevice(newDevice);
+    }
 
     this.log('');
-    this.log(`  "${result.peerFriendlyName}" added to allow list.`);
+    this.log(`  "${result.peerFriendlyName}" added as controller.`);
     this.log('');
     this.log('  You can now use amesh signing. The relay connection is closed.');
     this.log('');

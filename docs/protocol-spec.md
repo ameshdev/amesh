@@ -63,14 +63,14 @@ Every choice below is made for a reason. Do not substitute without understanding
 
 | Layer | Choice | Reason |
 |---|---|---|
-| **Language** | TypeScript (Node.js 24 LTS) | Strong crypto ecosystem, fast prototyping, first-class async, runs natively on Lambda/Vercel |
+| **Language** | TypeScript (Node.js 24 LTS) | Strong crypto ecosystem, fast prototyping, first-class async |
 | **CLI Framework** | `oclif` v4 | Industry-standard, supports plugin architecture, generates proper help docs, used by Heroku/Salesforce CLIs |
 | **Crypto — Curves** | `@noble/curves` (P-256 ECDSA + P-256 ECDH) | Audited, zero-dependency, constant-time, actively maintained by Paulmillr. P-256 chosen for universal hardware support (Secure Enclave, TPM 2.0). Replaces `@noble/ed25519` which is incompatible with hardware security modules. |
-| **Crypto — Hashes** | `@noble/hashes` (SHA-256, HKDF, HMAC, Argon2id) | Same author, same audit lineage. Argon2id built-in — no extra dependency for encrypted-file fallback. |
+| **Crypto — Hashes** | `@noble/hashes` (SHA-256, HKDF, HMAC) | Same author, same audit lineage. |
 | **Crypto — Ciphers** | `@noble/ciphers` (ChaCha20-Poly1305) | Handshake tunnel encryption. Same ecosystem. |
 | **Hardware — macOS** | Custom `napi-rs` native module → Apple Security.framework | Direct Secure Enclave access via `SecKeyCreateRandomKey` with `kSecAttrTokenIDSecureEnclave`. Generates P-256 keys in hardware. `node-keytar` is deprecated (archived Dec 2022) and cannot access Secure Enclave — it is only a password store. |
 | **Hardware — Linux** | `tpm2-tools` (subprocess via `execFile`) | Industry standard TPM 2.0 interface. P-256 universally supported. |
-| **Hardware — Fallback** | OS keyring via platform CLI (`security`/`secret-tool`), then encrypted file | See Section 11. Replaces `keytar` which is deprecated. |
+| **Hardware — Fallback** | None — hardware-backed storage is required | amesh refuses to run without Secure Enclave, macOS Keychain, or TPM 2.0 |
 | **Relay Server** | Bun.serve() native | Zero deps — no Fastify, no ws. |
 | **Allow List Storage** | JSON file + HMAC integrity seal | See Section 9 — the plaintext JSON without integrity protection is a critical vulnerability |
 | **Package Manager** | Bun workspaces | Monorepo-friendly, fast installs, native test runner |
@@ -102,8 +102,7 @@ amesh/
 │   │   │   ├── drivers/
 │   │   │   │   ├── secure-enclave.ts   # macOS
 │   │   │   │   ├── tpm.ts              # Linux
-│   │   │   │   ├── os-keyring.ts       # OS keyring fallback (platform CLI: security/secret-tool)
-│   │   │   │   └── encrypted-file.ts   # Last-resort fallback
+│   │   │   │   └── tpm.ts              # TPM 2.0 (Linux)
 │   │   └── package.json
 │   │
 │   ├── cli/                   # The `amesh` CLI tool
@@ -166,7 +165,7 @@ After `amesh init`, the following are written to `~/.amesh/`:
   "version": "2.0.0",
   "deviceId": "am_8f3a...",
   "publicKey": "Base64EncodedCompressedP256PublicKey==",
-  "friendlyName": "prod-lambda-us-east-1",
+  "friendlyName": "prod-api-us-east-1",
   "createdAt": "2026-03-28T10:00:00Z",
   "storageBackend": "secure-enclave"
 }
@@ -182,7 +181,7 @@ The prefix `am_` makes amesh IDs visually identifiable in logs.
 ```
 $ amesh init
 
-? What is this device's friendly name? prod-lambda-us-east-1
+? What is this device's friendly name? prod-api-us-east-1
 
 ✔ Generating P-256 keypair...
 ✔ Storing private key in Secure Enclave (macOS)
@@ -203,7 +202,7 @@ Run `amesh listen` on this machine, then `amesh invite` from your laptop.
 This is the "ceremony" that establishes trust between two devices. It runs **once** per device pair. After it completes, all future authentication is offline and peer-to-peer — the relay is never needed again.
 
 ### Roles
-- **Target** (the server/Lambda being secured): runs `amesh listen`
+- **Target** (the server being secured): runs `amesh listen`
 - **Controller** (the developer's laptop): runs `amesh invite --code XXXXXX`
 
 ### The Relay's Role
@@ -264,7 +263,7 @@ Each side sends:
 ```json
 {
   "publicKey": "Base64EncodedPermanentPubKey==",
-  "friendlyName": "prod-lambda-us-east-1",
+  "friendlyName": "prod-api-us-east-1",
   "timestamp": "2026-03-28T10:05:00Z",
   "selfSig": "Base64EncodedSignature=="
 }
@@ -282,8 +281,15 @@ SAS is displayed by default. Skippable with `--no-verify` flag for automated/hea
 
 > **Why SAS in addition to selfSig:** The `selfSig` alone does not prevent a relay MITM that performs separate ECDH with each side and substitutes its own permanent key with a valid selfSig. The SAS catches this because the ECDH shared secrets differ.
 
-**Step 11 — Persistence:**
-Each device writes the other's `publicKey` and `friendlyName` into its local `allow_list.json` and reseals the HMAC. See Section 9.
+**Step 11 — Persistence with role assignment:**
+Each device writes the other's `publicKey` and `friendlyName` into its local `allow_list.json` with a **role** field and reseals the HMAC. See Section 9.
+
+- The **target** (ran `amesh listen`) writes the controller's key with `role: "controller"` — this peer may authenticate to me.
+- The **controller** (ran `amesh invite`) writes the target's key with `role: "target"` — this peer may NOT authenticate to me.
+
+This enforces **one-way trust**: controllers can authenticate to targets, but targets cannot authenticate back to controllers.
+
+**Single-controller default:** By default, a target allows only one controller (`maxControllers: 1` in `identity.json`). If a target already has a controller and a new handshake completes, the CLI prompts the operator to replace the existing controller. The `maxControllers` limit can be raised via `amesh init --max-controllers N`.
 
 ### CLI output (Target side)
 ```
@@ -402,9 +408,13 @@ If any field is missing: return `400 Bad Request`.
 If `v !== "1"`: return `400 Bad Request` with body `{"error": "unsupported_version"}`.
 
 **Step 3 — Identity lookup**
-Load and verify the integrity of `allow_list.json` (see Section 9).  
-If `id` is not in the allow list: return `401 Unauthorized`.  
+Load and verify the integrity of `allow_list.json` (see Section 9).
+If `id` is not in the allow list: return `401 Unauthorized`.
 Do not reveal *why* — the response body is always `{"error": "unauthorized"}` for 401s.
+
+**Step 3b — Directionality check**
+If the matched device has `role: "target"`: return `401 Unauthorized`.
+A device marked as `target` in the allow list is a peer that this device can authenticate *to*, not a peer that may authenticate *to this device*. The response body is the same generic `{"error": "unauthorized"}` — the rejection reason is logged server-side only.
 
 **Step 4 — Clock check**
 ```
@@ -440,7 +450,7 @@ class NonceStore {
 }
 ```
 
-> **Note:** For multi-instance deployments (multiple Lambda instances), the nonce store must be shared via Redis or a similar fast store. Document this limitation explicitly in the SDK readme.
+> **Note:** For multi-instance deployments, the nonce store must be shared via Redis or a similar fast store. Document this limitation explicitly in the SDK readme.
 
 **Step 6 — Reconstruct canonical string**
 Build `M` from the incoming request using the same rules as Section 7.  
@@ -457,7 +467,7 @@ On success, attach the verified device identity to the request object:
 ```typescript
 req.authMesh = {
   deviceId: 'am_8f3a9b2c1d4e5f6a',
-  friendlyName: 'prod-lambda-us-east-1',
+  friendlyName: 'prod-api-us-east-1',
   verifiedAt: serverNow,
 };
 ```
@@ -486,7 +496,8 @@ The allow list is **sealed** with an HMAC keyed by the device's hardware-bound p
       "publicKey": "Base64EncodedPublicKey==",
       "friendlyName": "MacBook Pro — dev",
       "addedAt": "2026-03-28T10:05:00Z",
-      "addedBy": "handshake"
+      "addedBy": "handshake",
+      "role": "controller"
     }
   ],
   "updatedAt": "2026-03-28T10:05:00Z",
@@ -494,26 +505,21 @@ The allow list is **sealed** with an HMAC keyed by the device's hardware-bound p
 }
 ```
 
+The `role` field enforces trust directionality:
+- `"controller"` — this peer may authenticate to me (accepted by verification middleware)
+- `"target"` — this peer is a target I can authenticate to, but it may NOT authenticate to me (rejected by verification middleware)
+
+Legacy allow lists without the `role` field are migrated on first read: missing roles default to `"controller"` (permissive, backwards-compatible). The HMAC is resealed after migration.
+
 ### HMAC Key Derivation
 
 The HMAC key material is obtained via `KeyStore.getHmacKeyMaterial(deviceId)`:
 
-**Software keystores (encrypted-file):** Derived from the permanent private key using HKDF:
-```
-hmacKey = HKDF-SHA256(
-  ikm    = permanentPrivateKey,
-  salt   = "amesh-hmac-material-v1",
-  info   = deviceId,
-  length = 32
-)
-```
-
-**Hardware keystores (Secure Enclave, TPM):** The private key cannot be exported. A random 32-byte secret is generated once per device and stored in `<deviceId>.hmac` (mode `0600`) alongside the key. This secret is generated on first call and reused thereafter.
+The private key cannot be exported from hardware. A random 32-byte secret is generated once per device and stored in `<deviceId>.hmac` (mode `0600`) alongside the key. This secret is generated on first call and reused thereafter.
 
 This means:
 - The HMAC key never appears in the allow list file
-- For software keystores: an attacker cannot forge a valid HMAC without the passphrase
-- For hardware keystores: the HMAC secret is protected by file permissions (not hardware-bound; see Security Considerations)
+- The HMAC secret is protected by file permissions (not hardware-bound; see Security Considerations)
 - Tampering with `allow_list.json` is immediately detected on next read
 
 ### Read/Write Protocol
@@ -623,23 +629,11 @@ Every device goes through this decision tree at `amesh init`. The selected backe
                    │ NO
                    ▼
 ┌──────────────────────────────────────────────────────┐
-│  Tier 3 — Is an OS keyring available?                │
-│  (macOS: `security` CLI → Keychain Services)         │
-│  (Linux: `secret-tool` → libsecret/GNOME Keyring)   │
-│  → YES: Store encrypted P-256 private key in keyring │
-│         WARN: "No hardware security module found.    │
-│         Using OS keyring. Security is reduced —      │
-│         key is software-protected."                  │
-└──────────────────┬───────────────────────────────────┘
-                   │ NO (CI/CD headless environment)
-                   ▼
-┌──────────────────────────────────────────────────────┐
-│  Tier 4 — Last resort: Encrypted file                │
-│  Key encrypted with AES-256-GCM, passphrase derived  │
-│  via Argon2id (using @noble/hashes/argon2)           │
-│  WARN: "Running in degraded security mode.           │
-│  Key is protected only by your passphrase.           │
-│  Not recommended for production."                    │
+│  No hardware backend found                           │
+│  → ERROR: "amesh requires hardware-backed key        │
+│    storage (Secure Enclave, macOS Keychain, or       │
+│    TPM 2.0). No supported backend detected."         │
+│  → amesh refuses to run.                             │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -704,10 +698,10 @@ $ amesh list
   Trusted Devices (2)
   ───────────────────────────────────────────────
   am_1a2b3c4d5e6f7a8b  MacBook Pro — dev     added 2026-03-28
-  am_9f8e7d6c5b4a3210  prod-lambda-us-east   added 2026-03-29
+  am_9f8e7d6c5b4a3210  prod-api-us-east   added 2026-03-29
   ───────────────────────────────────────────────
   
-  Your identity: am_8f3a9b2c1d4e5f6a (prod-lambda-us-east-1)
+  Your identity: am_8f3a9b2c1d4e5f6a (prod-api-us-east-1)
 ```
 
 ---
@@ -717,7 +711,7 @@ $ amesh list
 ### Clock Synchronization
 The `±30 second` window requires server clocks to be within 30 seconds of real time. This is satisfied by NTP, which is enabled by default on all major cloud providers. The middleware SHOULD emit a warning log when a valid timestamp is within 5 seconds of the boundary (potential drift indicator).
 
-### Multi-Instance Deployments (Lambda / Kubernetes)
+### Multi-Instance Deployments
 The in-memory nonce store does not survive process restarts and is not shared across instances. For multi-instance deployments:
 - Use Redis for the nonce store (TTL-keyed set, `SET nonce EX 60 NX`)
 - Document this requirement prominently in the SDK README
@@ -735,6 +729,11 @@ The relay could theoretically swap ephemeral public keys during Step 5 to perfor
 1. **`selfSig`** (Step 7/8): Proves each side controls the private key corresponding to the public key they present. A relay doing MITM cannot forge a `selfSig` for a key it doesn't control.
 
 2. **SAS Verification** (Step 9): Even if the relay performs separate ECDH with each side and substitutes its own permanent key with a valid `selfSig`, the SAS codes will differ because the ECDH shared secrets differ. This is cryptographic proof of no MITM — not reliant on the developer recognizing an unfamiliar device name. Same approach as Signal, Matrix, and Bluetooth Secure Simple Pairing.
+
+### One-Way Trust Directionality
+Trust between devices is **one-directional** by default. A controller can authenticate to a target, but the target cannot authenticate back to the controller. This limits the blast radius of a compromised target — even if an attacker gains control of the server, they cannot use its amesh identity to authenticate to the controller. The `role` field in each allow list entry is HMAC-sealed, so an attacker cannot flip a `"target"` role to `"controller"` without invalidating the HMAC.
+
+By default, a target allows only **one controller** (`maxControllers: 1`). This can be increased via `amesh init --max-controllers N` for multi-operator environments.
 
 ### Query String Canonicalization
 Sort query parameters alphabetically before including in canonical string `M`. This prevents the same request from having two valid signatures depending on parameter ordering. Use: `new URLSearchParams(url.search).sort().toString()`.
@@ -817,7 +816,7 @@ The specific error code is logged server-side but never returned to the client (
 - [ ] `@authmesh/sdk`: implement `authMeshVerify` Express middleware
 - [ ] `@authmesh/sdk`: implement `authMeshVerify` Fastify middleware
 - [ ] Write SDK README with "5-minute quickstart" guide
-- [ ] Build demo: a simple Express API secured with amesh + a Lambda function calling it
+- [ ] Build demo: a simple Express API secured with amesh + a client calling it
 - [ ] Recruit 5 developers. Give them only the README. Count how many complete the quickstart without asking for help.
 
 **Exit criteria:** 4 of 5 developers complete the quickstart independently. Zero static secrets appear anywhere in the demo codebase.
@@ -833,7 +832,7 @@ The specific error code is logged server-side but never returned to the client (
 - Allow list HMAC: test tamper detection, atomic write
 
 ### Integration Tests
-- Full handshake between two local Node.js processes (no real hardware needed — use encrypted-file driver)
+- Full handshake between two local processes (uses macOS Keychain on CI)
 - Full request → sign → verify cycle with Express middleware
 
 ### Hardware Tests (CI skip, run manually)
