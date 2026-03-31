@@ -1,20 +1,18 @@
 <script lang="ts">
-	import { Network, GitBranch, Webhook, Container, ChevronRight } from '@lucide/svelte';
+	import { Network, Webhook, ChevronRight } from '@lucide/svelte';
 
 	const cases = [
-		{ slug: 'microservices', icon: Network, title: 'Microservices', desc: 'Every service gets its own identity. No shared API keys. Per-service audit trail.' },
-		{ slug: 'ci-cd', icon: GitBranch, title: 'CI/CD Pipelines', desc: 'GitHub Actions and pipelines authenticate without long-lived stored secrets.' },
+		{ slug: 'microservices', icon: Network, title: 'Microservices', desc: 'Every service gets its own hardware-bound identity. No shared API keys. Per-service audit trail.' },
 		{ slug: 'webhooks', icon: Webhook, title: 'Webhooks', desc: 'Prove webhook sender identity cryptographically. No HMAC secrets to share and rotate.' },
-		{ slug: 'kubernetes', icon: Container, title: 'Kubernetes', desc: 'Per-pod identity without Vault sidecars. Auto-pair on pod startup.' },
 	];
 </script>
 
 <svelte:head>
 	<title>Use Cases — amesh</title>
-	<meta name="description" content="How teams use amesh to replace API keys in microservices, CI/CD pipelines, webhooks, and Kubernetes." />
+	<meta name="description" content="How teams use amesh to replace API keys in microservices and webhooks with hardware-bound device identity." />
 	<link rel="canonical" href="https://authmesh.dev/use-cases" />
 	<meta property="og:title" content="Use Cases — amesh" />
-	<meta property="og:description" content="How teams use amesh to replace API keys in microservices, CI/CD, webhooks, and Kubernetes." />
+	<meta property="og:description" content="How teams use amesh to replace API keys in microservices and webhooks." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases" />
 </svelte:head>
 

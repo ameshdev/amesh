@@ -60,7 +60,6 @@ app.use(amesh.verify({
 | Environment variable | Description |
 |---------------------|-------------|
 | `AUTH_MESH_DIR` | Override `~/.amesh/` directory |
-| `AUTH_MESH_PASSPHRASE` | Passphrase for encrypted-file keystore |
 
 ## Full documentation
 

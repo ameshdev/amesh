@@ -9,7 +9,7 @@ What you can do with amesh, step by step.
 ```bash
 bun install
 bun run build
-bun run test    # 137 tests across 5 packages
+bun run test    # 135 tests across 5 packages
 bun run lint    # eslint + prettier check
 ```
 
@@ -20,31 +20,30 @@ bun run lint    # eslint + prettier check
 The `init` command generates a P-256 keypair and writes identity files to `~/.amesh/`.
 
 ```bash
-# Using the encrypted-file backend (works on any machine)
-AUTH_MESH_PASSPHRASE=your-secret-passphrase \
-  node packages/cli/dist/index.js init --name "My Laptop"
+amesh init --name "My Laptop"
 ```
 
-Output:
+Output (macOS):
 ```
 Generating P-256 keypair...
-⚠ Warning: Running in degraded security mode. Key is protected only by your passphrase.
 Identity created.
 
   Device ID : am_cOixWcOdI8-pLh4P
   Public Key: A+B9pwI1/CGINmyozdPj...
-  Backend   : encrypted-file
+  Backend   : keychain
 ```
 
-This creates three files:
+amesh requires hardware-backed key storage (Secure Enclave, macOS Keychain, or TPM 2.0). If no hardware backend is detected, `init` will fail.
+
+This creates two files:
 - `~/.amesh/identity.json` — your device ID, public key, friendly name
-- `~/.amesh/keys/<device-id>.key.json` — encrypted private key (AES-256-GCM + Argon2id)
 - `~/.amesh/allow_list.json` — HMAC-sealed trust store (starts empty)
+
+The private key is stored in the OS keychain or hardware module and never written to disk.
 
 To use a custom directory (useful for testing):
 ```bash
-AUTH_MESH_DIR=/tmp/my-test AUTH_MESH_PASSPHRASE=test123 \
-  node packages/cli/dist/index.js init --name "Test Device"
+AUTH_MESH_DIR=/tmp/my-test amesh init --name "Test Device"
 ```
 
 ---
@@ -52,8 +51,7 @@ AUTH_MESH_DIR=/tmp/my-test AUTH_MESH_PASSPHRASE=test123 \
 ## 3. CLI — List Trusted Devices
 
 ```bash
-AUTH_MESH_PASSPHRASE=your-secret-passphrase \
-  node packages/cli/dist/index.js list
+amesh list
 ```
 
 Output (empty initially):
@@ -80,8 +78,7 @@ After devices are paired, it shows:
 ## 4. CLI — Revoke a Device
 
 ```bash
-AUTH_MESH_PASSPHRASE=your-secret-passphrase \
-  node packages/cli/dist/index.js revoke am_1a2b3c4d5e6f7a8b
+amesh revoke am_1a2b3c4d5e6f7a8b
 ```
 
 Prompts for confirmation, then removes the device from the allow list and reseals the HMAC.
@@ -227,14 +224,12 @@ The handshake establishes trust between two machines. Run it once per device pai
 
 On the **target** machine (the server being secured):
 ```bash
-AUTH_MESH_PASSPHRASE=your-secret \
-  node packages/cli/dist/index.js listen
+amesh listen
 ```
 
 On the **controller** machine (your laptop), using the 6-digit code displayed by the target:
 ```bash
-AUTH_MESH_PASSPHRASE=your-secret \
-  node packages/cli/dist/index.js invite 482916
+amesh invite 482916
 ```
 
 Both sides display a verification code — confirm they match. After that, each machine has the other's public key in its allow list.

@@ -90,7 +90,7 @@ app.use(amesh.verify());
 
 ## How It Works
 
-- **Device identity** --- each machine gets a unique P-256 ECDSA keypair. The private key is stored in Secure Enclave (macOS), TPM 2.0 (Linux), or an encrypted file (fallback).
+- **Device identity** --- each machine gets a unique P-256 ECDSA keypair. The private key is stored in Secure Enclave (macOS) or TPM 2.0 (Linux). Hardware-backed key storage is required.
 - **Signed requests** --- every HTTP request is signed with the device's private key. The signature covers method, path, timestamp, nonce, and body.
 - **Replay protection** --- each request has a unique nonce and a 30-second timestamp window. Nonces are tracked server-side.
 - **No static secrets** --- there is no string to leak, rotate, or share. Revoke a compromised device instantly with `amesh revoke`.
@@ -104,7 +104,7 @@ app.use(amesh.verify());
 | [`@authmesh/sdk`](./packages/sdk) | Signing fetch client + Express verification middleware |
 | [`@authmesh/cli`](./packages/cli) | CLI: `init`, `listen`, `invite`, `list`, `revoke`, `provision` |
 | [`@authmesh/core`](./packages/core) | Crypto primitives: sign, verify, canonical string, nonce, HMAC, HKDF, ECDH |
-| [`@authmesh/keystore`](./packages/keystore) | Key storage drivers: Secure Enclave, TPM 2.0, OS keyring, encrypted file |
+| [`@authmesh/keystore`](./packages/keystore) | Key storage drivers: Secure Enclave, macOS Keychain, TPM 2.0 |
 | [`@authmesh/relay`](./packages/relay) | WebSocket relay for device pairing handshakes |
 
 ---
@@ -141,7 +141,7 @@ See the [Self-Hosting Guide](./docs/self-hosting.md) for deployment options.
 
 | Doc | Description |
 |-----|-------------|
-| [Integration Guide](./docs/integration-guide.md) | Recipes for Express, microservices, CI/CD, webhooks, remote pairing |
+| [Integration Guide](./docs/integration-guide.md) | Recipes for Express, microservices, webhooks, remote pairing |
 | [Self-Hosting Guide](./docs/self-hosting.md) | Deploy the relay: Docker, Cloud Run, Fly.io, Kubernetes |
 | [Usage Guide](./docs/guide.md) | CLI commands, SDK usage, crypto primitives |
 | [Protocol Spec](./docs/protocol-spec.md) | Full protocol specification (v2.0.0) |
@@ -169,7 +169,7 @@ The SDK has two main functions: `amesh.fetch()` (client) and `amesh.verify()` (s
 ```bash
 bun install         # install all deps
 bun run build       # turbo build (tsc -b per package)
-bun run test        # 137 tests across all packages
+bun run test        # 135 tests across all packages
 bun run lint        # eslint + prettier
 ```
 

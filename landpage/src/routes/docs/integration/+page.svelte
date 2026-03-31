@@ -5,11 +5,11 @@
 </script>
 
 <svelte:head>
-	<title>Integration Guide: Express, Microservices, CI/CD — amesh</title>
-	<meta name="description" content="Step-by-step recipes for integrating amesh into Express, microservices, CI/CD, Kubernetes, and webhooks." />
+	<title>Integration Guide: Express, Microservices, Webhooks — amesh</title>
+	<meta name="description" content="Step-by-step recipes for integrating amesh into Express, microservices, and webhooks." />
 	<link rel="canonical" href="https://authmesh.dev/docs/integration" />
 	<meta property="og:title" content="Integration Guide — amesh" />
-	<meta property="og:description" content="Step-by-step recipes for Express, microservices, CI/CD, Kubernetes, and webhooks." />
+	<meta property="og:description" content="Step-by-step recipes for Express, microservices, and webhooks." />
 	<meta property="og:url" content="https://authmesh.dev/docs/integration" />
 </svelte:head>
 
@@ -170,28 +170,7 @@ app.use(amesh.verify({
 
 	<!-- Recipe 4 -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Recipe 4: CI/CD with Bootstrap Tokens</h2>
-		<p class="mt-2 text-zinc-400">For CI runners and containers that can't do interactive pairing.</p>
-
-		<div class="mt-4">
-			<CodeBlock code={`<span class="text-zinc-500"># Generate token on your laptop</span>
-amesh provision --name <span class="text-emerald-400">"ci-runner"</span> --ttl 3600
-
-<span class="text-zinc-500"># In your CI environment</span>
-AMESH_BOOTSTRAP_TOKEN=eyJ... node deploy.js`} />
-		</div>
-		<div class="mt-3">
-			<CodeBlock code={`<span class="text-zinc-500">// deploy.js — auto-pairs on first run</span>
-<span class="text-zinc-400">import</span> { bootstrapIfNeeded } <span class="text-zinc-400">from</span> <span class="text-emerald-400">'@authmesh/sdk'</span>;
-
-<span class="text-zinc-400">await</span> bootstrapIfNeeded();
-<span class="text-zinc-500">// Now amesh.fetch() works</span>`} />
-		</div>
-	</section>
-
-	<!-- Recipe 5 -->
-	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Recipe 5: Webhooks</h2>
+		<h2 class="text-xl font-semibold text-zinc-50">Recipe 4: Webhooks</h2>
 		<p class="mt-2 text-zinc-400">Sign webhooks with device identity instead of a shared secret.</p>
 
 		<div class="mt-4">
@@ -215,7 +194,6 @@ app.post(<span class="text-emerald-400">'/webhooks'</span>, amesh.verify(), (req
 		<div class="mt-4 rounded-lg border border-zinc-800 divide-y divide-zinc-800">
 			{#each [
 				{ name: 'AUTH_MESH_DIR', desc: 'Directory for identity and keys', def: '~/.amesh/' },
-				{ name: 'AUTH_MESH_PASSPHRASE', desc: 'Passphrase for encrypted-file keystore', def: 'required' },
 				{ name: 'AMESH_BOOTSTRAP_TOKEN', desc: 'Bootstrap token for automated pairing', def: 'optional' },
 				{ name: 'RELAY_URL', desc: 'WebSocket relay URL', def: 'wss://relay.authmesh.dev/ws' },
 				{ name: 'REDIS_URL', desc: 'Redis URL for nonce store', def: 'optional' },

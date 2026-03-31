@@ -7,7 +7,7 @@
 		{
 			icon: Rocket,
 			title: 'Integration Guide',
-			desc: 'Step-by-step recipes for Express, microservices, CI/CD, webhooks, and remote pairing.',
+			desc: 'Step-by-step recipes for Express, microservices, webhooks, and remote pairing.',
 			href: '/docs/integration',
 		},
 		{

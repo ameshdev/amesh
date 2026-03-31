@@ -1,6 +1,6 @@
 # @authmesh/keystore
 
-Hardware-backed key storage for [amesh](https://github.com/ameshdev/amesh). Stores P-256 private keys in Secure Enclave, TPM 2.0, or encrypted files.
+Hardware-backed key storage for [amesh](https://github.com/ameshdev/amesh). Stores P-256 private keys in Secure Enclave, macOS Keychain, or TPM 2.0.
 
 ## Install
 
@@ -12,20 +12,19 @@ npm install @authmesh/keystore
 
 | Backend | Platform | Security |
 |---------|----------|----------|
-| `secure-enclave` | macOS | Key never leaves the chip |
-| `tpm` | Linux | TPM 2.0 hardware module |
-| `os-keyring` | macOS/Linux | OS-level keychain/secret-tool |
-| `encrypted-file` | Any | AES-256-GCM + Argon2id |
+| `secure-enclave` | macOS (signed binary) | Key never leaves the chip |
+| `keychain` | macOS | OS-level software keychain |
+| `tpm2` | Linux | TPM 2.0 hardware module |
 
-The platform is auto-detected. macOS tries Secure Enclave first, falls back to Keychain. Linux tries TPM, falls back to encrypted file.
+The platform is auto-detected. macOS tries Secure Enclave first, falls back to Keychain. Linux uses TPM 2.0. Hardware-backed key storage is required --- amesh does not support software-only key storage.
 
 ## Usage
 
 ```typescript
-import { createForBackend, AllowList } from '@authmesh/keystore';
+import { detectAndCreate, AllowList } from '@authmesh/keystore';
 
 // Auto-detect best available backend
-const keyStore = await createForBackend('auto', '/path/to/keys', passphrase);
+const { keyStore, backend } = await detectAndCreate('/path/to/keys');
 
 // Sign a message (private key never returned)
 const signature = await keyStore.sign(deviceId, message);

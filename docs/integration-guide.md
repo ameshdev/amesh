@@ -241,112 +241,7 @@ If you don't provide a `nonceStore`, amesh uses an in-memory store and prints a 
 
 ---
 
-## Recipe 4: CI/CD with Bootstrap Tokens
-
-For CI runners and containers that can't do interactive pairing, use bootstrap tokens.
-
-### Generate a bootstrap token (on your laptop)
-
-```bash
-amesh provision --name "ci-runner" --ttl 3600
-# Outputs: AMESH_BOOTSTRAP_TOKEN=eyJ...
-```
-
-### Use it in GitHub Actions
-
-```yaml
-# .github/workflows/deploy.yml
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    env:
-      AMESH_BOOTSTRAP_TOKEN: ${{ secrets.AMESH_BOOTSTRAP_TOKEN }}
-      AUTH_MESH_PASSPHRASE: ${{ secrets.AUTH_MESH_PASSPHRASE }}
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm install @authmesh/sdk
-      - run: node deploy.js  # amesh.fetch() will auto-bootstrap on first call
-```
-
-### In your code
-
-```typescript
-import { bootstrapIfNeeded } from '@authmesh/sdk';
-
-// Auto-pairs with the controller if AMESH_BOOTSTRAP_TOKEN is set
-// No-op if already paired
-await bootstrapIfNeeded();
-```
-
----
-
-## Recipe 5: Kubernetes Per-Pod Identity
-
-Each pod gets its own identity via bootstrap tokens. The relay runs as a service in the cluster.
-
-### Deploy the relay
-
-```yaml
-# relay-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: amesh-relay
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: amesh-relay
-  template:
-    metadata:
-      labels:
-        app: amesh-relay
-    spec:
-      containers:
-        - name: relay
-          image: oven/bun:1.3-slim
-          command: ["bunx", "@authmesh/relay"]
-          ports:
-            - containerPort: 3001
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: amesh-relay
-spec:
-  selector:
-    app: amesh-relay
-  ports:
-    - port: 3001
-```
-
-### Pod init container
-
-```yaml
-initContainers:
-  - name: amesh-init
-    image: oven/bun:1.3-slim
-    command: ["bunx", "@authmesh/cli", "init", "--name", "$(POD_NAME)"]
-    env:
-      - name: POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: AMESH_BOOTSTRAP_TOKEN
-        valueFrom:
-          secretRef:
-            name: amesh-bootstrap
-            key: token
-      - name: AUTH_MESH_PASSPHRASE
-        valueFrom:
-          secretRef:
-            name: amesh-bootstrap
-            key: passphrase
-```
-
----
-
-## Recipe 6: Webhook Authentication
+## Recipe 4: Webhook Authentication
 
 Instead of signing webhooks with a shared secret (like `WEBHOOK_SECRET`), sign them with amesh.
 
@@ -391,7 +286,6 @@ No shared secret. The webhook sender proves its identity with a hardware-bound s
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `AUTH_MESH_DIR` | Directory for identity and keys | `~/.amesh/` |
-| `AUTH_MESH_PASSPHRASE` | Passphrase for encrypted-file keystore | (required for encrypted-file backend) |
 | `AMESH_BOOTSTRAP_TOKEN` | Bootstrap token for automated pairing | (optional) |
 | `RELAY_URL` | WebSocket relay URL | `wss://relay.authmesh.dev/ws` |
 | `REDIS_URL` | Redis URL for nonce store | (optional) |
@@ -434,6 +328,6 @@ The allow list file (`~/.amesh/allow_list.json`) was modified outside of amesh. 
 
 You're running in production without a Redis nonce store. Replay attacks could succeed by hitting different instances. See Recipe 3 above.
 
-### Wrong keystore backend
+### "amesh requires hardware-backed key storage"
 
-If you see "Running in degraded security mode," the encrypted-file fallback is being used. On macOS, this means Secure Enclave access failed (usually a permissions issue). On Linux, TPM is not available. The encrypted-file backend is secure but software-only.
+amesh requires Secure Enclave (macOS), macOS Keychain, or TPM 2.0 (Linux). If no hardware backend is detected, `amesh init` will fail. Ensure you're running on a machine with supported hardware. On macOS, the Swift helper binary (`amesh-se-helper`) must be installed alongside the `amesh` binary.

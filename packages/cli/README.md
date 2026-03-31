@@ -46,7 +46,6 @@ $ amesh invite 482916
 | Variable | Description |
 |----------|-------------|
 | `AUTH_MESH_DIR` | Override `~/.amesh/` directory |
-| `AUTH_MESH_PASSPHRASE` | Passphrase for encrypted-file keystore |
 | `RELAY_URL` | WebSocket relay URL (default: `wss://relay.authmesh.dev/ws`) |
 
 ## Full documentation

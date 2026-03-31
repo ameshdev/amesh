@@ -15,9 +15,8 @@ You need two terminal windows and the amesh CLI.
 ### 1. Initialize identity
 
 ```bash
-# From the repo root
+# From the repo root — requires macOS Keychain or TPM
 alias amesh="node $(pwd)/packages/cli/dist/index.js"
-export AUTH_MESH_PASSPHRASE="demo"
 
 amesh init --name "demo-device"
 ```
@@ -44,7 +43,6 @@ bun run server.ts
 In another terminal:
 
 ```bash
-export AUTH_MESH_PASSPHRASE="demo"
 bun run call.ts
 ```
 

@@ -5,9 +5,7 @@
 
 	const useCases = [
 		{ slug: 'microservices', title: 'Microservices', desc: 'Service-to-service identity' },
-		{ slug: 'ci-cd', title: 'CI/CD Pipelines', desc: 'Pipelines without stored secrets' },
 		{ slug: 'webhooks', title: 'Webhooks', desc: 'Prove sender identity' },
-		{ slug: 'kubernetes', title: 'Kubernetes', desc: 'Per-pod identity without Vault' },
 	];
 
 	let dropdownOpen = $state(false);
