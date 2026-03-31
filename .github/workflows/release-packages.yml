@@ -1,0 +1,192 @@
+name: Release packages (Homebrew + deb)
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build-binary:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+          - os: macos-15
+            platform: darwin
+            arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Bundle with esbuild
+        run: node packaging/build-sea.mjs
+
+      - name: Generate SEA blob
+        working-directory: packaging
+        run: node --experimental-sea-config sea-config.json
+
+      - name: Create SEA binary
+        run: |
+          cp "$(which node)" amesh
+          npx postject amesh NODE_SEA_BLOB packaging/dist/amesh-sea.blob \
+            --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+
+      - name: Sign binary (macOS)
+        if: runner.os == 'macOS'
+        run: codesign --sign - --force amesh
+
+      - name: Package tarball
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          TARBALL="amesh-${VERSION}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz"
+          tar -czf "$TARBALL" amesh
+          echo "TARBALL=${TARBALL}" >> "$GITHUB_ENV"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.TARBALL }}
+
+  release-deb:
+    needs: build-binary
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download linux-x64 binary
+        uses: robinraju/release-downloader@v1
+        with:
+          tag: ${{ github.ref_name }}
+          fileName: amesh-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz
+
+      - name: Extract binary
+        run: |
+          mkdir -p packaging/dist
+          tar -xzf amesh-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz -C packaging/dist/
+
+      - name: Install nfpm
+        run: |
+          echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | sudo tee /etc/apt/sources.list.d/goreleaser.list
+          sudo apt-get update
+          sudo apt-get install -y nfpm
+
+      - name: Build .deb
+        working-directory: packaging
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }} nfpm pkg \
+            --packager deb \
+            --target ../amesh_${{ steps.version.outputs.VERSION }}_amd64.deb
+
+      - name: Upload .deb to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: amesh_${{ steps.version.outputs.VERSION }}_amd64.deb
+
+  update-homebrew:
+    needs: build-binary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download all tarballs
+        uses: robinraju/release-downloader@v1
+        with:
+          tag: ${{ github.ref_name }}
+          fileName: 'amesh-*.tar.gz'
+
+      - name: Compute sha256 hashes
+        id: hashes
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          for file in amesh-*.tar.gz; do
+            SHA=$(shasum -a 256 "$file" | cut -d' ' -f1)
+            echo "$file: $SHA"
+            # Extract platform-arch from filename
+            SUFFIX="${file#amesh-${VERSION}-}"
+            SUFFIX="${SUFFIX%.tar.gz}"
+            KEY=$(echo "$SUFFIX" | tr '-' '_')
+            echo "${KEY}=${SHA}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: ameshdev/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          cat > homebrew-tap/Formula/amesh.rb << FORMULA
+          class Amesh < Formula
+            desc "Hardware-bound M2M authentication CLI — replaces static API keys with device identities"
+            homepage "https://github.com/ameshdev/amesh"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/ameshdev/amesh/releases/download/v${VERSION}/amesh-${VERSION}-darwin-arm64.tar.gz"
+                sha256 "${{ steps.hashes.outputs.darwin_arm64 }}"
+              end
+
+              on_intel do
+                url "https://github.com/ameshdev/amesh/releases/download/v${VERSION}/amesh-${VERSION}-darwin-x64.tar.gz"
+                sha256 "${{ steps.hashes.outputs.darwin_x64 }}"
+              end
+            end
+
+            on_linux do
+              on_intel do
+                url "https://github.com/ameshdev/amesh/releases/download/v${VERSION}/amesh-${VERSION}-linux-x64.tar.gz"
+                sha256 "${{ steps.hashes.outputs.linux_x64 }}"
+              end
+            end
+
+            def install
+              bin.install "amesh"
+            end
+
+            test do
+              assert_match "amesh", shell_output("#{bin}/amesh --help")
+            end
+          end
+          FORMULA
+
+      - name: Commit and push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/amesh.rb
+          git diff --cached --quiet || git commit -m "amesh ${{ steps.version.outputs.VERSION }}"
+          git push

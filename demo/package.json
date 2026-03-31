@@ -1,0 +1,20 @@
+{
+  "name": "amesh-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "server": "tsx server.ts",
+    "client": "tsx call.ts"
+  },
+  "dependencies": {
+    "@authmesh/core": "workspace:*",
+    "@authmesh/keystore": "workspace:*",
+    "@authmesh/sdk": "workspace:*",
+    "@noble/ciphers": "2.1.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

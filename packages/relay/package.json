@@ -1,0 +1,59 @@
+{
+  "name": "@authmesh/relay",
+  "version": "0.1.1",
+  "description": "WebSocket relay server for amesh device pairing handshakes",
+  "type": "module",
+  "license": "MIT",
+  "author": "Yair Etzion",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ameshdev/amesh.git",
+    "directory": "packages/relay"
+  },
+  "homepage": "https://github.com/ameshdev/amesh",
+  "keywords": [
+    "authentication",
+    "relay",
+    "websocket",
+    "handshake",
+    "fastify",
+    "pairing"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "start": "node dist/start.js"
+  },
+  "dependencies": {
+    "@authmesh/core": "workspace:*",
+    "fastify": "^5.0.0",
+    "@fastify/websocket": "^11.0.0",
+    "ws": "^8.0.0",
+    "@fastify/rate-limit": "^10.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@noble/curves": "2.0.1",
+    "@noble/hashes": "2.0.1",
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "amesh",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "prettier --write \"packages/*/src/**/*.ts\"",
+    "format:check": "prettier --check \"packages/*/src/**/*.ts\"",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "esbuild": "^0.27.4",
+    "eslint": "^9.0.0",
+    "postject": "1.0.0-alpha.6",
+    "prettier": "^3.5.0",
+    "turbo": "^2.5.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}

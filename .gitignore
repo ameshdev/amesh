@@ -1,0 +1,33 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Firebase
+.firebase/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Native build artifacts
+*.node
+target/
+
+.playwright-mcp/
