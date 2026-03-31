@@ -32,7 +32,8 @@ export default class List extends Command {
       this.log('  ' + '─'.repeat(55));
       for (const device of data.devices) {
         const date = device.addedAt.split('T')[0];
-        this.log(`  ${device.deviceId}  ${device.friendlyName.padEnd(25)} added ${date}`);
+        const roleTag = device.role === 'controller' ? '[controller]' : '[target]';
+        this.log(`  ${device.deviceId}  ${device.friendlyName.padEnd(25)} ${roleTag.padEnd(14)} added ${date}`);
       }
       this.log('  ' + '─'.repeat(55));
     }

@@ -140,3 +140,25 @@ Both CLIs display this number; the developer confirms they match. Same approach 
 **Decision:** Validate deviceId against `/^[a-zA-Z0-9_-]+$/` in all keystore drivers.
 
 **Why:** `path.join(basePath, deviceId + ".key.json")` does not prevent `../` traversal. A malicious deviceId could write outside the keys directory.
+
+---
+
+## ADR-010: One-way trust directionality
+
+**Decision:** Trust between paired devices is one-way. A controller can authenticate to a target, but the target cannot authenticate back to the controller. By default, a target allows only one controller.
+
+**Why:** In the original symmetric design, both devices added each other's keys to their allow lists identically. This meant a compromised server could authenticate to the controller (e.g., the developer's laptop). One-way trust limits the blast radius: even if an attacker gains control of a target, they cannot use its identity to call back to controllers.
+
+**Implementation:**
+- Each `AllowListDevice` entry has a `role` field: `"controller"` or `"target"`
+- During handshake, the target (runs `amesh listen`) records the peer as `role: "controller"`, and the controller (runs `amesh invite`) records the peer as `role: "target"`
+- The verification middleware rejects requests from devices with `role: "target"` — they are peers you can authenticate TO, not peers that can authenticate TO you
+- The `role` field is covered by the HMAC seal, so an attacker cannot flip it without invalidating the integrity check
+- `maxControllers` in `identity.json` (default: 1) limits how many controllers a target accepts. Configurable via `amesh init --max-controllers N`
+
+**Rejected alternatives:**
+- One-way key exchange (target stores controller key only, controller stores nothing) — breaks `amesh list` and revocation on the controller side
+- Role in `identity.json` (device is always controller or always target) — too rigid; the same device might be a controller for some peers and a target for others
+- No enforcement (application-level convention) — convention is not security; the middleware must enforce it
+
+**Trade-offs:** Bidirectional auth between two services requires two separate pairings (each side runs `amesh listen` once and `amesh invite` once). This is intentional friction — bidirectional trust should be a conscious choice, not the default.

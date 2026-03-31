@@ -52,19 +52,22 @@ amesh init --name "prod-api"
 
 ### 2. Pair two machines
 
-On the target machine:
+On the target (server):
 ```bash
 amesh listen
 # Pairing code: 482916
+# ✔ "my-laptop" added as controller.
 ```
 
-On the controller:
+On the controller (your laptop):
 ```bash
 amesh invite 482916
 # Verification code: 847291
 # Codes match? (Y/n): y
-# "prod-api" added to allow list.
+# ✔ "prod-api" added as target.
 ```
+
+Trust is one-way: the controller can authenticate to the target, but not the reverse.
 
 ### 3. Sign requests (2 lines)
 
@@ -91,6 +94,7 @@ app.use(amesh.verify());
 ## How It Works
 
 - **Device identity** --- each machine gets a unique P-256 ECDSA keypair. The private key is stored in Secure Enclave (macOS) or TPM 2.0 (Linux). Hardware-backed key storage is required.
+- **One-way trust** --- controllers authenticate to targets, never the reverse. A compromised server cannot call back to your laptop.
 - **Signed requests** --- every HTTP request is signed with the device's private key. The signature covers method, path, timestamp, nonce, and body.
 - **Replay protection** --- each request has a unique nonce and a 30-second timestamp window. Nonces are tracked server-side.
 - **No static secrets** --- there is no string to leak, rotate, or share. Revoke a compromised device instantly with `amesh revoke`.
@@ -113,15 +117,15 @@ app.use(amesh.verify());
 
 ```
 [Pairing — one time]
-  Device A  <--WebSocket-->  Relay  <--WebSocket-->  Device B
+  Target (server)  <--WebSocket-->  Relay  <--WebSocket-->  Controller (laptop)
   (P-256 ECDH + ChaCha20-Poly1305 + SAS verification)
 
 [Runtime — every request]
-  Device A  ----HTTP + AuthMesh header---->  Device B
-  (no relay, no server, fully P2P)
+  Controller  ----HTTP + AuthMesh header---->  Target
+  (one-way trust, no relay, stateless)
 ```
 
-The relay is only needed for the initial pairing handshake. After devices exchange public keys, all authentication is stateless HTTP headers. The relay can be shut down and all existing pairings continue working.
+The relay is only needed for the initial pairing handshake. After devices exchange public keys, all authentication is stateless HTTP headers. Trust is one-way: controllers authenticate to targets, but targets cannot authenticate back. The relay can be shut down and all existing pairings continue working.
 
 ---
 

@@ -7,24 +7,24 @@ How to add amesh to your existing application. Each recipe is self-contained —
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    PAIRING (one-time)                        │
-│                                                             │
-│  Your Server  ◄──WebSocket──►  Relay  ◄──WebSocket──►  Client Machine  │
-│  amesh listen                          amesh invite 482916  │
-│                                                             │
-│  Both sides verify a 6-digit code, then exchange public     │
-│  keys. The relay can be shut down after this.               │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    PAIRING (one-time)                                │
+│                                                                     │
+│  Your Server (target) ◄──WS──► Relay ◄──WS──► Client (controller)  │
+│  amesh listen                          amesh invite 482916          │
+│                                                                     │
+│  Both sides verify a 6-digit code, then exchange public keys.       │
+│  Trust is one-way: controller → target. Relay can be shut down.     │
+└─────────────────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────────┐
-│                 RUNTIME (every request)                      │
-│                                                             │
-│  Client Machine ────HTTP + AuthMesh header────► Your Server │
-│  amesh.fetch()                   amesh.verify()             │
-│                                                             │
-│  No relay. No server. Fully P2P. Stateless HTTP headers.    │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                 RUNTIME (every request)                              │
+│                                                                     │
+│  Controller ────HTTP + AuthMesh header────► Target                  │
+│  amesh.fetch()                   amesh.verify()                     │
+│                                                                     │
+│  One-way. No relay. Stateless headers. Target cannot call back.     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -95,23 +95,24 @@ console.log(await res.json());
 # Install the CLI
 npm install -g @authmesh/cli
 
-# On the server machine: create identity
+# On the server (target): create identity
 amesh init --name "prod-api"
 
-# On the client machine: create identity
+# On your laptop (controller): create identity
 amesh init --name "my-laptop"
 
 # Start the relay (needed only for pairing)
 bunx @authmesh/relay
 
-# On the server: start listening for pairing
+# On the server (target): start listening for pairing
 amesh listen
+# ✔ "my-laptop" added as controller.
 
-# On the client: pair with the server (use the 6-digit code from amesh listen)
+# On your laptop (controller): pair with the server
 amesh invite 482916
+# ✔ "prod-api" added as target.
 
-# Verify the 6-digit SAS code matches on both sides. Done.
-# The relay can be stopped now. All future auth is P2P.
+# Trust is one-way: laptop → server. The relay can be stopped now.
 ```
 
 ---
@@ -125,21 +126,21 @@ When your server is remote (cloud VM, EC2, etc.), both machines need to reach th
 amesh provides a free relay at `relay.authmesh.dev`:
 
 ```bash
-# On the remote server (SSH in)
+# On the remote server (target — SSH in)
 amesh listen --relay wss://relay.authmesh.dev/ws
 
-# On your laptop
+# On your laptop (controller)
 amesh invite 482916 --relay wss://relay.authmesh.dev/ws
 ```
 
 ### Option B: Run the relay on the remote server
 
 ```bash
-# On the remote server
+# On the remote server (target)
 bunx @authmesh/relay                                      # starts on port 3001
 amesh listen --relay ws://localhost:3001/ws
 
-# On your laptop (use the server's public IP or domain)
+# On your laptop (controller — use the server's public IP or domain)
 amesh invite 482916 --relay ws://your-server:3001/ws
 ```
 
@@ -164,9 +165,9 @@ For production, you should host your own relay. See the [Self-Hosting Guide](./s
 
 ## Recipe 2: Microservices (Service A calls Service B)
 
-Each service gets its own device identity. Services pair once, then authenticate every request.
+Each service gets its own device identity. Services pair once, then authenticate every request. Trust is one-way: the caller (controller) authenticates to the API (target), not vice versa.
 
-### Service B (the API being called)
+### Service B — the target (the API being called)
 
 ```typescript
 import express from 'express';
@@ -184,7 +185,7 @@ app.get('/internal/users/:id', (req, res) => {
 app.listen(4000);
 ```
 
-### Service A (the caller)
+### Service A — the controller (the caller)
 
 ```typescript
 import { amesh } from '@authmesh/sdk';
@@ -198,15 +199,20 @@ async function getUser(id: string) {
 ### Setup for each service
 
 ```bash
-# On service-a machine:
-amesh init --name "service-a"
-
-# On service-b machine:
+# On service-b machine (target — the API):
 amesh init --name "service-b"
+amesh listen
 
-# Pair them (run relay, then listen + invite)
-# After pairing, service-b's allow list contains service-a's public key
+# On service-a machine (controller — the caller):
+amesh init --name "service-a"
+amesh invite 482916
+
+# One-way trust: service-a → service-b.
+# service-b's allow list has service-a as [controller].
+# service-b cannot authenticate back to service-a.
 ```
+
+> **Bidirectional auth:** If two services need to call each other, pair them twice — each side runs `amesh listen` once and `amesh invite` once. Each pairing creates a separate one-way trust relationship.
 
 ---
 

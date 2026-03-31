@@ -24,6 +24,11 @@ export default class Init extends Command {
       description: 'Overwrite existing identity',
       default: false,
     }),
+    'max-controllers': Flags.integer({
+      description: 'Maximum number of controllers allowed (default: 1)',
+      default: 1,
+      min: 1,
+    }),
   };
 
   async run(): Promise<void> {
@@ -69,6 +74,7 @@ export default class Init extends Command {
       friendlyName: flags.name,
       createdAt: new Date().toISOString(),
       storageBackend: backend,
+      ...(flags['max-controllers'] > 1 ? { maxControllers: flags['max-controllers'] } : {}),
     };
 
     await saveIdentity(identityPath, identity);

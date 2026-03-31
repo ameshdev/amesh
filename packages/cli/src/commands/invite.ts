@@ -79,10 +79,11 @@ export default class Invite extends Command {
       friendlyName: result.peerFriendlyName,
       addedAt: new Date().toISOString(),
       addedBy: 'handshake',
+      role: 'target',
     });
 
     this.log('');
-    this.log(`  "${result.peerFriendlyName}" added to allow list.`);
+    this.log(`  "${result.peerFriendlyName}" added as target.`);
     this.log('');
     this.log('  Pairing complete. The relay connection is closed.');
     this.log('');

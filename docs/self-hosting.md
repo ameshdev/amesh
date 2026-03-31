@@ -8,10 +8,12 @@ How to run your own amesh relay server. The relay is only needed for device pair
 
 ```
 PAIRING (one-time, needs relay):
-  Device A  <--WebSocket-->  Your Relay  <--WebSocket-->  Device B
+  Target (server)  <--WebSocket-->  Your Relay  <--WebSocket-->  Controller (laptop)
+  amesh listen                                                   amesh invite 482916
 
 RUNTIME (every request, no relay):
-  Device A  ----HTTP + AuthMesh header---->  Device B
+  Controller  ----HTTP + AuthMesh header---->  Target
+  (one-way trust: controller → target only)
 ```
 
 The relay is stateless. It holds WebSocket connections in memory during a pairing session (typically 10-30 seconds) and forgets everything when the session ends. No database, no persistence.
@@ -32,10 +34,10 @@ The relay starts on port 3001. Health check: `curl http://localhost:3001/health`
 
 To use it for pairing:
 ```bash
-# On machine A
+# On the target (server)
 amesh listen --relay ws://your-server:3001/ws
 
-# On machine B
+# On the controller (your laptop)
 amesh invite 482916 --relay ws://your-server:3001/ws
 ```
 

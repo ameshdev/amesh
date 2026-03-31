@@ -27,14 +27,14 @@
 		<div class="mt-4 space-y-4">
 			<div class="rounded-lg border border-zinc-800 p-4" style="background:#0C0C0E">
 				<div class="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">Pairing (one-time)</div>
-				<pre class="font-mono text-[13px] leading-relaxed text-zinc-400 overflow-x-auto">Your Server  <span class="text-emerald-400">&lt;--WebSocket--&gt;</span>  Relay  <span class="text-emerald-400">&lt;--WebSocket--&gt;</span>  Client
+				<pre class="font-mono text-[13px] leading-relaxed text-zinc-400 overflow-x-auto">Your Server <span class="text-zinc-600">(target)</span>  <span class="text-emerald-400">&lt;--WebSocket--&gt;</span>  Relay  <span class="text-emerald-400">&lt;--WebSocket--&gt;</span>  Client <span class="text-zinc-600">(controller)</span>
 <span class="text-zinc-600">Both sides verify a 6-digit code, then exchange public keys.</span>
-<span class="text-zinc-600">The relay can be shut down after this.</span></pre>
+<span class="text-zinc-600">Trust is one-way: controller &rarr; target. The relay can be shut down after this.</span></pre>
 			</div>
 			<div class="rounded-lg border border-zinc-800 p-4" style="background:#0C0C0E">
 				<div class="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">Runtime (every request)</div>
-				<pre class="font-mono text-[13px] leading-relaxed text-zinc-400 overflow-x-auto">Client  <span class="text-emerald-400">----HTTP + AuthMesh header----&gt;</span>  Your Server
-<span class="text-zinc-600">No relay. No external server. Fully P2P. Stateless headers.</span></pre>
+				<pre class="font-mono text-[13px] leading-relaxed text-zinc-400 overflow-x-auto">Controller  <span class="text-emerald-400">----HTTP + AuthMesh header----&gt;</span>  Target
+<span class="text-zinc-600">One-way. No relay. Stateless headers. Target cannot call back.</span></pre>
 			</div>
 		</div>
 	</section>
@@ -88,11 +88,11 @@ npm install -g <span class="text-emerald-400">@authmesh/cli</span>
 <span class="text-zinc-500"># Create identity on each machine</span>
 amesh init --name <span class="text-emerald-400">"prod-api"</span>
 
-<span class="text-zinc-500"># Start relay, pair devices, verify 6-digit code</span>
-amesh listen          <span class="text-zinc-500"># on server</span>
-amesh invite 482916   <span class="text-zinc-500"># on client (use code from listen)</span>
+<span class="text-zinc-500"># Pair: server is the target, your laptop is the controller</span>
+amesh listen          <span class="text-zinc-500"># on server (target)</span>
+amesh invite 482916   <span class="text-zinc-500"># on laptop (controller — use code from listen)</span>
 
-<span class="text-zinc-500"># Done. Relay can be stopped. All future auth is P2P.</span>`} />
+<span class="text-zinc-500"># Done. Trust is one-way: laptop &rarr; server. Relay can be stopped.</span>`} />
 		</div>
 	</section>
 

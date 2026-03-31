@@ -62,16 +62,19 @@ Output (empty initially):
   Your identity: am_cOixWcOdI8-pLh4P (My Laptop)
 ```
 
-After devices are paired, it shows:
+After devices are paired, it shows each device's role (`[controller]` or `[target]`):
 ```
   Trusted Devices (2)
-  ───────────────────────────────────────────────
-  am_1a2b3c4d5e6f7a8b  MacBook Pro — dev     added 2026-03-28
-  am_9f8e7d6c5b4a3210  staging-api           added 2026-03-29
-  ───────────────────────────────────────────────
+  ──────────────────────────────────────────────────────────
+  am_1a2b3c4d5e6f7a8b  MacBook Pro — dev     [controller]   added 2026-03-28
+  am_9f8e7d6c5b4a3210  staging-api           [target]       added 2026-03-29
+  ──────────────────────────────────────────────────────────
 
   Your identity: am_cOixWcOdI8-pLh4P (My Laptop)
 ```
+
+- **[controller]** — this device can authenticate TO you
+- **[target]** — you can authenticate TO this device, but it cannot authenticate back to you
 
 ---
 
@@ -210,9 +213,10 @@ The client automatically:
 The server automatically:
 1. Parses the header
 2. Checks the device is in the allow list
-3. Validates timestamp (±30s), nonce (replay prevention)
-4. Verifies the ECDSA-P256-SHA256 signature
-5. Attaches `req.authMesh` with the verified device identity
+3. Checks the device's role is `controller` (targets are rejected)
+4. Validates timestamp (±30s), nonce (replay prevention)
+5. Verifies the ECDSA-P256-SHA256 signature
+6. Attaches `req.authMesh` with the verified device identity
 
 **No API key. No Bearer token. No secret to leak.**
 
@@ -222,17 +226,25 @@ The server automatically:
 
 The handshake establishes trust between two machines. Run it once per device pair — after that, all authentication is offline.
 
+**Trust is one-way.** The controller (your laptop) can authenticate to the target (the server), but the target cannot authenticate back to the controller. This limits the blast radius of a compromised server.
+
 On the **target** machine (the server being secured):
 ```bash
 amesh listen
+# ✔ "Dev Laptop" added as controller.
 ```
 
 On the **controller** machine (your laptop), using the 6-digit code displayed by the target:
 ```bash
 amesh invite 482916
+# ✔ "prod-api" added as target.
 ```
 
-Both sides display a verification code — confirm they match. After that, each machine has the other's public key in its allow list.
+Both sides display a verification code — confirm they match. After that:
+- The target's allow list has the controller's key with role `controller` (accepts auth from it)
+- The controller's allow list has the target's key with role `target` (cannot auth from it)
+
+By default, a target allows only **one controller**. If you pair a second controller, the CLI prompts you to replace the existing one. To allow multiple controllers, use `amesh init --max-controllers N`.
 
 To run the handshake as an integration test:
 ```bash

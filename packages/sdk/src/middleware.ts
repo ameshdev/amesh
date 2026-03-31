@@ -56,6 +56,13 @@ export function authMeshVerify(opts: VerifyOptions) {
         return;
       }
 
+      // Step 3b — Directionality check: targets cannot authenticate
+      if (device.role === 'target') {
+        sendError(res, 401, 'unauthorized');
+        logServerSide('role_rejected', device.deviceId, Math.floor(Date.now() / 1000), 0);
+        return;
+      }
+
       // Step 4 — Clock check
       const serverNow = Math.floor(Date.now() / 1000);
       const requestTs = parseInt(parsed.ts, 10);

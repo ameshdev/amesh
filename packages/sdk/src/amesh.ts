@@ -126,6 +126,9 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
       const device = await al.findByPublicKey(parsed.id);
       if (!device) { sendUnauthorized(res); return; }
 
+      // Directionality check: targets cannot authenticate
+      if (device.role === 'target') { sendUnauthorized(res); return; }
+
       const serverNow = Math.floor(Date.now() / 1000);
       const requestTs = parseInt(parsed.ts, 10);
       if (isNaN(requestTs) || Math.abs(serverNow - requestTs) > clockSkew) { sendUnauthorized(res); return; }

@@ -114,6 +114,6 @@ This matters for:
 
 ## The security model in one sentence
 
-**The private key never leaves the chip. The signature proves the device. The nonce prevents replay. The HMAC prevents tampering. The SAS prevents MITM.**
+**The private key never leaves the chip. The signature proves the device. The nonce prevents replay. The HMAC prevents tampering. The SAS prevents MITM. One-way trust limits blast radius — a compromised target cannot authenticate back to its controller.**
 
 There is no string to steal.

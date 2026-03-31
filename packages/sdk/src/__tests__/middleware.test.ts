@@ -26,13 +26,14 @@ beforeAll(async () => {
   tempDir = await mkdtemp(join(tmpdir(), 'amesh-sdk-'));
   allowList = new AllowList(join(tempDir, 'allow_list.json'), hmacKeyMaterial, 'am_server');
 
-  // Add our test device to the allow list
+  // Add our test device to the allow list as a controller (can authenticate)
   await allowList.addDevice({
     deviceId,
     publicKey: publicKeyBase64,
     friendlyName: 'Test Device',
     addedAt: new Date().toISOString(),
     addedBy: 'handshake',
+    role: 'controller',
   });
 
   const middleware = authMeshVerify({ allowList, clockSkewSeconds: 30, nonceWindowSeconds: 60 });
@@ -223,6 +224,39 @@ describe('authMeshVerify middleware', () => {
     // Send to different path
     const res = await request('GET', '/api/admin', { auth });
     expect(res.status).toBe(401);
+  });
+
+  // Step 3b — Directionality: target role cannot authenticate
+  it('rejects request from device with role "target" (401)', async () => {
+    // Create a separate allow list with a target-role device
+    const targetPriv = p256.utils.randomSecretKey();
+    const targetPub = p256.getPublicKey(targetPriv, true);
+    const targetPubB64 = Buffer.from(targetPub).toString('base64');
+
+    // Add the target device to the server's allow list
+    await allowList.addDevice({
+      deviceId: 'am_targetdev',
+      publicKey: targetPubB64,
+      friendlyName: 'Target Device',
+      addedAt: new Date().toISOString(),
+      addedBy: 'handshake',
+      role: 'target',
+    });
+
+    const ts = Math.floor(Date.now() / 1000).toString();
+    const nonce = Buffer.from(randomBytes(16)).toString('base64url');
+    const canonical = buildCanonicalString('GET', '/api', ts, nonce, '');
+    const sig = signMessage(targetPriv, new TextEncoder().encode(canonical));
+    const auth = buildAuthHeader({
+      v: '1',
+      id: targetPubB64,
+      ts,
+      nonce,
+      sig: Buffer.from(sig).toString('base64url'),
+    });
+    const res = await request('GET', '/api', { auth });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('unauthorized');
   });
 
   // Step 7 — Swapped ID (wrong key signs, header claims another key)

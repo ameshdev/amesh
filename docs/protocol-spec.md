@@ -281,8 +281,15 @@ SAS is displayed by default. Skippable with `--no-verify` flag for automated/hea
 
 > **Why SAS in addition to selfSig:** The `selfSig` alone does not prevent a relay MITM that performs separate ECDH with each side and substitutes its own permanent key with a valid selfSig. The SAS catches this because the ECDH shared secrets differ.
 
-**Step 11 — Persistence:**
-Each device writes the other's `publicKey` and `friendlyName` into its local `allow_list.json` and reseals the HMAC. See Section 9.
+**Step 11 — Persistence with role assignment:**
+Each device writes the other's `publicKey` and `friendlyName` into its local `allow_list.json` with a **role** field and reseals the HMAC. See Section 9.
+
+- The **target** (ran `amesh listen`) writes the controller's key with `role: "controller"` — this peer may authenticate to me.
+- The **controller** (ran `amesh invite`) writes the target's key with `role: "target"` — this peer may NOT authenticate to me.
+
+This enforces **one-way trust**: controllers can authenticate to targets, but targets cannot authenticate back to controllers.
+
+**Single-controller default:** By default, a target allows only one controller (`maxControllers: 1` in `identity.json`). If a target already has a controller and a new handshake completes, the CLI prompts the operator to replace the existing controller. The `maxControllers` limit can be raised via `amesh init --max-controllers N`.
 
 ### CLI output (Target side)
 ```
@@ -401,9 +408,13 @@ If any field is missing: return `400 Bad Request`.
 If `v !== "1"`: return `400 Bad Request` with body `{"error": "unsupported_version"}`.
 
 **Step 3 — Identity lookup**
-Load and verify the integrity of `allow_list.json` (see Section 9).  
-If `id` is not in the allow list: return `401 Unauthorized`.  
+Load and verify the integrity of `allow_list.json` (see Section 9).
+If `id` is not in the allow list: return `401 Unauthorized`.
 Do not reveal *why* — the response body is always `{"error": "unauthorized"}` for 401s.
+
+**Step 3b — Directionality check**
+If the matched device has `role: "target"`: return `401 Unauthorized`.
+A device marked as `target` in the allow list is a peer that this device can authenticate *to*, not a peer that may authenticate *to this device*. The response body is the same generic `{"error": "unauthorized"}` — the rejection reason is logged server-side only.
 
 **Step 4 — Clock check**
 ```
@@ -485,13 +496,20 @@ The allow list is **sealed** with an HMAC keyed by the device's hardware-bound p
       "publicKey": "Base64EncodedPublicKey==",
       "friendlyName": "MacBook Pro — dev",
       "addedAt": "2026-03-28T10:05:00Z",
-      "addedBy": "handshake"
+      "addedBy": "handshake",
+      "role": "controller"
     }
   ],
   "updatedAt": "2026-03-28T10:05:00Z",
   "hmac": "HMAC-SHA256 over canonical JSON of {version, devices, updatedAt}"
 }
 ```
+
+The `role` field enforces trust directionality:
+- `"controller"` — this peer may authenticate to me (accepted by verification middleware)
+- `"target"` — this peer is a target I can authenticate to, but it may NOT authenticate to me (rejected by verification middleware)
+
+Legacy allow lists without the `role` field are migrated on first read: missing roles default to `"controller"` (permissive, backwards-compatible). The HMAC is resealed after migration.
 
 ### HMAC Key Derivation
 
@@ -711,6 +729,11 @@ The relay could theoretically swap ephemeral public keys during Step 5 to perfor
 1. **`selfSig`** (Step 7/8): Proves each side controls the private key corresponding to the public key they present. A relay doing MITM cannot forge a `selfSig` for a key it doesn't control.
 
 2. **SAS Verification** (Step 9): Even if the relay performs separate ECDH with each side and substitutes its own permanent key with a valid `selfSig`, the SAS codes will differ because the ECDH shared secrets differ. This is cryptographic proof of no MITM — not reliant on the developer recognizing an unfamiliar device name. Same approach as Signal, Matrix, and Bluetooth Secure Simple Pairing.
+
+### One-Way Trust Directionality
+Trust between devices is **one-directional** by default. A controller can authenticate to a target, but the target cannot authenticate back to the controller. This limits the blast radius of a compromised target — even if an attacker gains control of the server, they cannot use its amesh identity to authenticate to the controller. The `role` field in each allow list entry is HMAC-sealed, so an attacker cannot flip a `"target"` role to `"controller"` without invalidating the HMAC.
+
+By default, a target allows only **one controller** (`maxControllers: 1`). This can be increased via `amesh init --max-controllers N` for multi-operator environments.
 
 ### Query String Canonicalization
 Sort query parameters alphabetically before including in canonical string `M`. This prevents the same request from having two valid signatures depending on parameter ordering. Use: `new URLSearchParams(url.search).sort().toString()`.
