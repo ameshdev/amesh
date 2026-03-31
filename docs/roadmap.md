@@ -97,6 +97,17 @@
 - [x] TPM temp files use `crypto.randomUUID()` instead of `Math.random()`
 - [x] Protocol spec, ADR-009, roadmap updated
 
+## Homebrew + APT Distribution (PR #2) [DONE]
+- [x] Node.js upgraded to 24 LTS across CI, Docker, and docs
+- [x] Custom SEA entry point (`packages/cli/src/sea.ts`) — bypasses oclif filesystem discovery
+- [x] esbuild bundler (`packaging/build-sea.mjs`) — 3.9MB minified single-file bundle
+- [x] Node.js SEA binary tested locally (macOS arm64)
+- [x] GitHub Actions matrix build: darwin-arm64, darwin-x64, linux-x64
+- [x] Homebrew formula with platform-specific binary tarballs
+- [x] nfpm config for `.deb` packages (standalone binary, no nodejs dep)
+- [x] `HOMEBREW_TAP_TOKEN` secret configured
+- [x] `ameshdev/homebrew-tap` repo created with `Formula/amesh.rb`
+
 ## Future
 - [ ] Bootstrap `single_use` enforcement (persistent jti store on relay — Redis SET NX EX)
 - [ ] TPM `pemToRaw` — parse ASN.1 DER to extract and compress EC point (currently returns ~91-byte DER)
