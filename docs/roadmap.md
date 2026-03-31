@@ -108,6 +108,18 @@
 - [x] `HOMEBREW_TAP_TOKEN` secret configured
 - [x] `ameshdev/homebrew-tap` repo created with `Formula/amesh.rb`
 
+## Landing Page Redesign [DONE]
+- [x] Full-width layout with alternating section backgrounds (was max-w-2xl / 672px)
+- [x] Two-column hero with tabbed install CTA (Homebrew / npm / Binary) + before/after code demo
+- [x] Comparison table: amesh vs API Keys vs mTLS vs Vault vs OAuth
+- [x] 3-column feature grid with icon badges (6 features)
+- [x] Two-column "How it works" (text + code side-by-side)
+- [x] CLI demo with terminal chrome and tabbed commands
+- [x] Bottom CTA section with install command + link cards
+- [x] 4-column footer (Brand / Product / Resources / Use Cases)
+- [x] GitHub Invertocat logo in nav and footer
+- [x] Responsive mobile layout with clean nav
+
 ## Future
 - [ ] Bootstrap `single_use` enforcement (persistent jti store on relay — Redis SET NX EX)
 - [ ] TPM `pemToRaw` — parse ASN.1 DER to extract and compress EC point (currently returns ~91-byte DER)

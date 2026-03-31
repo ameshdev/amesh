@@ -14,10 +14,11 @@
 </script>
 
 <nav class="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950/85 backdrop-blur-sm">
-	<div class="mx-auto flex h-14 max-w-2xl items-center justify-between px-6">
+	<div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
 		<a href="/" class="font-mono text-lg font-semibold text-zinc-50 no-underline">amesh</a>
 		<div class="flex items-center gap-5">
-			<div class="relative">
+			<!-- Desktop nav links -->
+			<div class="relative hidden sm:block">
 				<button
 					onclick={() => dropdownOpen = !dropdownOpen}
 					class="flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-50 transition cursor-pointer bg-transparent border-none"
@@ -46,10 +47,14 @@
 					</div>
 				{/if}
 			</div>
-			<a href="/docs" class="text-sm text-zinc-400 hover:text-zinc-50 no-underline transition">Docs</a>
+			<a href="/docs" class="hidden text-sm text-zinc-400 hover:text-zinc-50 no-underline transition sm:block">Docs</a>
 			<a href={REPO} target="_blank" rel="noopener"
-				class="rounded-md border border-zinc-800 px-3 py-1.5 text-sm text-zinc-400 no-underline transition hover:border-zinc-600 hover:text-zinc-50">
-				GitHub
+				class="text-zinc-400 no-underline transition hover:text-zinc-50" title="GitHub">
+				<img src="/github-mark-white.svg" alt="GitHub" class="h-5 w-5 opacity-70 transition hover:opacity-100" />
+			</a>
+			<a href="/docs"
+				class="rounded-md bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-zinc-950 no-underline transition hover:bg-emerald-400">
+				Get Started
 			</a>
 		</div>
 	</div>
