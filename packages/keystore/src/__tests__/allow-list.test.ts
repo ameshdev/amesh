@@ -28,7 +28,8 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await rm(tempDir, { recursive: true, force: true });
+  await new Promise((r) => setTimeout(r, 50));
+  await rm(tempDir, { recursive: true, force: true }).catch(() => {});
 });
 
 describe('AllowList', () => {

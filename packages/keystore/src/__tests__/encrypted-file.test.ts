@@ -15,7 +15,9 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await rm(tempDir, { recursive: true, force: true });
+  // Small delay to let pending I/O from atomic writes settle before cleanup
+  await new Promise((r) => setTimeout(r, 50));
+  await rm(tempDir, { recursive: true, force: true }).catch(() => {});
 });
 
 describe('EncryptedFileKeyStore', () => {
