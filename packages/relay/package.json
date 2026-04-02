@@ -22,6 +22,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "bin": {
+    "amesh-relay": "./dist/start.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",

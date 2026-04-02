@@ -46,7 +46,7 @@ $ amesh invite 482916
 | Variable | Description |
 |----------|-------------|
 | `AUTH_MESH_DIR` | Override `~/.amesh/` directory |
-| `RELAY_URL` | WebSocket relay URL (default: `wss://relay.authmesh.dev/ws`) |
+| `AMESH_RELAY_URL` | WebSocket relay URL (default: `wss://relay.authmesh.dev/ws`) |
 
 ## Full documentation
 

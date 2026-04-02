@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { createRelayServer } from './server.js';
 
 const port = parseInt(process.env.PORT ?? '3001', 10);

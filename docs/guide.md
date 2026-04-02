@@ -263,14 +263,9 @@ bun test
 ## 8. Start the Relay Server
 
 ```bash
-cd packages/relay
-node -e "
-import('./dist/index.js').then(async ({ createRelayServer }) => {
-  const relay = await createRelayServer({ host: '0.0.0.0', port: 3001 });
-  await relay.start();
-  console.log('Relay listening on ws://0.0.0.0:3001/ws');
-});
-"
+npx @authmesh/relay
+# Or from the monorepo:
+cd packages/relay && bun run start
 ```
 
 Health check: `curl http://localhost:3001/health`
