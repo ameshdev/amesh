@@ -16,7 +16,7 @@
 				<a href={link.href} class="group flex flex-col rounded-lg border border-zinc-800 p-3 no-underline transition hover:border-zinc-700">
 					<div class="flex items-center gap-2">
 						<span class="rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide
-							{link.type === 'doc' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-zinc-800 text-zinc-400'}">
+							{link.type === 'doc' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-sky-400/10 text-sky-400'}">
 							{link.type === 'doc' ? 'Doc' : 'Use Case'}
 						</span>
 						<span class="text-sm font-medium text-zinc-300 group-hover:text-zinc-50">{link.title}</span>
