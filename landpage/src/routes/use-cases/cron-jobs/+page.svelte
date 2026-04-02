@@ -15,6 +15,10 @@
 <UseCasePage
 	icon={Clock}
 	badge="Cron Jobs"
+	slug="cron-jobs"
+	relatedLinks={[
+		{ href: '/docs/integration', title: 'Integration Guide', desc: 'Express setup, remote pairing, Redis nonce store', type: 'doc' },
+	]}
 	headline="Your cron job has a plaintext API key. So does the attacker."
 	subtitle="A billing sync, a health check, a nightly data export. The API key is in a .env file or crontab on the server. If the server is compromised, the key works from anywhere."
 	painTitle="The problem with API keys in scheduled tasks"

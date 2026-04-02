@@ -15,6 +15,11 @@
 <UseCasePage
 	icon={Network}
 	badge="Microservices"
+	slug="microservices"
+	relatedLinks={[
+		{ href: '/docs/integration', title: 'Integration Guide', desc: 'Express setup, remote pairing, Redis nonce store', type: 'doc' },
+		{ href: '/docs/self-hosting', title: 'Self-Hosting Guide', desc: 'Deploy the relay for production pairing', type: 'doc' },
+	]}
 	headline="Your services share a password. That's not identity."
 	subtitle="When every service uses the same API key to call every other service, you don't have authentication — you have a shared secret that grants universal access."
 	painTitle="The problem with shared API keys"

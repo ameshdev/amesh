@@ -15,6 +15,10 @@
 <UseCasePage
 	icon={Terminal}
 	badge="Internal Tools"
+	slug="internal-tools"
+	relatedLinks={[
+		{ href: '/docs/integration', title: 'Integration Guide', desc: 'Express setup, remote pairing, Redis nonce store', type: 'doc' },
+	]}
 	headline="Five developers share one admin key. Your SOC2 auditor is not impressed."
 	subtitle="Admin scripts hit production with a shared API key from 1Password. No way to know who ran what. When someone leaves, nobody rotates the key."
 	painTitle="The problem with shared admin keys"
