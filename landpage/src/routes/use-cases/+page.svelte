@@ -1,18 +1,20 @@
 <script lang="ts">
-	import { Network, Webhook, ChevronRight } from '@lucide/svelte';
+	import { Network, Webhook, Clock, Terminal, ChevronRight } from '@lucide/svelte';
 
 	const cases = [
 		{ slug: 'microservices', icon: Network, title: 'Microservices', desc: 'Every service gets its own device-bound identity. No shared API keys. Per-service audit trail.' },
 		{ slug: 'webhooks', icon: Webhook, title: 'Webhooks', desc: 'Prove webhook sender identity cryptographically. No HMAC secrets to share and rotate.' },
+		{ slug: 'cron-jobs', icon: Clock, title: 'Cron Jobs', desc: 'Replace plaintext API keys in scheduled tasks. Per-server audit trail, instant revocation.' },
+		{ slug: 'internal-tools', icon: Terminal, title: 'Internal Tools', desc: 'Each developer\'s laptop IS their identity. Know who ran what. SOC2-ready audit trail.' },
 	];
 </script>
 
 <svelte:head>
 	<title>Use Cases — amesh</title>
-	<meta name="description" content="How teams use amesh to replace API keys in microservices and webhooks with device-bound cryptographic identity." />
+	<meta name="description" content="How teams use amesh to replace API keys in microservices, webhooks, cron jobs, and internal tools with device-bound cryptographic identity." />
 	<link rel="canonical" href="https://authmesh.dev/use-cases" />
 	<meta property="og:title" content="Use Cases — amesh" />
-	<meta property="og:description" content="How teams use amesh to replace API keys in microservices and webhooks." />
+	<meta property="og:description" content="How teams use amesh to replace API keys in microservices, webhooks, cron jobs, and internal tools." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases" />
 </svelte:head>
 

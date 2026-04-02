@@ -286,11 +286,60 @@ No shared secret. The webhook sender proves its identity with a device-bound sig
 
 ---
 
+## Local Development
+
+Use the same `amesh.fetch()` and `amesh.verify()` code paths in local development as in production. No `if (NODE_ENV === 'development') { skipAuth() }` hacks.
+
+### Setup
+
+Use the `encrypted-file` backend with a simple passphrase for local services:
+
+```bash
+# Create identities for local services
+AUTH_MESH_DIR=/tmp/amesh-a amesh init --name "local-service-a" --backend encrypted-file --passphrase "dev"
+AUTH_MESH_DIR=/tmp/amesh-b amesh init --name "local-service-b" --backend encrypted-file --passphrase "dev"
+
+# Start the relay (needed only for pairing)
+bunx @authmesh/relay
+
+# Pair them (same as production)
+AUTH_MESH_DIR=/tmp/amesh-b amesh listen                  # on service-b (target)
+AUTH_MESH_DIR=/tmp/amesh-a amesh invite 482916           # on service-a (controller)
+```
+
+### Same code in dev and production
+
+Your application code is identical everywhere:
+
+```typescript
+// This is the SAME code in dev and production. No environment checks.
+import { amesh } from '@authmesh/sdk';
+
+const res = await amesh.fetch('http://localhost:4000/api/data', {
+  method: 'POST',
+  body: JSON.stringify({ query: 'test' }),
+});
+```
+
+The only difference is the key storage backend:
+- **Production:** macOS Keychain, Secure Enclave, or TPM 2.0
+- **Local dev:** `--backend encrypted-file --passphrase "dev"`
+
+### Tips
+
+- Use a shared passphrase like `"dev"` for all local identities. Security is not the goal — dev/prod parity is.
+- Use `AUTH_MESH_DIR` to isolate each service's identity directory.
+- For Docker Compose, set `AUTH_MESH_PASSPHRASE=dev` and mount `AUTH_MESH_DIR` as a volume so identities persist across restarts.
+- The relay is only needed during initial pairing. Once devices are paired, stop it.
+
+---
+
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `AUTH_MESH_DIR` | Directory for identity and keys | `~/.amesh/` |
+| `AUTH_MESH_PASSPHRASE` | Passphrase for encrypted-file backend | (optional) |
 | `AMESH_BOOTSTRAP_TOKEN` | Bootstrap token for automated pairing | (optional) |
 | `RELAY_URL` | WebSocket relay URL | `wss://relay.authmesh.dev/ws` |
 | `REDIS_URL` | Redis URL for nonce store | (optional) |

@@ -42,6 +42,8 @@
 				<div class="mt-3 flex flex-col gap-2">
 					<a href="/use-cases/microservices" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Microservices</a>
 					<a href="/use-cases/webhooks" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Webhooks</a>
+					<a href="/use-cases/cron-jobs" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Cron Jobs</a>
+					<a href="/use-cases/internal-tools" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Internal Tools</a>
 				</div>
 			</div>
 		</div>
