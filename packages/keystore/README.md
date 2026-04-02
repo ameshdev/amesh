@@ -1,6 +1,6 @@
 # @authmesh/keystore
 
-Device-bound key storage for [amesh](https://github.com/ameshdev/amesh). Stores P-256 private keys in macOS Keychain, Secure Enclave (signed binary), or TPM 2.0.
+Device-bound key storage for [amesh](https://github.com/ameshdev/amesh). Stores P-256 private keys in the best available backend on your platform.
 
 ## Install
 
@@ -15,8 +15,9 @@ npm install @authmesh/keystore
 | `secure-enclave` | macOS (signed binary) | Key never leaves the chip |
 | `keychain` | macOS | OS-level software keychain |
 | `tpm2` | Linux | TPM 2.0 hardware module |
+| `encrypted-file` | Any (explicit opt-in) | AES-256-GCM + Argon2id, filesystem permissions |
 
-The platform is auto-detected. macOS tries Secure Enclave first, falls back to Keychain. Linux uses TPM 2.0. On macOS, keys are protected by the OS Keychain by default. With a code-signed binary, keys are stored in the Secure Enclave (true hardware binding). On Linux, TPM 2.0 is required.
+Hardware backends are auto-detected. macOS tries Secure Enclave first, falls back to Keychain. Linux uses TPM 2.0. The encrypted-file backend is available on any platform as an explicit opt-in for cloud VMs and containers without hardware key storage.
 
 ## Usage
 

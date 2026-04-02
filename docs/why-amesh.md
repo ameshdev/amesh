@@ -85,21 +85,21 @@ This matters for:
 
 | | Static API keys | amesh |
 |---|---|---|
-| **What proves identity** | A string anyone can copy | A device-bound private key that never leaves the machine |
+| **What proves identity** | A string anyone can copy | A per-device private key that never leaves the machine |
 | **What crosses the wire** | The secret itself | A signature (useless if captured) |
-| **If compromised** | Attacker has full access until key is rotated | Key is on the device — attacker needs physical access |
+| **If compromised** | Attacker has full access until key is rotated | Key is on the device — attacker needs device access |
 | **Rotation** | Manual, risky, coordinated across services | Not needed. Revoke per device if compromised |
 | **Revocation** | Breaks everything using that key | Revokes one device. Others unaffected |
 | **Audit trail** | "Someone with this key called the API" | "Device am_8f3a (prod-api-east) called the API at 10:05:32" |
 | **Replay protection** | None (same token works forever) | Every request has a unique nonce + 30-second timestamp window |
-| **What to protect** | .env files, CI variables, Vault access, Slack threads | Physical access to the machine (same as SSH keys, passkeys) |
+| **What to protect** | .env files, CI variables, Vault access, Slack threads | Access to the device (same as SSH keys, passkeys) |
 | **What you store in git** | Nothing (and hope you never accidentally do) | Everything. There are no secrets in the codebase |
 
 ---
 
 ## Who this is for
 
-**Today:** Solo developers and small teams running APIs or microservices who currently manage secrets in `.env` files and want to stop worrying about leaks. Works on macOS (Keychain / Secure Enclave) and Linux (TPM 2.0).
+**Today:** Solo developers and small teams running APIs or microservices who currently manage secrets in `.env` files and want to stop worrying about leaks. Works on macOS (Keychain / Secure Enclave), Linux (TPM 2.0), and cloud VMs (encrypted-file backend). TypeScript/Node.js SDK — more languages planned.
 
 **The use case:** Any time Machine A needs to prove to Machine B that it is authorized to call an API. Examples:
 

@@ -9,7 +9,7 @@ What you can do with amesh, step by step.
 ```bash
 bun install
 bun run build
-bun run test    # 135 tests across 5 packages
+bun run test    # tests across all packages
 bun run lint    # eslint + prettier check
 ```
 
@@ -33,7 +33,11 @@ Identity created.
   Backend   : keychain
 ```
 
-amesh requires hardware-backed key storage (Secure Enclave, macOS Keychain, or TPM 2.0). If no hardware backend is detected, `init` will fail.
+amesh uses hardware-backed key storage when available (Secure Enclave, macOS Keychain, or TPM 2.0). On machines without hardware key storage (cloud VMs, containers), use the encrypted-file backend:
+
+```bash
+amesh init --name "prod-api" --backend encrypted-file --passphrase "$AUTH_MESH_PASSPHRASE"
+```
 
 This creates two files:
 - `~/.amesh/identity.json` — your device ID, public key, friendly name
@@ -181,6 +185,8 @@ import { amesh } from '@authmesh/sdk';
 
 const app = express();
 app.use(express.json());
+
+// Works with express.json(), express.text(), or no body parser at all.
 app.use(amesh.verify());
 
 app.post('/api/orders', (req, res) => {

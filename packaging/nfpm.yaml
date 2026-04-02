@@ -3,7 +3,7 @@ arch: amd64
 platform: linux
 version: "${VERSION}"
 maintainer: "amesh <hello@authmesh.dev>"
-description: "Hardware-bound M2M authentication CLI — replaces static API keys with P-256 ECDSA device identities"
+description: "Device-bound M2M authentication CLI — replaces static API keys with P-256 ECDSA device identities"
 homepage: "https://github.com/ameshdev/amesh"
 license: MIT
 contents:

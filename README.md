@@ -93,7 +93,7 @@ app.use(amesh.verify());
 
 ## How It Works
 
-- **Device identity** --- each machine gets a unique P-256 ECDSA keypair. The private key is protected by the OS keychain (macOS) or TPM 2.0 (Linux) and never leaves the device.
+- **Device identity** --- each machine gets a unique P-256 ECDSA keypair. The private key is protected by the OS keychain (macOS), TPM 2.0 (Linux), or an encrypted file (cloud VMs) and never leaves the device.
 - **One-way trust** --- controllers authenticate to targets, never the reverse. A compromised server cannot call back to your laptop.
 - **Signed requests** --- every HTTP request is signed with the device's private key. The signature covers method, path, timestamp, nonce, and body.
 - **Replay protection** --- each request has a unique nonce and a 30-second timestamp window. Nonces are tracked server-side.
@@ -108,7 +108,7 @@ app.use(amesh.verify());
 | [`@authmesh/sdk`](./packages/sdk) | Signing fetch client + Express verification middleware |
 | [`@authmesh/cli`](./packages/cli) | CLI: `init`, `listen`, `invite`, `list`, `revoke`, `provision` |
 | [`@authmesh/core`](./packages/core) | Crypto primitives: sign, verify, canonical string, nonce, HMAC, HKDF, ECDH |
-| [`@authmesh/keystore`](./packages/keystore) | Key storage drivers: Secure Enclave, macOS Keychain, TPM 2.0 |
+| [`@authmesh/keystore`](./packages/keystore) | Key storage drivers: Secure Enclave, macOS Keychain, TPM 2.0, encrypted file |
 | [`@authmesh/relay`](./packages/relay) | WebSocket relay for device pairing handshakes |
 
 ---
@@ -154,6 +154,10 @@ See the [Self-Hosting Guide](./docs/self-hosting.md) for deployment options.
 
 ---
 
+## Language Support
+
+amesh currently provides a **TypeScript/Node.js SDK**. The protocol is language-agnostic (standard HTTP headers + ECDSA-P256 signatures), so verification can be implemented in any language. SDKs for Python and Go are planned.
+
 ## Using amesh with AI Assistants
 
 amesh is designed to be easy to integrate with AI coding assistants like Claude, Copilot, and Cursor. The packages have full TypeScript types, and the API surface is minimal.
@@ -173,7 +177,7 @@ The SDK has two main functions: `amesh.fetch()` (client) and `amesh.verify()` (s
 ```bash
 bun install         # install all deps
 bun run build       # turbo build (tsc -b per package)
-bun run test        # 135 tests across all packages
+bun run test        # tests across all packages
 bun run lint        # eslint + prettier
 ```
 

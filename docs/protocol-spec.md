@@ -32,7 +32,7 @@ Static API keys are glorified passwords stored in plaintext. They live in `.env`
 
 `amesh` replaces the static secret with a **device-bound cryptographic identity**. The private key is generated on the device and protected by the OS keychain (macOS) or TPM 2.0 (Linux). There is no string to steal. A server proves it is "itself" by signing requests with a key that never leaves the machine. With a code-signed binary on macOS, keys can be stored in the Secure Enclave for true hardware binding.
 
-**Target user for this MVP:** A solo developer or small team running serverless functions or API servers who currently manages secrets in `.env` files and lives in fear of a GitHub leak.
+**Target user for this MVP:** A solo developer or small team running API servers or backend services who currently manages secrets in `.env` files and lives in fear of a GitHub leak.
 
 ---
 
@@ -70,7 +70,7 @@ Every choice below is made for a reason. Do not substitute without understanding
 | **Crypto — Ciphers** | `@noble/ciphers` (ChaCha20-Poly1305) | Handshake tunnel encryption. Same ecosystem. |
 | **Hardware — macOS** | Custom `napi-rs` native module → Apple Security.framework | Direct Secure Enclave access via `SecKeyCreateRandomKey` with `kSecAttrTokenIDSecureEnclave`. Generates P-256 keys in hardware. `node-keytar` is deprecated (archived Dec 2022) and cannot access Secure Enclave — it is only a password store. |
 | **Hardware — Linux** | `tpm2-tools` (subprocess via `execFile`) | Industry standard TPM 2.0 interface. P-256 universally supported. |
-| **Hardware — Fallback** | None — hardware-backed storage is required | amesh refuses to run without Secure Enclave, macOS Keychain, or TPM 2.0 |
+| **Hardware — Fallback** | Encrypted file (AES-256-GCM + Argon2id) | Explicit opt-in via `--backend file --passphrase`. For cloud VMs without hardware key storage. |
 | **Relay Server** | Bun.serve() native | Zero deps — no Fastify, no ws. |
 | **Allow List Storage** | JSON file + HMAC integrity seal | See Section 9 — the plaintext JSON without integrity protection is a critical vulnerability |
 | **Package Manager** | Bun workspaces | Monorepo-friendly, fast installs, native test runner |
@@ -629,12 +629,12 @@ Every device goes through this decision tree at `amesh init`. The selected backe
                    │ NO
                    ▼
 ┌──────────────────────────────────────────────────────┐
-│  No hardware backend found                           │
-│  → ERROR: "amesh requires hardware-backed key        │
-│    storage (Secure Enclave, macOS Keychain, or       │
-│    TPM 2.0). No supported backend detected."         │
-│  → amesh refuses to run.                             │
-└──────────────────────────────────────────────────────┘
+│  Tier 3 — Encrypted file (explicit opt-in only)      │
+│  Requires: --backend file --passphrase <passphrase>  │
+│  → AES-256-GCM + Argon2id, filesystem permissions    │
+│  → Private key encrypted at rest, decrypted per-sign │
+│  → WARNING printed: "file-based, not hardware"       │
+└─────────────────────────────��────────────────────────┘
 ```
 
 > **Why not keytar?** `node-keytar` was archived in December 2022 when GitHub shut down Atom. It receives no security patches and is only a password store (`getPassword`/`setPassword`) — it has no API for cryptographic key generation, signing, or Secure Enclave access. Do not use it.

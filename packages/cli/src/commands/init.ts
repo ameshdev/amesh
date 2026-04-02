@@ -3,6 +3,8 @@ import { createForBackend, detectAndCreate } from '@authmesh/keystore';
 import type { StorageBackend } from '@authmesh/keystore';
 import { generateDeviceId, saveIdentity, identityExists } from '../identity.js';
 import { getIdentityPath, getKeysDir } from '../paths.js';
+import { rename } from 'node:fs/promises';
+import { join } from 'node:path';
 
 const deviceIdPlaceholder = 'am_init';
 
@@ -18,7 +20,12 @@ export default class Init extends Command {
     backend: Flags.string({
       char: 'b',
       description: 'Force a specific storage backend',
-      options: ['secure-enclave', 'keychain', 'tpm2'],
+      options: ['secure-enclave', 'keychain', 'tpm2', 'encrypted-file'],
+    }),
+    passphrase: Flags.string({
+      char: 'p',
+      description: 'Passphrase for encrypted-file backend (or set AUTH_MESH_PASSPHRASE)',
+      env: 'AUTH_MESH_PASSPHRASE',
     }),
     force: Flags.boolean({
       description: 'Overwrite existing identity',
@@ -39,6 +46,14 @@ export default class Init extends Command {
       this.error('Identity already exists. Use --force to overwrite.');
     }
 
+    // Validate passphrase requirement for encrypted-file backend
+    if (flags.backend === 'encrypted-file' && !flags.passphrase) {
+      this.error(
+        'Encrypted-file backend requires a passphrase.\n' +
+          '  Use --passphrase <passphrase> or set AUTH_MESH_PASSPHRASE.',
+      );
+    }
+
     this.log('');
     this.log('Generating P-256 keypair...');
 
@@ -48,9 +63,9 @@ export default class Init extends Command {
 
     if (flags.backend) {
       backend = flags.backend as StorageBackend;
-      keyStore = await createForBackend(backend, keysDir);
+      keyStore = await createForBackend(backend, keysDir, flags.passphrase);
     } else {
-      const result = await detectAndCreate(keysDir);
+      const result = await detectAndCreate(keysDir, flags.passphrase);
       backend = result.backend;
       keyStore = result.keyStore;
       if (result.warning) {
@@ -62,9 +77,19 @@ export default class Init extends Command {
     const { publicKey } = await keyStore.generateAndStore(deviceIdPlaceholder);
     const deviceId = generateDeviceId(publicKey);
 
-    // Hardware keystores can't rename keys — key stays stored under deviceIdPlaceholder.
-    // context.ts maps deviceId → internal key name via identity.keyAlias.
-    const keyAlias = deviceIdPlaceholder;
+    let keyAlias: string;
+
+    if (backend === 'encrypted-file') {
+      // Encrypted-file driver stores keys as files — rename to real device ID
+      const oldPath = join(keysDir, `${deviceIdPlaceholder}.key.json`);
+      const newPath = join(keysDir, `${deviceId}.key.json`);
+      await rename(oldPath, newPath);
+      keyAlias = deviceId;
+    } else {
+      // Hardware keystores can't rename keys — key stays stored under deviceIdPlaceholder.
+      // context.ts maps deviceId → internal key name via identity.keyAlias.
+      keyAlias = deviceIdPlaceholder;
+    }
 
     const identity = {
       version: '2.0.0' as const,
@@ -89,6 +114,13 @@ export default class Init extends Command {
     this.log(`  Device ID : ${deviceId}`);
     this.log(`  Public Key: ${identity.publicKey.slice(0, 20)}...`);
     this.log(`  Backend   : ${backend}`);
+    if (backend === 'encrypted-file') {
+      this.log('');
+      this.warn(
+        'Using file-based key storage. Keys are protected by filesystem permissions and a passphrase, not hardware.\n' +
+          '  For hardware-backed storage, use macOS or a Linux host with TPM 2.0.',
+      );
+    }
     this.log('');
     this.log('Run `amesh listen` on this machine, then `amesh invite` from your laptop.');
   }

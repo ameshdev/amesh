@@ -29,9 +29,10 @@ import express from 'express';
 import { amesh } from '@authmesh/sdk';
 
 const app = express();
-app.use(express.text({ type: '*/*' }));
+app.use(express.json());
 
 // One line — checks signature, timestamp, nonce, and allow list
+// Works with express.json(), express.text(), or no body parser.
 app.use(amesh.verify());
 
 app.get('/api/data', (req, res) => {

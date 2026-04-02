@@ -63,12 +63,12 @@
 		{ feature: 'Blast radius of leak', amesh: { val: 'Nothing to leak', good: true }, values: ['Unlimited', 'Per-cert', 'Token scope', 'Client scope'] },
 		{ feature: 'Setup complexity', amesh: { val: '2 CLI commands', good: true }, values: ['Copy-paste', 'CA + cert infra', 'Server + policies', 'Auth server'] },
 		{ feature: 'Per-device identity', amesh: { val: 'Yes', good: true }, values: ['No', 'Per-cert', 'No', 'Per-client'] },
-		{ feature: 'Device-bound', amesh: { val: 'OS Keychain / TPM', good: true }, values: ['No', 'No', 'No', 'No'] },
+		{ feature: 'Device-bound key', amesh: { val: 'Keychain / TPM / file', good: true }, values: ['No', 'No', 'No', 'No'] },
 	];
 
 	// Features
 	const features = [
-		{ icon: ShieldOff, title: 'Nothing to leak', desc: 'No .env file. No secret in CI. No token in Slack. The key is in silicon.' },
+		{ icon: ShieldOff, title: 'Nothing to leak', desc: 'No .env file. No secret in CI. No token in Slack. The key stays on your device.' },
 		{ icon: RotateCcw, title: 'Nothing to rotate', desc: 'Device keys don\'t expire. Revoke a device instantly with amesh revoke.' },
 		{ icon: Fingerprint, title: 'Replay-proof', desc: 'Every request has a unique nonce and a 30-second timestamp window.' },
 		{ icon: FileLock2, title: 'One-way trust', desc: 'Controllers authenticate to targets, never the reverse. A compromised server can\'t call back to your laptop.' },
@@ -244,7 +244,7 @@ amesh.fetch(<span class="text-emerald-400">"/api/orders"</span>, {'{'}
 	<section class="w-full px-6 py-20 sm:py-28">
 		<div class="mx-auto max-w-5xl">
 			<h2 class="text-3xl font-bold text-zinc-50 sm:text-4xl">How it works</h2>
-			<p class="mt-3 mb-12 text-zinc-400">Four steps. Then every request is signed by hardware and verified cryptographically.</p>
+			<p class="mt-3 mb-12 text-zinc-400">Four steps. Then every request is signed with your device key and verified cryptographically.</p>
 
 			<div class="space-y-12">
 				{#each steps as step}
@@ -308,7 +308,7 @@ amesh.fetch(<span class="text-emerald-400">"/api/orders"</span>, {'{'}
 	<section class="w-full px-6 py-20 sm:py-28">
 		<div class="mx-auto max-w-5xl">
 			<h2 class="text-3xl font-bold text-zinc-50 sm:text-4xl">Why this is better</h2>
-			<p class="mt-3 mb-10 text-zinc-400">Security that comes from hardware, not from keeping secrets.</p>
+			<p class="mt-3 mb-10 text-zinc-400">Security that comes from cryptographic identity, not from keeping secrets.</p>
 
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each features as feat}
@@ -391,7 +391,7 @@ amesh.fetch(<span class="text-emerald-400">"/api/orders"</span>, {'{'}
 				</a>
 				<a href="/docs/integration" class="rounded-lg border border-zinc-800 px-6 py-4 text-center no-underline transition hover:border-emerald-400/40">
 					<span class="block text-sm font-semibold text-zinc-50">Integration guide</span>
-					<span class="text-xs text-zinc-500">Express, Fastify, more</span>
+					<span class="text-xs text-zinc-500">Express, microservices, webhooks</span>
 				</a>
 				<a href={REPO} target="_blank" rel="noopener" class="rounded-lg border border-zinc-800 px-6 py-4 text-center no-underline transition hover:border-emerald-400/40">
 					<span class="flex items-center justify-center gap-1.5 text-sm font-semibold text-zinc-50">

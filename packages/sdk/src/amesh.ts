@@ -13,6 +13,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 interface Identity {
   deviceId: string;
+  keyAlias?: string;
   publicKey: string;
   friendlyName: string;
   storageBackend: string;
@@ -43,8 +44,10 @@ async function ameshFetch(url: string | URL, init?: RequestInit): Promise<Respon
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     join(getAmeshDir(), 'keys'),
+    process.env.AUTH_MESH_PASSPHRASE,
   );
 
+  const keyAlias = identity.keyAlias ?? identity.deviceId;
   const parsedUrl = new URL(url);
   const method = (init?.method ?? 'GET').toUpperCase();
   const body = init?.body ? String(init.body) : '';
@@ -53,7 +56,7 @@ async function ameshFetch(url: string | URL, init?: RequestInit): Promise<Respon
   const path = parsedUrl.pathname + parsedUrl.search;
 
   const canonical = buildCanonicalString(method, path, timestamp, nonce, body);
-  const sig = await keyStore.sign(identity.deviceId, new TextEncoder().encode(canonical));
+  const sig = await keyStore.sign(keyAlias, new TextEncoder().encode(canonical));
 
   const headers = new Headers(init?.headers);
   headers.set(
@@ -97,8 +100,10 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
     const keyStore = await createForBackend(
       identity.storageBackend as StorageBackend,
       join(getAmeshDir(), 'keys'),
+      process.env.AUTH_MESH_PASSPHRASE,
     );
-    const hmacKey = await keyStore.getHmacKeyMaterial(identity.deviceId);
+    const keyAlias = identity.keyAlias ?? identity.deviceId;
+    const hmacKey = await keyStore.getHmacKeyMaterial(keyAlias);
     allowList = new AllowList(join(getAmeshDir(), 'allow_list.json'), hmacKey, identity.deviceId);
     return allowList;
   }
@@ -136,7 +141,7 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
       if (!(await nonceStore.checkAndRecord(parsed.nonce, nonceWindowSeconds))) { sendUnauthorized(res); return; }
 
       const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-      const body = typeof req.body === 'string' ? req.body : Buffer.isBuffer(req.body) ? req.body.toString() : '';
+      const body = await getBody(req);
       const canonical = buildCanonicalString(req.method ?? 'GET', url.pathname + url.search, parsed.ts, parsed.nonce, body);
       const signature = new Uint8Array(Buffer.from(parsed.sig, 'base64url'));
       const publicKey = new Uint8Array(Buffer.from(parsed.id, 'base64url'));
@@ -155,6 +160,24 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
       next(err as Error);
     }
   };
+}
+
+/**
+ * Extract the request body as a string for signature verification.
+ * Handles: express.text() (string), express.raw() (Buffer), express.json() (object),
+ * and no body parser (buffers from stream).
+ */
+async function getBody(req: IncomingMessage & { body?: string | Buffer | object }): Promise<string> {
+  if (typeof req.body === 'string') return req.body;
+  if (Buffer.isBuffer(req.body)) return req.body.toString('utf-8');
+  if (req.body !== null && req.body !== undefined && typeof req.body === 'object') {
+    return JSON.stringify(req.body);
+  }
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(chunk as Buffer);
+  const raw = Buffer.concat(chunks).toString('utf-8');
+  (req as IncomingMessage & { body: string }).body = raw;
+  return raw;
 }
 
 function sendUnauthorized(res: ServerResponse) {

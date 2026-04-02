@@ -1,7 +1,7 @@
 {
   "name": "@authmesh/core",
   "version": "0.1.4",
-  "description": "P-256 ECDSA crypto primitives for hardware-bound M2M authentication",
+  "description": "P-256 ECDSA crypto primitives for device-bound M2M authentication",
   "type": "module",
   "license": "MIT",
   "author": "Yair Etzion",
