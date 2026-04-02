@@ -6,6 +6,8 @@
 	const useCases = [
 		{ slug: 'microservices', title: 'Microservices', desc: 'Service-to-service identity' },
 		{ slug: 'webhooks', title: 'Webhooks', desc: 'Prove sender identity' },
+		{ slug: 'cron-jobs', title: 'Cron Jobs', desc: 'Scheduled task identity' },
+		{ slug: 'internal-tools', title: 'Internal Tools', desc: 'Per-developer audit trail' },
 	];
 
 	let dropdownOpen = $state(false);
