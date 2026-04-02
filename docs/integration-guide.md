@@ -101,7 +101,7 @@ amesh init --name "prod-api"
 amesh init --name "my-laptop"
 
 # Start the relay (needed only for pairing)
-bunx @authmesh/relay
+npx @authmesh/relay
 
 # On the server (target): start listening for pairing
 amesh listen
@@ -136,7 +136,7 @@ amesh invite 482916 --relay wss://relay.authmesh.dev/ws
 
 ```bash
 # On the remote server (target)
-bunx @authmesh/relay                                      # starts on port 3001
+npx @authmesh/relay                                      # starts on port 3001
 amesh listen --relay ws://localhost:3001/ws
 
 # On your laptop (controller — use the server's public IP or domain)
@@ -149,7 +149,7 @@ For servers where you can't run interactive commands:
 
 ```bash
 # On your laptop — generate a token
-amesh provision --name "prod-server" --ttl 3600
+amesh provision --name "prod-server" --ttl 1h
 # Outputs: AMESH_BOOTSTRAP_TOKEN=eyJ...
 
 # Set the token as an env var on the remote server, then run your app.
@@ -292,7 +292,7 @@ No shared secret. The webhook sender proves its identity with a device-bound sig
 |----------|-------------|---------|
 | `AUTH_MESH_DIR` | Directory for identity and keys | `~/.amesh/` |
 | `AMESH_BOOTSTRAP_TOKEN` | Bootstrap token for automated pairing | (optional) |
-| `RELAY_URL` | WebSocket relay URL | `wss://relay.authmesh.dev/ws` |
+| `AMESH_RELAY_URL` | WebSocket relay URL | `wss://relay.authmesh.dev/ws` |
 | `REDIS_URL` | Redis URL for nonce store | (optional) |
 
 ---

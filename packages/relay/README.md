@@ -7,9 +7,9 @@ The relay is **only needed during initial device pairing**. After two devices ex
 ## Install & Run
 
 ```bash
-bunx @authmesh/relay                   # run directly
+npx @authmesh/relay                    # run directly via npx
 # or
-npm install @authmesh/relay && node -e "import('@authmesh/relay').then(m => m.createRelay())"
+bun packages/relay/dist/start.js       # from the monorepo
 ```
 
 ## Environment variables
@@ -31,9 +31,10 @@ OTC (one-time code) endpoints are rate-limited to 5 failed attempts per IP per m
 ## Programmatic usage
 
 ```typescript
-import { createRelay } from '@authmesh/relay';
+import { createRelayServer } from '@authmesh/relay';
 
-const server = await createRelay({ host: '0.0.0.0', port: 3001 });
+const relay = createRelayServer({ host: '0.0.0.0', port: 3001 });
+relay.start();
 ```
 
 ## License

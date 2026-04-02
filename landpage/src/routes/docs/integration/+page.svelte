@@ -123,7 +123,7 @@ amesh invite 482916 --relay <span class="text-emerald-400">ws://your-server:3001
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">Option C: Bootstrap token (non-interactive)</h3>
 		<div class="mt-3">
 			<CodeBlock code={`<span class="text-zinc-500"># On your laptop — generate a token</span>
-amesh provision --name <span class="text-emerald-400">"prod-server"</span> --ttl 3600
+amesh provision --name <span class="text-emerald-400">"prod-server"</span> --ttl 1h
 
 <span class="text-zinc-500"># Set on remote server as env var. SDK auto-pairs on first request.</span>
 AMESH_BOOTSTRAP_TOKEN=eyJ... node app.js`} />
@@ -195,7 +195,7 @@ app.post(<span class="text-emerald-400">'/webhooks'</span>, amesh.verify(), (req
 			{#each [
 				{ name: 'AUTH_MESH_DIR', desc: 'Directory for identity and keys', def: '~/.amesh/' },
 				{ name: 'AMESH_BOOTSTRAP_TOKEN', desc: 'Bootstrap token for automated pairing', def: 'optional' },
-				{ name: 'RELAY_URL', desc: 'WebSocket relay URL', def: 'wss://relay.authmesh.dev/ws' },
+				{ name: 'AMESH_RELAY_URL', desc: 'WebSocket relay URL', def: 'wss://relay.authmesh.dev/ws' },
 				{ name: 'REDIS_URL', desc: 'Redis URL for nonce store', def: 'optional' },
 			] as env}
 				<div class="px-4 py-3">
