@@ -35,4 +35,11 @@
 			</a>
 		{/each}
 	</div>
+
+	<!-- Ready to integrate -->
+	<div class="mt-10 rounded-lg border border-zinc-800 bg-zinc-900/50 p-5 text-center">
+		<p class="text-sm text-zinc-400">Ready to integrate? Start with the
+			<a href="/docs/integration" class="text-emerald-400 hover:underline no-underline">Integration Guide</a>.
+		</p>
+	</div>
 </div>

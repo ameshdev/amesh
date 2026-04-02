@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { BookOpen, Shield, Rocket, FileText, GitBranch, Server } from '@lucide/svelte';
+	import { BookOpen, Shield, Rocket, FileText, GitBranch, Server, ChevronRight } from '@lucide/svelte';
+	import { useCasePages } from '$lib/navigation.js';
 
 	const REPO = 'https://github.com/ameshdev/amesh';
 
@@ -150,6 +151,22 @@
 						<span class="font-mono text-sm text-emerald-400">{pkg.name}</span>
 						<span class="ml-3 text-sm text-zinc-500">{pkg.desc}</span>
 					</div>
+				</a>
+			{/each}
+		</div>
+	</section>
+
+	<!-- Use Cases -->
+	<section class="pt-10 pb-4 border-t border-zinc-800">
+		<h2 class="text-xl font-semibold text-zinc-50 mb-5">Use Cases</h2>
+		<div class="grid gap-3 sm:grid-cols-2">
+			{#each useCasePages as uc}
+				<a href="/use-cases/{uc.slug}" class="group flex flex-col rounded-lg border border-zinc-800 p-4 no-underline transition hover:border-emerald-400/40">
+					<span class="text-sm font-semibold text-zinc-50">{uc.title}</span>
+					<span class="mt-1 text-xs text-zinc-500">{uc.desc}</span>
+					<span class="mt-2 inline-flex items-center gap-1 text-xs text-emerald-400 group-hover:underline">
+						Read more <ChevronRight size={12} />
+					</span>
 				</a>
 			{/each}
 		</div>

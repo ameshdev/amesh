@@ -15,6 +15,10 @@
 <UseCasePage
 	icon={Webhook}
 	badge="Webhooks"
+	slug="webhooks"
+	relatedLinks={[
+		{ href: '/docs/integration', title: 'Integration Guide', desc: 'Express setup, remote pairing, Redis nonce store', type: 'doc' },
+	]}
 	headline="Your webhook receiver has no idea who's calling."
 	subtitle="HMAC signing secrets must be shared between sender and receiver. If either side leaks the secret, anyone can forge webhooks."
 	painTitle="The problem with webhook authentication"

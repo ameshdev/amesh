@@ -1,29 +1,37 @@
 <script lang="ts">
 	import CodeBlock from './CodeBlock.svelte';
+	import Breadcrumb from './Breadcrumb.svelte';
+	import PrevNextNav from './PrevNextNav.svelte';
+	import RelatedContent from './RelatedContent.svelte';
+	import { getUseCaseNav } from '$lib/navigation.js';
+	import type { RelatedLink } from '$lib/navigation.js';
 	import type { Component } from 'svelte';
 
 	interface Props {
 		icon: Component;
 		badge: string;
+		slug: string;
 		headline: string;
 		subtitle: string;
 		painTitle: string;
 		painPoints: { lead: string; detail: string }[];
 		codeTabs: { filename: string; code: string }[];
 		changes: { before: string; after: string }[];
+		relatedLinks?: RelatedLink[];
 	}
 
-	let { icon: Icon, badge, headline, subtitle, painTitle, painPoints, codeTabs, changes }: Props = $props();
+	let { icon: Icon, badge, slug, headline, subtitle, painTitle, painPoints, codeTabs, changes, relatedLinks = [] }: Props = $props();
 	let activeTab = $state(0);
 
-	const REPO = 'https://github.com/ameshdev/amesh';
+	const { prev, next } = getUseCaseNav(slug);
 </script>
 
 <div class="mx-auto max-w-2xl px-6 pb-20">
 
 	<!-- Hero -->
 	<section class="pt-16 pb-10">
-		<div class="inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-300">
+		<Breadcrumb crumbs={[{ label: 'Use Cases', href: '/use-cases' }, { label: badge }]} />
+		<div class="mt-4 inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-300">
 			<Icon size={14} />
 			{badge}
 		</div>
@@ -86,18 +94,6 @@
 		</div>
 	</section>
 
-	<!-- CTA -->
-	<section class="py-10">
-		<h2 class="text-xl font-semibold text-zinc-50">Try it</h2>
-		<div class="mt-5">
-			<CodeBlock code={`<span class="text-zinc-500">$</span> <span class="text-zinc-50">git clone ${REPO}.git</span>\n<span class="text-zinc-500">$</span> <span class="text-zinc-50">cd authmesh && pnpm install && pnpm build</span>`} />
-		</div>
-		<div class="mt-4 flex gap-4">
-			<a href="/docs/integration" class="text-sm text-emerald-400 hover:underline">Integration guide</a>
-			<span class="text-zinc-700">·</span>
-			<a href="/docs" class="text-sm text-emerald-400 hover:underline">All docs</a>
-			<span class="text-zinc-700">·</span>
-			<a href={REPO} target="_blank" rel="noopener" class="text-sm text-emerald-400 hover:underline">Star on GitHub</a>
-		</div>
-	</section>
+	<RelatedContent links={relatedLinks} />
+	<PrevNextNav {prev} {next} />
 </div>

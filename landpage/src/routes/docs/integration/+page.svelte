@@ -1,7 +1,31 @@
 <script lang="ts">
 	import CodeBlock from '$lib/components/CodeBlock.svelte';
+	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
+	import TableOfContents from '$lib/components/TableOfContents.svelte';
+	import PrevNextNav from '$lib/components/PrevNextNav.svelte';
+	import RelatedContent from '$lib/components/RelatedContent.svelte';
+	import { getDocNav } from '$lib/navigation.js';
+	import type { RelatedLink } from '$lib/navigation.js';
 
 	const REPO = 'https://github.com/ameshdev/amesh';
+	const { prev, next } = getDocNav('integration');
+
+	const tocItems = [
+		{ id: 'architecture', label: 'Architecture' },
+		{ id: 'recipe-express', label: 'Recipe 1: Express API' },
+		{ id: 'remote-pairing', label: 'Remote Pairing' },
+		{ id: 'recipe-microservices', label: 'Recipe 2: Microservices' },
+		{ id: 'recipe-redis', label: 'Recipe 3: Redis Nonce Store' },
+		{ id: 'recipe-webhooks', label: 'Recipe 4: Webhooks' },
+		{ id: 'env-vars', label: 'Environment Variables' },
+		{ id: 'types', label: 'TypeScript Types' },
+		{ id: 'troubleshooting', label: 'Troubleshooting' },
+	];
+
+	const relatedLinks: RelatedLink[] = [
+		{ href: '/use-cases/microservices', title: 'Microservices', desc: 'Why device identity beats shared API keys', type: 'use-case' },
+		{ href: '/use-cases/webhooks', title: 'Webhooks', desc: 'Prove sender identity without HMAC secrets', type: 'use-case' },
+	];
 </script>
 
 <svelte:head>
@@ -16,14 +40,15 @@
 <div class="mx-auto max-w-2xl px-6 pb-20">
 
 	<section class="pt-16 pb-6">
-		<a href="/docs" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline">&larr; Docs</a>
+		<Breadcrumb crumbs={[{ label: 'Docs', href: '/docs' }, { label: 'Integration Guide' }]} />
 		<h1 class="mt-4 text-3xl font-bold text-zinc-50">Integration Guide</h1>
 		<p class="mt-3 text-lg text-zinc-400">How to add amesh to your existing application. Pick the recipe that matches your setup.</p>
+		<TableOfContents items={tocItems} />
 	</section>
 
 	<!-- Architecture -->
 	<section class="py-8">
-		<h2 class="text-xl font-semibold text-zinc-50">Architecture Overview</h2>
+		<h2 id="architecture" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Architecture Overview</h2>
 		<div class="mt-4 space-y-4">
 			<div class="rounded-lg border border-zinc-800 p-4" style="background:#0C0C0E">
 				<div class="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">Pairing (one-time)</div>
@@ -41,7 +66,7 @@
 
 	<!-- Recipe 1 -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Recipe 1: Protect an Express API</h2>
+		<h2 id="recipe-express" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Recipe 1: Protect an Express API</h2>
 		<p class="mt-2 text-zinc-400">Replace Bearer token authentication with device-bound cryptographic identity.</p>
 
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">Server</h3>
@@ -98,7 +123,7 @@ amesh invite 482916   <span class="text-zinc-500"># on laptop (controller — us
 
 	<!-- Remote pairing -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Pairing Remote Machines</h2>
+		<h2 id="remote-pairing" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Pairing Remote Machines</h2>
 		<p class="mt-2 text-zinc-400">When your server is in the cloud, both machines need to reach the same relay.</p>
 
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">Option A: Public relay (easiest)</h3>
@@ -136,7 +161,7 @@ AMESH_BOOTSTRAP_TOKEN=eyJ... node app.js`} />
 
 	<!-- Recipe 2 -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Recipe 2: Microservices</h2>
+		<h2 id="recipe-microservices" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Recipe 2: Microservices</h2>
 		<p class="mt-2 text-zinc-400">Each service gets its own device identity. Pair once, authenticate every request.</p>
 
 		<div class="mt-4">
@@ -155,7 +180,7 @@ app.get(<span class="text-emerald-400">'/internal/users/:id'</span>, (req, res) 
 
 	<!-- Recipe 3 -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Recipe 3: Redis Nonce Store (Production)</h2>
+		<h2 id="recipe-redis" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Recipe 3: Redis Nonce Store (Production)</h2>
 		<p class="mt-2 text-zinc-400">For multi-instance deployments behind a load balancer. Prevents replay attacks across instances.</p>
 
 		<div class="mt-4">
@@ -170,7 +195,7 @@ app.use(amesh.verify({
 
 	<!-- Recipe 4 -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Recipe 4: Webhooks</h2>
+		<h2 id="recipe-webhooks" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Recipe 4: Webhooks</h2>
 		<p class="mt-2 text-zinc-400">Sign webhooks with device identity instead of a shared secret.</p>
 
 		<div class="mt-4">
@@ -225,7 +250,7 @@ const res = await amesh.fetch(<span class="text-emerald-400">'http://localhost:4
 
 	<!-- Environment variables -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Environment Variables</h2>
+		<h2 id="env-vars" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Environment Variables</h2>
 		<div class="mt-4 rounded-lg border border-zinc-800 divide-y divide-zinc-800">
 			{#each [
 				{ name: 'AUTH_MESH_DIR', desc: 'Directory for identity and keys', def: '~/.amesh/' },
@@ -244,7 +269,7 @@ const res = await amesh.fetch(<span class="text-emerald-400">'http://localhost:4
 
 	<!-- TypeScript types -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">TypeScript Types</h2>
+		<h2 id="types" class="scroll-mt-20 text-xl font-semibold text-zinc-50">TypeScript Types</h2>
 		<div class="mt-4">
 			<CodeBlock code={`<span class="text-zinc-500">// Available on req.authMesh after amesh.verify()</span>
 <span class="text-zinc-400">interface</span> AuthMeshIdentity {
@@ -264,7 +289,7 @@ const res = await amesh.fetch(<span class="text-emerald-400">'http://localhost:4
 
 	<!-- Troubleshooting -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Troubleshooting</h2>
+		<h2 id="troubleshooting" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Troubleshooting</h2>
 		<div class="mt-4 space-y-4">
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"unauthorized" on every request</div>
@@ -281,15 +306,7 @@ const res = await amesh.fetch(<span class="text-emerald-400">'http://localhost:4
 		</div>
 	</section>
 
-	<!-- CTA -->
-	<section class="py-8 border-t border-zinc-800">
-		<div class="flex gap-4">
-			<a href={REPO} target="_blank" rel="noopener" class="text-sm text-emerald-400 hover:underline">GitHub</a>
-			<span class="text-zinc-700">·</span>
-			<a href="/docs" class="text-sm text-emerald-400 hover:underline">All docs</a>
-			<span class="text-zinc-700">·</span>
-			<a href="{REPO}/blob/main/docs/protocol-spec.md" target="_blank" rel="noopener" class="text-sm text-emerald-400 hover:underline">Protocol spec</a>
-		</div>
-	</section>
+	<RelatedContent links={relatedLinks} />
+	<PrevNextNav {prev} {next} />
 
 </div>

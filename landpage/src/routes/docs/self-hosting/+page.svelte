@@ -1,5 +1,27 @@
 <script lang="ts">
 	import CodeBlock from '$lib/components/CodeBlock.svelte';
+	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
+	import TableOfContents from '$lib/components/TableOfContents.svelte';
+	import PrevNextNav from '$lib/components/PrevNextNav.svelte';
+	import RelatedContent from '$lib/components/RelatedContent.svelte';
+	import { getDocNav } from '$lib/navigation.js';
+	import type { RelatedLink } from '$lib/navigation.js';
+
+	const { prev, next } = getDocNav('self-hosting');
+
+	const tocItems = [
+		{ id: 'docker', label: 'Docker' },
+		{ id: 'cloud-run', label: 'Google Cloud Run' },
+		{ id: 'flyio', label: 'Fly.io' },
+		{ id: 'nodejs', label: 'Plain Node.js' },
+		{ id: 'kubernetes', label: 'Kubernetes' },
+		{ id: 'security', label: 'Security' },
+		{ id: 'config', label: 'Configuration' },
+	];
+
+	const relatedLinks: RelatedLink[] = [
+		{ href: '/docs/integration', title: 'Integration Guide', desc: 'Set up the SDK before deploying the relay', type: 'doc' },
+	];
 </script>
 
 <svelte:head>
@@ -14,9 +36,10 @@
 <div class="mx-auto max-w-2xl px-6 pb-20">
 
 	<section class="pt-16 pb-6">
-		<a href="/docs" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline">&larr; Docs</a>
+		<Breadcrumb crumbs={[{ label: 'Docs', href: '/docs' }, { label: 'Self-Hosting Guide' }]} />
 		<h1 class="mt-4 text-3xl font-bold text-zinc-50">Self-Hosting the Relay</h1>
 		<p class="mt-3 text-lg text-zinc-400">The relay is only needed for device pairing. After pairing, all auth is P2P with no relay involved.</p>
+		<TableOfContents items={tocItems} />
 	</section>
 
 	<!-- Architecture -->
@@ -30,7 +53,7 @@
 
 	<!-- Docker -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Docker</h2>
+		<h2 id="docker" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Docker</h2>
 		<p class="mt-2 text-zinc-400">The simplest way to self-host.</p>
 		<div class="mt-4">
 			<CodeBlock code={`<span class="text-zinc-500">$</span> git clone https://github.com/ameshdev/amesh.git
@@ -50,7 +73,7 @@
 
 	<!-- Cloud Run -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Google Cloud Run</h2>
+		<h2 id="cloud-run" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Google Cloud Run</h2>
 		<p class="mt-2 text-zinc-400">Scales to zero — no cost when nobody is pairing. Native WebSocket support.</p>
 		<div class="mt-4">
 			<CodeBlock code={`<span class="text-zinc-500"># Build and push</span>
@@ -72,7 +95,7 @@ gcloud run deploy amesh-relay \\
 
 	<!-- Fly.io -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Fly.io</h2>
+		<h2 id="flyio" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Fly.io</h2>
 		<p class="mt-2 text-zinc-400">Simple CLI deployment with auto-stop when idle.</p>
 		<div class="mt-4">
 			<CodeBlock code={`<span class="text-zinc-500">$</span> fly launch --dockerfile Dockerfile.relay
@@ -82,7 +105,7 @@ gcloud run deploy amesh-relay \\
 
 	<!-- Plain Node.js -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Plain Node.js</h2>
+		<h2 id="nodejs" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Plain Node.js</h2>
 		<p class="mt-2 text-zinc-400">No Docker required.</p>
 		<div class="mt-4">
 			<CodeBlock code={`<span class="text-zinc-500">$</span> npm install @authmesh/relay
@@ -99,7 +122,7 @@ gcloud run deploy amesh-relay \\
 
 	<!-- Kubernetes -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Kubernetes</h2>
+		<h2 id="kubernetes" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Kubernetes</h2>
 		<div class="mt-4">
 			<CodeBlock code={`<span class="text-zinc-400">apiVersion:</span> apps/v1
 <span class="text-zinc-400">kind:</span> Deployment
@@ -126,7 +149,7 @@ gcloud run deploy amesh-relay \\
 
 	<!-- Security -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Security</h2>
+		<h2 id="security" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Security</h2>
 		<p class="mt-2 text-zinc-400">The relay is designed to be untrusted:</p>
 		<div class="mt-4 space-y-3">
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
@@ -150,7 +173,7 @@ gcloud run deploy amesh-relay \\
 
 	<!-- Config -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 class="text-xl font-semibold text-zinc-50">Configuration</h2>
+		<h2 id="config" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Configuration</h2>
 		<div class="mt-4 rounded-lg border border-zinc-800 divide-y divide-zinc-800">
 			<div class="px-4 py-3">
 				<code class="font-mono text-sm text-emerald-400">PORT</code>
@@ -164,13 +187,7 @@ gcloud run deploy amesh-relay \\
 		<p class="mt-3 text-sm text-zinc-500">That's it. No database, no secrets, no external services.</p>
 	</section>
 
-	<!-- CTA -->
-	<section class="py-8 border-t border-zinc-800">
-		<div class="flex gap-4">
-			<a href="/docs/integration" class="text-sm text-emerald-400 hover:underline">Integration guide</a>
-			<span class="text-zinc-700">·</span>
-			<a href="/docs" class="text-sm text-emerald-400 hover:underline">All docs</a>
-		</div>
-	</section>
+	<RelatedContent links={relatedLinks} />
+	<PrevNextNav {prev} {next} />
 
 </div>
