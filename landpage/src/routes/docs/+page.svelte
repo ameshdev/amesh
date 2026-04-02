@@ -36,7 +36,7 @@
 		{
 			icon: GitBranch,
 			title: 'Architecture Decisions',
-			desc: '8 ADRs: P-256 over Ed25519, no keytar, SAS verification, Fastify v5, and more.',
+			desc: '10 ADRs: P-256 over Ed25519, no keytar, SAS verification, Bun.serve(), and more.',
 			href: `${REPO}/blob/main/docs/architecture-decisions.md`,
 			external: true,
 		},

@@ -89,7 +89,7 @@ export function authMeshVerify(opts: VerifyOptions) {
       const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
       const method = req.method ?? 'GET';
       const path = url.pathname + url.search;
-      const body = getBody(req);
+      const body = await getBody(req);
 
       const canonical = buildCanonicalString(method, path, parsed.ts, parsed.nonce, body);
       const message = new TextEncoder().encode(canonical);
@@ -133,10 +133,29 @@ function sendError(res: ServerResponse, status: number, _code: string): void {
   res.end(JSON.stringify(body));
 }
 
-function getBody(req: IncomingMessage & { body?: string | Buffer }): string {
+/**
+ * Extract the request body as a string for signature verification.
+ *
+ * Handles all common body parser configurations:
+ *   - express.text() → req.body is a string
+ *   - express.raw() → req.body is a Buffer
+ *   - express.json() → req.body is an object (re-serialized deterministically)
+ *   - No body parser → buffer from the request stream
+ */
+async function getBody(req: IncomingMessage & { body?: string | Buffer | object }): Promise<string> {
   if (typeof req.body === 'string') return req.body;
   if (Buffer.isBuffer(req.body)) return req.body.toString('utf-8');
-  return '';
+  // express.json() or similar parsed body into an object — re-serialize deterministically
+  if (req.body !== null && req.body !== undefined && typeof req.body === 'object') {
+    return JSON.stringify(req.body);
+  }
+  // No body parser ran — buffer from the stream
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(chunk as Buffer);
+  const raw = Buffer.concat(chunks).toString('utf-8');
+  // Store for downstream middleware
+  (req as IncomingMessage & { body: string }).body = raw;
+  return raw;
 }
 
 function logServerSide(code: string, deviceId: string, serverNow: number, requestTs: number): void {

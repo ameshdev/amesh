@@ -46,7 +46,7 @@ Key decisions made during spec review and project bootstrap (March 2026). Each e
 | 2 | macOS Keychain | Swift helper → software keychain (unsigned binary fallback) |
 | 3 | Linux TPM 2.0 | `tpm2-tools` subprocess via `execFile` (not `exec`) |
 
-Note: The encrypted-file fallback (Tier 4) was removed in v0.1.3. amesh now requires hardware-backed key storage.
+Note: The encrypted-file fallback (Tier 3) is available as an explicit opt-in (`--backend encrypted-file --passphrase`) for cloud VMs and containers without hardware key storage. Hardware backends are always preferred when available.
 
 ---
 

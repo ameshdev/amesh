@@ -1,5 +1,5 @@
 class Amesh < Formula
-  desc "Hardware-bound M2M authentication CLI — replaces static API keys with device identities"
+  desc "Device-bound M2M authentication CLI — replaces static API keys with device identities"
   homepage "https://github.com/ameshdev/amesh"
   version "0.1.1"
   license "MIT"

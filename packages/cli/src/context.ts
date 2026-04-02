@@ -18,6 +18,7 @@ export async function loadContext(): Promise<AmeshContext> {
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     getKeysDir(),
+    process.env.AUTH_MESH_PASSPHRASE,
   );
 
   // keyAlias: the name used in the keystore. Defaults to deviceId for backwards compat.

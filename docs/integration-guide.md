@@ -45,11 +45,10 @@ import express from 'express';
 import { amesh } from '@authmesh/sdk';
 
 const app = express();
-
-// Parse body as text so amesh can verify the signature over the raw body
-app.use(express.text({ type: '*/*' }));
+app.use(express.json());
 
 // Add amesh verification middleware — checks signature, timestamp, nonce, allow list
+// Works with express.json(), express.text(), or no body parser at all.
 app.use('/api', amesh.verify());
 
 // Public endpoint (no auth)
@@ -174,7 +173,7 @@ import express from 'express';
 import { amesh } from '@authmesh/sdk';
 
 const app = express();
-app.use(express.text({ type: '*/*' }));
+app.use(express.json());
 app.use(amesh.verify());
 
 app.get('/internal/users/:id', (req, res) => {
@@ -230,7 +229,7 @@ import { amesh } from '@authmesh/sdk';
 import { RedisNonceStore } from '@authmesh/sdk/redis';
 
 const app = express();
-app.use(express.text({ type: '*/*' }));
+app.use(express.json());
 
 app.use(amesh.verify({
   nonceStore: new RedisNonceStore(process.env.REDIS_URL),
@@ -324,7 +323,7 @@ interface VerifyOptions {
 
 1. **Devices not paired?** Run `amesh list` on the server — the client's device ID must be in the allow list.
 2. **Clock skew?** Server and client clocks must be within 30 seconds. Check with `date` on both machines.
-3. **Body mismatch?** The middleware must parse the body as text (`express.text({ type: '*/*' })`), not as JSON. If you use `express.json()`, the re-serialized body may differ from what the client signed.
+3. **Body mismatch?** The middleware handles `express.json()`, `express.text()`, and raw streams automatically. If you use a custom body parser that transforms the body (e.g., XML parsing, decompression), ensure the original body is preserved.
 
 ### "allow_list_integrity_failure" (500)
 
@@ -334,6 +333,13 @@ The allow list file (`~/.amesh/allow_list.json`) was modified outside of amesh. 
 
 You're running in production without a Redis nonce store. Replay attacks could succeed by hitting different instances. See Recipe 3 above.
 
-### "amesh requires hardware-backed key storage"
+### "No supported key storage backend detected"
 
-amesh requires Secure Enclave (macOS), macOS Keychain, or TPM 2.0 (Linux). If no hardware backend is detected, `amesh init` will fail. Ensure you're running on a machine with supported hardware. On macOS, the Swift helper binary (`amesh-se-helper`) must be installed alongside the `amesh` binary.
+amesh prefers hardware-backed storage (Secure Enclave, macOS Keychain, TPM 2.0) but also supports an encrypted-file backend for cloud VMs:
+
+```bash
+amesh init --name "my-server" --backend encrypted-file --passphrase "your-passphrase"
+# Or set AUTH_MESH_PASSPHRASE environment variable
+```
+
+On macOS, ensure the Swift helper binary (`amesh-se-helper`) is installed alongside the `amesh` binary for Keychain/Secure Enclave support.

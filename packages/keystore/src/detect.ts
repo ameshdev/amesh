@@ -1,7 +1,7 @@
 import { platform } from 'node:os';
 import type { KeyStore } from './interface.js';
 
-export type StorageBackend = 'secure-enclave' | 'keychain' | 'tpm2';
+export type StorageBackend = 'secure-enclave' | 'keychain' | 'tpm2' | 'encrypted-file';
 
 export interface DetectionResult {
   backend: StorageBackend;
@@ -15,11 +15,13 @@ export interface DetectionResult {
  * Detection chain:
  *   Tier 1: macOS Keychain (tries Secure Enclave first, falls back to software keychain)
  *   Tier 2: TPM 2.0 (Linux)
+ *   Tier 3: Encrypted file (only if passphrase is provided — explicit opt-in)
  *
- * If no hardware backend is available, throws. amesh requires hardware-backed key storage.
+ * If no backend is available, throws with guidance.
  */
 export async function detectAndCreate(
   basePath: string,
+  passphrase?: string,
 ): Promise<DetectionResult> {
   // Tier 1: macOS — Swift helper (Secure Enclave → software keychain)
   if (platform() === 'darwin') {
@@ -57,9 +59,23 @@ export async function detectAndCreate(
     }
   }
 
+  // Tier 3: Encrypted file — only if passphrase was explicitly provided
+  if (passphrase) {
+    const { EncryptedFileKeyStore } = await import('./drivers/encrypted-file.js');
+    return {
+      backend: 'encrypted-file',
+      keyStore: new EncryptedFileKeyStore(basePath, passphrase),
+      warning:
+        'Using file-based key storage. Keys are protected by filesystem permissions and a passphrase, not hardware. ' +
+        'For hardware-backed storage, use macOS or a Linux host with TPM 2.0.',
+    };
+  }
+
   throw new Error(
-    'amesh requires hardware-backed key storage (Secure Enclave, macOS Keychain, or TPM 2.0). ' +
-      'No supported hardware backend was detected on this machine.',
+    'No supported key storage backend detected.\n' +
+      '  • macOS: Secure Enclave or Keychain (requires amesh-se-helper)\n' +
+      '  • Linux: TPM 2.0 (requires tpm2-tools)\n' +
+      '  • Any platform: --backend file --passphrase <passphrase> (file-based, explicit opt-in)',
   );
 }
 
@@ -69,6 +85,7 @@ export async function detectAndCreate(
 export async function createForBackend(
   backend: StorageBackend,
   basePath: string,
+  passphrase?: string,
 ): Promise<KeyStore> {
   switch (backend) {
     case 'secure-enclave':
@@ -79,6 +96,16 @@ export async function createForBackend(
     case 'tpm2': {
       const { TPMKeyStore } = await import('./drivers/tpm.js');
       return new TPMKeyStore(basePath);
+    }
+    case 'encrypted-file': {
+      if (!passphrase) {
+        throw new Error(
+          'Encrypted-file backend requires a passphrase. ' +
+            'Set AUTH_MESH_PASSPHRASE or pass --passphrase.',
+        );
+      }
+      const { EncryptedFileKeyStore } = await import('./drivers/encrypted-file.js');
+      return new EncryptedFileKeyStore(basePath, passphrase);
     }
     default:
       throw new Error(`Unsupported storage backend: ${backend}`);
