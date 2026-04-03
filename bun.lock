@@ -47,7 +47,7 @@
     },
     "packages/agent": {
       "name": "@authmesh/agent",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "bin": {
         "amesh-agent": "./dist/index.js",
       },
@@ -70,7 +70,7 @@
     },
     "packages/cli": {
       "name": "@authmesh/cli",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "bin": {
         "amesh": "./dist/index.js",
       },
@@ -93,7 +93,7 @@
     },
     "packages/core": {
       "name": "@authmesh/core",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "dependencies": {
         "@noble/curves": "2.0.1",
         "@noble/hashes": "2.0.1",
@@ -108,7 +108,7 @@
     },
     "packages/keystore": {
       "name": "@authmesh/keystore",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "dependencies": {
         "@authmesh/core": "workspace:*",
         "@noble/ciphers": "2.1.1",
@@ -125,7 +125,7 @@
     },
     "packages/relay": {
       "name": "@authmesh/relay",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "dependencies": {
         "@authmesh/core": "workspace:*",
       },
@@ -141,7 +141,7 @@
     },
     "packages/sdk": {
       "name": "@authmesh/sdk",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "dependencies": {
         "@authmesh/core": "workspace:*",
         "@authmesh/keystore": "workspace:*",
