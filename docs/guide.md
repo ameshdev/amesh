@@ -263,7 +263,7 @@ bun test
 ## 8. Start the Relay Server
 
 ```bash
-npx @authmesh/relay
+bunx @authmesh/relay
 # Or from the monorepo:
 cd packages/relay && bun run start
 ```

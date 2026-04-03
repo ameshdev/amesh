@@ -101,7 +101,7 @@ amesh init --name "prod-api"
 amesh init --name "my-laptop"
 
 # Start the relay (needed only for pairing)
-npx @authmesh/relay
+bunx @authmesh/relay
 
 # On the server (target): start listening for pairing
 amesh listen
@@ -136,7 +136,7 @@ amesh invite 482916 --relay wss://relay.authmesh.dev/ws
 
 ```bash
 # On the remote server (target)
-npx @authmesh/relay                                      # starts on port 3001
+bunx @authmesh/relay                                      # starts on port 3001
 amesh listen --relay ws://localhost:3001/ws
 
 # On your laptop (controller — use the server's public IP or domain)

@@ -137,7 +137,7 @@ The relay is only needed for the initial pairing handshake. After devices exchan
 amesh is fully self-contained. No SaaS, no telemetry, no phone-home.
 
 - Install packages from npm (MIT licensed)
-- Run your own relay: Docker, Cloud Run, Fly.io, Kubernetes, or plain Node.js
+- Run your own relay: Docker, Cloud Run, Fly.io, Kubernetes, or plain Bun
 - All data stays on your machines (`~/.amesh/`)
 
 See the [Self-Hosting Guide](./docs/self-hosting.md) for deployment options.

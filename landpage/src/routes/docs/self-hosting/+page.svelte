@@ -13,7 +13,7 @@
 		{ id: 'docker', label: 'Docker' },
 		{ id: 'cloud-run', label: 'Google Cloud Run' },
 		{ id: 'flyio', label: 'Fly.io' },
-		{ id: 'nodejs', label: 'Plain Node.js' },
+		{ id: 'nodejs', label: 'Plain Bun' },
 		{ id: 'kubernetes', label: 'Kubernetes' },
 		{ id: 'security', label: 'Security' },
 		{ id: 'config', label: 'Configuration' },
@@ -26,10 +26,10 @@
 
 <svelte:head>
 	<title>Self-Hosting the amesh Relay: Docker, Cloud Run, Fly.io</title>
-	<meta name="description" content="How to run your own amesh relay server with Docker, Cloud Run, Fly.io, Kubernetes, or plain Node.js." />
+	<meta name="description" content="How to run your own amesh relay server with Docker, Cloud Run, Fly.io, Kubernetes, or plain Bun." />
 	<link rel="canonical" href="https://authmesh.dev/docs/self-hosting" />
 	<meta property="og:title" content="Self-Hosting the amesh Relay — amesh" />
-	<meta property="og:description" content="Deploy the relay with Docker, Cloud Run, Fly.io, Kubernetes, or plain Node.js." />
+	<meta property="og:description" content="Deploy the relay with Docker, Cloud Run, Fly.io, Kubernetes, or plain Bun." />
 	<meta property="og:url" content="https://authmesh.dev/docs/self-hosting" />
 </svelte:head>
 
@@ -103,13 +103,13 @@ gcloud run deploy amesh-relay \\
 		</div>
 	</section>
 
-	<!-- Plain Node.js -->
+	<!-- Plain Bun -->
 	<section class="py-8 border-t border-zinc-800">
-		<h2 id="nodejs" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Plain Node.js</h2>
+		<h2 id="nodejs" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Plain Bun</h2>
 		<p class="mt-2 text-zinc-400">No Docker required.</p>
 		<div class="mt-4">
 			<CodeBlock code={`<span class="text-zinc-500">$</span> npm install @authmesh/relay
-<span class="text-zinc-500">$</span> PORT=3001 npx @authmesh/relay`} />
+<span class="text-zinc-500">$</span> PORT=3001 bunx @authmesh/relay`} />
 		</div>
 		<div class="mt-3">
 			<CodeBlock code={`<span class="text-zinc-500">// Or programmatically</span>

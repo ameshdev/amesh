@@ -14,7 +14,7 @@
 		{
 			icon: Server,
 			title: 'Self-Hosting Guide',
-			desc: 'Run your own relay with Docker, Cloud Run, Fly.io, Kubernetes, or plain Node.js.',
+			desc: 'Run your own relay with Docker, Cloud Run, Fly.io, Kubernetes, or plain Bun.',
 			href: '/docs/self-hosting',
 		},
 		{

@@ -63,12 +63,12 @@ Every choice below is made for a reason. Do not substitute without understanding
 
 | Layer | Choice | Reason |
 |---|---|---|
-| **Language** | TypeScript (Node.js 24 LTS) | Strong crypto ecosystem, fast prototyping, first-class async |
+| **Language** | TypeScript (Bun 1.3+) | Strong crypto ecosystem, fast prototyping, first-class async |
 | **CLI Framework** | `oclif` v4 | Industry-standard, supports plugin architecture, generates proper help docs, used by Heroku/Salesforce CLIs |
 | **Crypto — Curves** | `@noble/curves` (P-256 ECDSA + P-256 ECDH) | Audited, zero-dependency, constant-time, actively maintained by Paulmillr. P-256 chosen for universal hardware support (Secure Enclave, TPM 2.0). Replaces `@noble/ed25519` which is incompatible with hardware security modules. |
 | **Crypto — Hashes** | `@noble/hashes` (SHA-256, HKDF, HMAC) | Same author, same audit lineage. |
 | **Crypto — Ciphers** | `@noble/ciphers` (ChaCha20-Poly1305) | Handshake tunnel encryption. Same ecosystem. |
-| **Hardware — macOS** | Custom `napi-rs` native module → Apple Security.framework | Direct Secure Enclave access via `SecKeyCreateRandomKey` with `kSecAttrTokenIDSecureEnclave`. Generates P-256 keys in hardware. `node-keytar` is deprecated (archived Dec 2022) and cannot access Secure Enclave — it is only a password store. |
+| **Hardware — macOS** | Swift helper subprocess → Apple Security.framework | Direct Secure Enclave access via `SecKeyCreateRandomKey` with `kSecAttrTokenIDSecureEnclave`. Generates P-256 keys in hardware. `node-keytar` is deprecated (archived Dec 2022) and cannot access Secure Enclave — it is only a password store. |
 | **Hardware — Linux** | `tpm2-tools` (subprocess via `execFile`) | Industry standard TPM 2.0 interface. P-256 universally supported. |
 | **Hardware — Fallback** | Encrypted file (AES-256-GCM + Argon2id) | Explicit opt-in via `--backend file --passphrase`. For cloud VMs without hardware key storage. |
 | **Relay Server** | Bun.serve() native | Zero deps — no Fastify, no ws. |
@@ -631,7 +631,7 @@ Every device goes through this decision tree at `amesh init`. The selected backe
 ```
 ┌──────────────────────────────────────────────────────┐
 │  Tier 1 — Is this macOS with Apple Silicon or T2?    │
-│  → YES: Use Secure Enclave via napi-rs native module │
+│  → YES: Use Secure Enclave via Swift helper subprocess │
 │         SecKeyCreateRandomKey + kSecAttrTokenID      │
 │         SecureEnclave. P-256 key generated IN chip.  │
 │         Private key NEVER leaves the Secure Enclave. │
@@ -800,7 +800,7 @@ The specific error code is logged server-side but never returned to the client (
 ### Week 2 — Hardware Drivers + CLI Skeleton
 **Goal:** Keys live in hardware. CLI is functional on macOS and Linux.
 
-- [ ] `@authmesh/keystore`: implement Secure Enclave driver (macOS) — napi-rs native module calling Security.framework
+- [ ] `@authmesh/keystore`: implement Secure Enclave driver (macOS) — Swift helper calling Security.framework
 - [ ] `@authmesh/keystore`: implement TPM 2.0 driver (Linux) — tpm2-tools subprocess via execFile
 - [ ] `@authmesh/keystore`: implement platform detection and fallback chain
 - [ ] `@authmesh/cli`: scaffold with `oclif` — `init`, `list`, `revoke` commands (no relay yet)
@@ -929,5 +929,5 @@ Pin **exact versions** for crypto libraries (`@noble/*`). Use `^` only for tooli
 ---
 
 *End of amesh-spec-v2.0.md*
-*Revised from v1.1.0: Ed25519→P-256 for hardware compatibility, keytar→napi-rs native module, added SAS verification, updated all dependency versions.*
+*Revised from v1.1.0: Ed25519→P-256 for hardware compatibility, keytar→Swift helper subprocess, added SAS verification, updated all dependency versions.*
 *Next step: Create the monorepo, run `bun init`, and begin Week 1 tasks. The first PR should be nothing but `@authmesh/core` with 100% test coverage.*

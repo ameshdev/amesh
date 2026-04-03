@@ -7,7 +7,7 @@ The relay is **only needed during initial device pairing**. After two devices ex
 ## Install & Run
 
 ```bash
-npx @authmesh/relay                    # run directly via npx
+bunx @authmesh/relay                    # run directly via npx
 # or
 bun packages/relay/dist/start.js       # from the monorepo
 ```

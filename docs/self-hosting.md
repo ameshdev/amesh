@@ -126,7 +126,7 @@ fly deploy
 
 ---
 
-## Option 4: Plain Node.js
+## Option 4: Plain Bun
 
 No Docker required. Install the relay package and run it.
 
@@ -136,7 +136,7 @@ npm install @authmesh/relay
 
 ```bash
 # Run directly
-PORT=3001 HOST=0.0.0.0 npx @authmesh/relay
+PORT=3001 HOST=0.0.0.0 bunx @authmesh/relay
 ```
 
 Or in your own script:
@@ -162,7 +162,7 @@ Type=simple
 User=amesh
 Environment=PORT=3001
 Environment=HOST=0.0.0.0
-ExecStart=/usr/bin/npx @authmesh/relay
+ExecStart=/usr/bin/bunx @authmesh/relay
 Restart=on-failure
 
 [Install]

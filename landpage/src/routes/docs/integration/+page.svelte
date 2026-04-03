@@ -138,7 +138,7 @@ amesh invite 482916 --relay <span class="text-emerald-400">wss://relay.authmesh.
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">Option B: Run relay on the server</h3>
 		<div class="mt-3">
 			<CodeBlock code={`<span class="text-zinc-500"># On the remote server</span>
-npx @authmesh/relay                   <span class="text-zinc-500"># starts on :3001</span>
+bunx @authmesh/relay                   <span class="text-zinc-500"># starts on :3001</span>
 amesh listen --relay <span class="text-emerald-400">ws://localhost:3001/ws</span>
 
 <span class="text-zinc-500"># On your laptop</span>
