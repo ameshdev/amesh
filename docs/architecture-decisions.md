@@ -167,7 +167,7 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 
 ## ADR-011: Remote shell as separate package with explicit shell permission
 
-**Decision:** The remote shell feature ships as `@authmesh/shell`, a separate npm package with separate binaries (`amesh-agent`, `amesh-shell`). Shell access requires explicit `amesh grant --shell` after pairing.
+**Decision:** The shell client (`amesh shell`) is a subcommand in `@authmesh/cli`. The agent daemon (`amesh-agent`) ships as `@authmesh/agent`, a separate package for the target server. Shell access requires explicit `amesh grant --shell` after pairing.
 
 **Why:**
 
@@ -175,7 +175,7 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 
 2. **Explicit consent:** Pairing for API authentication (`amesh invite`) does not grant shell access. A `permissions.shell` flag in the allow list defaults to `false`. The target admin must explicitly run `amesh grant <device-id> --shell`. This prevents implicit privilege escalation.
 
-3. **Separate binaries:** `amesh-agent` and `amesh-shell` are distinct from `amesh` (the CLI). Users opt into shell capability by installing a separate package.
+3. **Controller in CLI, agent separate:** `amesh shell` is a subcommand of the existing CLI. Only the server needs `@authmesh/agent` — the developer's laptop never has daemon code.
 
 **Security design choices:**
 

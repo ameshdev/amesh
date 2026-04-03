@@ -1,14 +1,14 @@
 {
-  "name": "@authmesh/shell",
+  "name": "@authmesh/agent",
   "version": "0.2.0",
-  "description": "Secure remote shell for amesh — SSH-like access with device-bound identity",
+  "description": "amesh agent daemon — remote shell target with device-bound identity",
   "type": "module",
   "license": "MIT",
   "author": "Yair Etzion",
   "repository": {
     "type": "git",
     "url": "https://github.com/ameshdev/amesh.git",
-    "directory": "packages/shell"
+    "directory": "packages/agent"
   },
   "homepage": "https://github.com/ameshdev/amesh",
   "keywords": [
@@ -23,8 +23,7 @@
     "access": "public"
   },
   "bin": {
-    "amesh-agent": "./dist/commands/agent-start.js",
-    "amesh-shell": "./dist/commands/shell.js"
+    "amesh-agent": "./dist/commands/agent-start.js"
   },
   "exports": {
     ".": {

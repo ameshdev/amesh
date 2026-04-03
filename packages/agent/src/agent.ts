@@ -67,7 +67,16 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
   const maxSessionsPerController = 1;
   const controllerSessions = new Map<string, number>();
 
+  const shellControllers = (await allowList.read()).devices.filter(
+    (d) => d.role === 'controller' && d.permissions?.shell,
+  ).length;
+
+  console.log('');
+  console.warn('[amesh-agent] WARNING: This device is now accepting remote shell connections from authorized controllers.');
   console.log(`[amesh-agent] Device: ${identity.deviceId} (${identity.friendlyName})`);
+  console.log(`[amesh-agent] Authorized controllers with shell access: ${shellControllers}`);
+  console.log(`[amesh-agent] Run \`amesh list\` to see who has access.`);
+  console.log('');
   console.log(`[amesh-agent] Connecting to relay: ${opts.relayUrl}`);
 
   // Connect to relay with reconnect

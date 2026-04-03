@@ -45,15 +45,15 @@
 	<!-- Install -->
 	<section class="py-8">
 		<h2 id="install" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Install</h2>
-		<p class="mt-2 text-zinc-400">The shell feature is a separate package from the CLI.</p>
+		<p class="mt-2 text-zinc-400">The CLI includes the shell client. The server needs the agent package.</p>
 		<div class="mt-4">
-			<CodeBlock code={`<span class="text-zinc-500"># Install the shell package (agent + shell client)</span>
-brew install ameshdev/tap/amesh-shell
-<span class="text-zinc-500"># or</span>
-npm install -g @authmesh/shell
+			<CodeBlock code={`<span class="text-zinc-500"># On your laptop (controller) — CLI includes amesh shell</span>
+brew install ameshdev/tap/amesh
 
-<span class="text-zinc-500"># You also need the CLI for pairing and permissions</span>
-brew install ameshdev/tap/amesh`} />
+<span class="text-zinc-500"># On the server (target) — agent daemon</span>
+brew install ameshdev/tap/amesh-agent
+<span class="text-zinc-500"># or</span>
+npm install -g @authmesh/agent`} />
 		</div>
 	</section>
 
@@ -98,7 +98,7 @@ amesh-agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
 
 		<h3 class="mt-4 text-sm font-semibold uppercase tracking-wide text-zinc-500">Interactive shell</h3>
 		<div class="mt-3">
-			<CodeBlock code={`<span class="text-zinc-500">$</span> amesh-shell prod-api
+			<CodeBlock code={`<span class="text-zinc-500">$</span> amesh shell prod-api
   Connecting to prod-api (am_7f2e8a1b)...
   Connected. Shell session started.
 
@@ -110,7 +110,7 @@ user
 
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">Single command</h3>
 		<div class="mt-3">
-			<CodeBlock code={`<span class="text-zinc-500">$</span> amesh-shell prod-api -c "df -h"
+			<CodeBlock code={`<span class="text-zinc-500">$</span> amesh shell prod-api -c "df -h"
 Filesystem      Size  Used Avail Use% Mounted on
 /dev/sda1        50G   12G   35G  26% /`} />
 		</div>
