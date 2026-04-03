@@ -31,7 +31,7 @@ export default class Listen extends Command {
     this.log('');
     this.log('  ┌─────────────────────────────┐');
     this.log(`  │   Your pairing code: ${otc}  │`);
-    this.log('  │   Expires in: 120 seconds    │');
+    this.log('  │   Expires in: 60 seconds     │');
     this.log('  └─────────────────────────────┘');
     this.log('');
     this.log('  Share this code with your Controller device.');

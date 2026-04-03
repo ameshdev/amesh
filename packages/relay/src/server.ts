@@ -1,20 +1,28 @@
 import type { ServerWebSocket } from 'bun';
 import { SessionStore } from './session.js';
 import { RateLimiter, OTCAttemptTracker } from './rate-limit.js';
+import { AgentStore } from './agent-store.js';
 
 interface RelayMessage {
-  type: 'listen' | 'connect' | 'data' | 'done' | 'bootstrap_watch' | 'bootstrap_init' | 'bootstrap_ack' | 'bootstrap_reject';
+  type: 'listen' | 'connect' | 'data' | 'done' | 'ping' | 'agent' | 'shell' | 'bootstrap_watch' | 'bootstrap_init' | 'bootstrap_ack' | 'bootstrap_reject';
   otc?: string;
   payload?: string;
   jti?: string;
   token?: string;
   targetPubKey?: string;
+  deviceId?: string;
+  publicKey?: string;
+  timestamp?: string;
+  sig?: string;
+  targetDeviceId?: string;
+  targetPublicKey?: string;
   [key: string]: unknown;
 }
 
 export interface WebSocketData {
   otc?: string;
   btJti?: string;
+  agentDeviceId?: string;
   ip: string;
 }
 
@@ -24,8 +32,10 @@ const BOOTSTRAP_WATCHER_TTL_MS = 300_000; // 5 minutes
 
 export function createRelayServer(opts?: { host?: string; port?: number }) {
   const sessions = new SessionStore();
+  const agentStore = new AgentStore();
   const rateLimiter = new RateLimiter(5, 60_000);
-  const otcAttempts = new OTCAttemptTracker(10);
+  const shellRateLimiter = new RateLimiter(5, 60_000);
+  const otcAttempts = new OTCAttemptTracker(5);
   // Bootstrap watchers: jti → { socket, createdAt }
   const bootstrapWatchers = new Map<string, { socket: ServerWebSocket<WebSocketData>; createdAt: number }>();
   // Track all connected sockets for bootstrap response routing
@@ -175,7 +185,65 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
     bootstrapWatchers.delete(jti);
   }
 
+  // Shell: agent registration (C1 fix — includes publicKey for anti-squatting)
+  function handleAgent(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
+    if (!msg.deviceId || !msg.publicKey) {
+      ws.send(JSON.stringify({ type: 'error', code: 'missing_fields' }));
+      return;
+    }
+    const ok = agentStore.register(msg.deviceId, msg.publicKey, ws);
+    if (!ok) {
+      ws.send(JSON.stringify({ type: 'error', code: 'device_id_conflict' }));
+      return;
+    }
+    ws.data.agentDeviceId = msg.deviceId;
+    ws.send(JSON.stringify({ type: 'agent_registered' }));
+  }
+
+  // Shell: controller requests shell to a target agent (C3 fix — uniform responses)
+  function handleShell(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
+    if (!msg.targetDeviceId || !msg.targetPublicKey) {
+      ws.send(JSON.stringify({ type: 'error', code: 'missing_fields' }));
+      return;
+    }
+    if (!shellRateLimiter.check(ws.data.ip)) {
+      ws.send(JSON.stringify({ type: 'error', code: 'rate_limited' }));
+      return;
+    }
+    const agentWs = agentStore.matchAndGet(msg.targetDeviceId, msg.targetPublicKey);
+    if (!agentWs) {
+      // M6 fix — only count failures against rate limit
+      shellRateLimiter.recordFailure(ws.data.ip);
+      // Uniform response — don't reveal whether agent exists (C3 fix)
+      ws.send(JSON.stringify({ type: 'peer_found' }));
+      return;
+    }
+    // Create a pairing-like session for the shell (reuse existing data forwarding)
+    const shellOtc = `shell_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    try {
+      sessions.create(shellOtc, agentWs, 600); // 10 min TTL for shell sessions
+      sessions.get(shellOtc)!.controller = ws;
+      ws.data.otc = shellOtc;
+      agentWs.data.otc = shellOtc;
+      agentWs.send(JSON.stringify({ type: 'peer_found' }));
+      ws.send(JSON.stringify({ type: 'peer_found' }));
+    } catch {
+      ws.send(JSON.stringify({ type: 'peer_found' }));
+    }
+  }
+
+  // Shell: agent heartbeat
+  function handlePing(ws: ServerWebSocket<WebSocketData>) {
+    agentStore.recordPing(ws);
+    ws.send(JSON.stringify({ type: 'pong' }));
+  }
+
   function cleanupSocket(ws: ServerWebSocket<WebSocketData>) {
+    // Clean up agent registration
+    if (ws.data.agentDeviceId) {
+      agentStore.removeBySocket(ws);
+    }
+
     // Clean up pairing sessions
     const otc = ws.data.otc;
     if (otc) {
@@ -214,7 +282,7 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
           const url = new URL(req.url);
 
           if (url.pathname === '/health') {
-            return Response.json({ status: 'ok', sessions: sessions.size });
+            return Response.json({ status: 'ok', sessions: sessions.size, agents: agentStore.size });
           }
 
           if (url.pathname === '/ws') {
@@ -271,6 +339,15 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
               case 'bootstrap_reject':
                 handleBootstrapResponse(ws, msg);
                 break;
+              case 'agent':
+                handleAgent(ws, msg);
+                break;
+              case 'shell':
+                handleShell(ws, msg);
+                break;
+              case 'ping':
+                handlePing(ws);
+                break;
               default:
                 ws.send(JSON.stringify({ type: 'error', code: 'unknown_type' }));
             }
@@ -288,7 +365,9 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
     stop() {
       clearInterval(bootstrapCleanupTimer);
       sessions.destroy();
+      agentStore.destroy();
       rateLimiter.destroy();
+      shellRateLimiter.destroy();
       otcAttempts.destroy();
       server?.stop();
     },

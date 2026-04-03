@@ -132,7 +132,7 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 **Why:** Default umask (typically 0644) makes encrypted key files world-readable. Defense-in-depth even when encryption is strong.
 
 ### Relay hardening
-**Decision:** Added per-OTC attempt tracking (max 10), WebSocket `maxPayload` (64KB), connection limit (10K), bootstrap watcher TTL and cleanup, message field whitelisting.
+**Decision:** Added per-OTC attempt tracking (max 5), WebSocket `maxPayload` (64KB), connection limit (10K), bootstrap watcher TTL and cleanup, message field whitelisting. OTC sessions expire after 60 seconds.
 
 **Why:** The relay was vulnerable to distributed OTC brute-force (per-IP limiting only), memory exhaustion via large payloads or unlimited connections, and stale bootstrap watcher leaks.
 
@@ -162,3 +162,33 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 - No enforcement (application-level convention) — convention is not security; the middleware must enforce it
 
 **Trade-offs:** Bidirectional auth between two services requires two separate pairings (each side runs `amesh listen` once and `amesh invite` once). This is intentional friction — bidirectional trust should be a conscious choice, not the default.
+
+---
+
+## ADR-011: Remote shell as separate package with explicit shell permission
+
+**Decision:** The remote shell feature ships as `@authmesh/shell`, a separate npm package with separate binaries (`amesh-agent`, `amesh-shell`). Shell access requires explicit `amesh grant --shell` after pairing.
+
+**Why:**
+
+1. **Security boundary:** Installing `@authmesh/sdk` for HTTP API auth must never pull in PTY code or an agent daemon. The attack surface for API signing and shell access are fundamentally different.
+
+2. **Explicit consent:** Pairing for API authentication (`amesh invite`) does not grant shell access. A `permissions.shell` flag in the allow list defaults to `false`. The target admin must explicitly run `amesh grant <device-id> --shell`. This prevents implicit privilege escalation.
+
+3. **Separate binaries:** `amesh-agent` and `amesh-shell` are distinct from `amesh` (the CLI). Users opt into shell capability by installing a separate package.
+
+**Security design choices:**
+
+- **Incrementing nonce counters** (not random) for shell encryption — eliminates birthday-bound collision risk over long sessions
+- **Device-ID-bound HKDF** (`amesh-shell-v1` salt + both device IDs) — cryptographic separation from pairing sessions
+- **No session resumption** — dropped connection = full new ECDH handshake
+- **Authenticated agent registration** — relay stores public key, controllers must match it (prevents squatting)
+- **Uniform relay responses** — no `agent_not_found` message (prevents device enumeration)
+- **Root guard** — agent refuses `root` without `--allow-root`
+- **Per-controller session limits** — prevents DoS by authorized-but-misbehaving peers
+
+**Rejected alternatives:**
+- Bundling in `@authmesh/cli` — mixes API auth tooling with shell daemon, implicit capability creep
+- Auto-granting shell on pairing — violates principle of least privilege
+- Reusing pairing handshake's random-nonce encryption — birthday-bound risk over long sessions
+- Session resumption — complexity and nonce-reuse risk outweigh the latency benefit

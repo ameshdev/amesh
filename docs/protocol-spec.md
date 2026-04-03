@@ -243,7 +243,7 @@ TARGET                          RELAY                       CONTROLLER
 ```
 OTC = crypto.randomInt(100000, 999999).toString()
 ```
-6 digits. Valid for **120 seconds**. Displayed prominently in the terminal.
+6 digits. Valid for **60 seconds**. Displayed prominently in the terminal.
 
 **Step 5 — ECDH Ephemeral Exchange:**
 Both sides generate a **throwaway** P-256 keypair for this session only. They exchange public halves through the relay. The shared secret derived via ECDH never touches the relay. This ephemeral keypair is discarded after the ceremony.
@@ -299,7 +299,7 @@ $ amesh listen
   
   ┌─────────────────────────────┐
   │   Your pairing code: 482916 │
-  │   Expires in: 120 seconds   │
+  │   Expires in: 60 seconds    │
   └─────────────────────────────┘
 
   Share this code with your Controller device.
@@ -566,13 +566,13 @@ The relay is a **dumb, stateless, ephemeral message bus**. It exists only to sol
 - Store any message to disk
 - Log public keys or device IDs
 - Inspect message contents (all payloads are encrypted by Step 6 of the handshake)
-- Maintain sessions longer than the handshake window (120 seconds max)
+- Maintain sessions longer than the handshake window (60 seconds max)
 
 ### Session Lifecycle
 
 ```
 1. TARGET connects with OTC "482916"
-   → Relay creates in-memory session: { otc: "482916", target: ws1, controller: null, expiresAt: now+120s }
+   → Relay creates in-memory session: { otc: "482916", target: ws1, controller: null, expiresAt: now+60s }
 
 2. CONTROLLER connects with OTC "482916"
    → Relay finds session, sets controller: ws2
@@ -612,8 +612,9 @@ Termination:
 ### Relay Rate Limiting (mandatory)
 The relay MUST enforce:
 - Max 5 failed OTC attempts per IP per minute
+- Max 5 failed attempts per OTC (then OTC is burned)
 - Max 1 active connection per OTC
-- OTC session destroyed immediately on mismatch
+- OTC session expires after 60 seconds
 
 ### Relay Deployment
 - Deploy as a Docker container on Fly.io for MVP (~$2/month, standard Node.js, easy deploy)
