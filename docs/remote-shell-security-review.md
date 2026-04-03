@@ -42,7 +42,7 @@ The agent daemon checks `device.permissions.shell === true` before spawning the 
 
 ### C3. Relay becomes a persistent presence oracle
 
-**Current relay:** Stateless. Sessions last ~30 seconds. An attacker monitoring the relay learns nothing about device availability.
+**Current relay:** Stateless. Sessions last up to 60 seconds (OTC expiry). An attacker monitoring the relay learns nothing about device availability.
 
 **Shell relay:** The `agentStore` is a persistent map of `deviceId → WebSocket`. An attacker who can enumerate this (via brute-force `shell` requests) learns which devices are online, when they come online/offline, and their device IDs.
 

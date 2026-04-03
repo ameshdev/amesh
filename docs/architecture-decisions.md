@@ -132,7 +132,7 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 **Why:** Default umask (typically 0644) makes encrypted key files world-readable. Defense-in-depth even when encryption is strong.
 
 ### Relay hardening
-**Decision:** Added per-OTC attempt tracking (max 10), WebSocket `maxPayload` (64KB), connection limit (10K), bootstrap watcher TTL and cleanup, message field whitelisting.
+**Decision:** Added per-OTC attempt tracking (max 5), WebSocket `maxPayload` (64KB), connection limit (10K), bootstrap watcher TTL and cleanup, message field whitelisting. OTC sessions expire after 60 seconds.
 
 **Why:** The relay was vulnerable to distributed OTC brute-force (per-IP limiting only), memory exhaustion via large payloads or unlimited connections, and stale bootstrap watcher leaks.
 

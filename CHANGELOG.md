@@ -39,7 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **File permissions**: all sensitive files (keys, identity, allow list) written with `0o600`/`0o700`.
 - **deviceId** validated against path traversal (`/^[a-zA-Z0-9_-]+$/`).
 - **Bootstrap jti** entropy increased from 32 to 128 bits.
-- **Relay hardening**: per-OTC brute-force tracking (max 10 per OTC), `maxPayload` 64KB, connection limit 10K, bootstrap watcher TTL + cleanup, message field whitelisting.
+- **Relay hardening**: per-OTC brute-force tracking (max 5 per OTC), `maxPayload` 64KB, connection limit 10K, bootstrap watcher TTL + cleanup, message field whitelisting.
 - **Nonce store** bounded at 1M entries to prevent memory exhaustion.
 - **Base64URL** decoding fix in SDK middleware (was using plain base64).
 - **Canonical string** rejects newlines in fields to prevent injection.
