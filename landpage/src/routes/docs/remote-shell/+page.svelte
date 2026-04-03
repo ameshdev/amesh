@@ -45,11 +45,13 @@
 	<!-- Install -->
 	<section class="py-8">
 		<h2 id="install" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Install</h2>
-		<p class="mt-2 text-zinc-400">The shell client and agent daemon are included in the CLI. One install.</p>
+		<p class="mt-2 text-zinc-400">Two binaries: <code class="text-emerald-400">amesh</code> for the controller (your laptop), <code class="text-emerald-400">amesh-agent</code> for the server.</p>
 		<div class="mt-4">
-			<CodeBlock code={`brew install ameshdev/tap/amesh
-<span class="text-zinc-500"># or</span>
-npm install -g @authmesh/cli`} />
+			<CodeBlock code={`<span class="text-zinc-500"># On your laptop (controller)</span>
+brew install ameshdev/tap/amesh
+
+<span class="text-zinc-500"># On the server (target) — includes all CLI commands + daemon</span>
+brew install ameshdev/tap/amesh-agent`} />
 		</div>
 	</section>
 
