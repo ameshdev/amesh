@@ -17,6 +17,9 @@ amesh invite <code>              # Join pairing (controller side)
 amesh list                       # Show trusted devices
 amesh revoke <device-id>         # Remove a trusted device
 amesh provision                  # Generate bootstrap tokens
+amesh grant <device-id> --shell  # Grant shell access to a controller
+amesh shell <device>             # Open remote shell to a target
+amesh agent start                # Start the agent daemon (target side)
 ```
 
 ## Pairing flow

@@ -56,8 +56,14 @@ export function encodeCommandFrame(command: string): Uint8Array {
   return frame;
 }
 
+const VALID_FRAME_TYPES = new Set<number>([
+  FrameType.DATA, FrameType.RESIZE, FrameType.EXIT,
+  FrameType.PING, FrameType.PONG, FrameType.COMMAND,
+]);
+
 export function parseFrame(frame: Uint8Array): { type: FrameTypeValue; payload: Uint8Array } {
   if (frame.length < 1) throw new Error('Empty frame');
+  if (!VALID_FRAME_TYPES.has(frame[0])) throw new Error(`Unknown frame type: 0x${frame[0].toString(16)}`);
   return {
     type: frame[0] as FrameTypeValue,
     payload: frame.subarray(1),

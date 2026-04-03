@@ -188,7 +188,7 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 - **Per-controller session limits** — prevents DoS by authorized-but-misbehaving peers
 
 **Rejected alternatives:**
-- Bundling in `@authmesh/cli` — mixes API auth tooling with shell daemon, implicit capability creep
+- Separate `@authmesh/agent` package — adds install confusion without meaningful security benefit; the permission gate (`amesh grant --shell`) is the real security boundary, not the package boundary
 - Auto-granting shell on pairing — violates principle of least privilege
 - Reusing pairing handshake's random-nonce encryption — birthday-bound risk over long sessions
 - Session resumption — complexity and nonce-reuse risk outweigh the latency benefit

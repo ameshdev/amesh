@@ -185,7 +185,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
             const frame = encodeDataFrame(data);
             const encrypted = cipher.encrypt(frame);
             if (ws.readyState === WebSocket.OPEN) {
-              ws.send(Buffer.from(encrypted).toString('base64'));
+              ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(encrypted).toString('base64') }));
             }
           },
         },

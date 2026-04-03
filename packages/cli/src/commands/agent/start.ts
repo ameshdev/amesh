@@ -17,6 +17,7 @@ export default class AgentStart extends Command {
     'idle-timeout': Flags.integer({
       description: 'Idle session timeout in minutes',
       default: 30,
+      min: 1,
     }),
   };
 

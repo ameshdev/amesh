@@ -172,13 +172,15 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
   }
 
   // Bootstrap: controller responds (ack or reject) — forward to target
+  // Whitelist forwarded fields to prevent injection of arbitrary JSON (C2 fix)
   function handleBootstrapResponse(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
     const jti = msg.jti;
     if (!jti) return;
+    const safe = { type: msg.type, jti: msg.jti, controllerPubKey: msg.publicKey };
     // Find target socket by jti
     for (const client of connectedSockets) {
       if (client.data.btJti === jti && client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(msg));
+        client.send(JSON.stringify(safe));
       }
     }
     // Clean up watcher
@@ -219,7 +221,7 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
       return;
     }
     // Create a pairing-like session for the shell (reuse existing data forwarding)
-    const shellOtc = `shell_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const shellOtc = `shell_${Date.now()}_${crypto.randomUUID()}`;
     try {
       sessions.create(shellOtc, agentWs, 600); // 10 min TTL for shell sessions
       sessions.get(shellOtc)!.controller = ws;
