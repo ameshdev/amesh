@@ -230,7 +230,7 @@ TARGET                          RELAY                       CONTROLLER
   |-- (8) { pubKey, friendlyName, timestamp, selfSig } ---------->|
   |                               |                               |
   |                               |                               |
-  | <======= (9) SAS Verification (both display 6-digit code) ========> |
+  | <======= (9) SAS Verification (controller displays, target enters) ========> |
   |                               |                               |
   |-- (10) Disconnect ----------->|<- (10) Disconnect ------------|
   |                               |                               |
@@ -271,13 +271,13 @@ Each side sends:
 `selfSig` is an ECDSA-P256-SHA256 signature over `(publicKey + friendlyName + timestamp)` made with the **permanent** private key. This proves the sender controls the private key corresponding to the public key they're presenting.
 
 **Step 9 — SAS Verification (Short Authentication String):**
-After both sides have exchanged permanent keys, each CLI computes and displays a 6-digit verification code:
+After both sides have exchanged permanent keys, each CLI computes a 6-digit verification code:
 ```
 SAS = truncate(SHA-256(targetPubKey || controllerPubKey || sharedECDHSecret), 6 digits)
 ```
-Both CLIs display this number. The developer confirms they match on both terminals. In a MITM scenario (relay performing separate ECDH with each side), the shared secrets differ, so SAS values won't match. This is the same approach used by Signal, Matrix, and Bluetooth Secure Simple Pairing.
+The **controller** displays the code. The **target** prompts the operator to enter the code shown on the controller's screen. The target verifies the entered code against its own computed SAS using a constant-time comparison. If they match, pairing proceeds. If they differ (indicating a MITM), pairing is aborted automatically.
 
-SAS is displayed by default. Skippable with `--no-verify` flag for automated/headless pairing.
+This "code entry" approach (vs. visual comparison) eliminates the risk of a distracted operator rubber-stamping a mismatch. One-sided verification on the target is sufficient because the target's allow list is the security-critical one — it controls who may authenticate. Same cryptographic principle as Signal, Matrix, and Bluetooth Secure Simple Pairing.
 
 > **Why SAS in addition to selfSig:** The `selfSig` alone does not prevent a relay MITM that performs separate ECDH with each side and substitutes its own permanent key with a valid selfSig. The SAS catches this because the ECDH shared secrets differ.
 
@@ -309,18 +309,36 @@ $ amesh listen
 ✔ Keys exchanged and verified.
 
   ┌──────────────────────────────────┐
-  │   Verification code: 847291     │
-  │   Confirm this matches the      │
-  │   Controller's display.         │
+  │   Enter the 6-digit code shown  │
+  │   on the Controller's screen.   │
   └──────────────────────────────────┘
 
-? Codes match? (Y/n): y
+  Verification code: 847291
 
-✔ "MacBook Pro — dev" added to allow list.
+✔ "MacBook Pro — dev" added as controller.
 
-  Device ID : am_1a2b3c4d5e6f7a8b
-  
   You can now use amesh signing. The relay connection is closed.
+```
+
+### CLI output (Controller side)
+```
+$ amesh invite 482916
+
+  Connecting to relay with code 482916...
+
+✔ Peer found.
+✔ Ephemeral P-256 ECDH tunnel established.
+✔ Keys exchanged and verified.
+
+  ┌──────────────────────────────────┐
+  │   Verification code: 847291     │
+  │   Enter this code on the Target  │
+  │   device to complete pairing.    │
+  └──────────────────────────────────┘
+
+✔ "prod-api-us-east-1" added as target.
+
+  Pairing complete. The relay connection is closed.
 ```
 
 ---
@@ -728,7 +746,7 @@ The relay could theoretically swap ephemeral public keys during Step 5 to perfor
 
 1. **`selfSig`** (Step 7/8): Proves each side controls the private key corresponding to the public key they present. A relay doing MITM cannot forge a `selfSig` for a key it doesn't control.
 
-2. **SAS Verification** (Step 9): Even if the relay performs separate ECDH with each side and substitutes its own permanent key with a valid `selfSig`, the SAS codes will differ because the ECDH shared secrets differ. This is cryptographic proof of no MITM — not reliant on the developer recognizing an unfamiliar device name. Same approach as Signal, Matrix, and Bluetooth Secure Simple Pairing.
+2. **SAS Verification** (Step 9): Even if the relay performs separate ECDH with each side and substitutes its own permanent key with a valid `selfSig`, the SAS codes will differ because the ECDH shared secrets differ. The target operator enters the code displayed on the controller — a mismatch is caught automatically via constant-time comparison, eliminating human error. Same cryptographic approach as Signal, Matrix, and Bluetooth Secure Simple Pairing.
 
 ### One-Way Trust Directionality
 Trust between devices is **one-directional** by default. A controller can authenticate to a target, but the target cannot authenticate back to the controller. This limits the blast radius of a compromised target — even if an attacker gains control of the server, they cannot use its amesh identity to authenticate to the controller. The `role` field in each allow list entry is HMAC-sealed, so an attacker cannot flip a `"target"` role to `"controller"` without invalidating the HMAC.

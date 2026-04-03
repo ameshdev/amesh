@@ -41,7 +41,7 @@
 		{
 			n: '2', title: 'Pair two machines',
 			desc: 'The server runs amesh listen, your laptop runs amesh invite. Trust is one-way: your laptop controls the server, not the other way around.',
-			code: `<span class="text-zinc-500">$</span> amesh listen\n\n  Pairing code: <span class="text-emerald-400">482916</span>\n\n<span class="text-emerald-400">✔</span> Controller connected.\n  Verification code: <span class="text-emerald-400">847291</span>\n  Codes match? (Y/n): y\n<span class="text-emerald-400">✔</span> "Dev Laptop" added as controller.`
+			code: `<span class="text-zinc-500">$</span> amesh listen\n\n  Pairing code: <span class="text-emerald-400">482916</span>\n\n<span class="text-emerald-400">✔</span> Controller connected.\n  Enter the 6-digit code shown on the Controller.\n  Verification code: <span class="text-emerald-400">847291</span>\n<span class="text-emerald-400">✔</span> "Dev Laptop" added as controller.`
 		},
 		{
 			n: '3', title: 'Sign requests — 2 lines',
@@ -84,7 +84,7 @@
 		},
 		{
 			label: 'Pairing',
-			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh invite 482916</span>\n\n  Connecting to relay with code 482916...\n\n<span class="text-emerald-400">✔</span> Peer found.\n  Verification code: <span class="text-emerald-400">847291</span>\n  Codes match? (Y/n): y\n<span class="text-emerald-400">✔</span> "prod-api" added as target.`
+			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh invite 482916</span>\n\n  Connecting to relay with code 482916...\n\n<span class="text-emerald-400">✔</span> Peer found.\n  Verification code: <span class="text-emerald-400">847291</span>\n  Enter this code on the Target device.\n<span class="text-emerald-400">✔</span> "prod-api" added as target.`
 		},
 		{
 			label: 'Init',

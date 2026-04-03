@@ -27,9 +27,9 @@ $ amesh listen
   Pairing code: 482916
 
   Controller connected.
+  Enter the 6-digit code shown on the Controller.
   Verification code: 847291
-  Codes match? (Y/n): y
-  "Dev Laptop" added to allow list.
+  "Dev Laptop" added as controller.
 ```
 
 On the controller:
@@ -37,8 +37,8 @@ On the controller:
 $ amesh invite 482916
   Connected to relay.
   Verification code: 847291
-  Codes match? (Y/n): y
-  "prod-api" added to allow list.
+  Enter this code on the Target device.
+  "prod-api" added as target.
 ```
 
 ## Environment variables

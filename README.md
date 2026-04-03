@@ -56,6 +56,8 @@ On the target (server):
 ```bash
 amesh listen
 # Pairing code: 482916
+# Enter the 6-digit code shown on the Controller.
+# Verification code: 847291
 # ✔ "my-laptop" added as controller.
 ```
 
@@ -63,7 +65,7 @@ On the controller (your laptop):
 ```bash
 amesh invite 482916
 # Verification code: 847291
-# Codes match? (Y/n): y
+# Enter this code on the Target device.
 # ✔ "prod-api" added as target.
 ```
 

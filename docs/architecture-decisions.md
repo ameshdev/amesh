@@ -60,7 +60,7 @@ Note: The encrypted-file fallback (Tier 3) is available as an explicit opt-in (`
 SAS = truncate(SHA-256(targetPubKey || controllerPubKey || sharedECDHSecret), 6 digits)
 ```
 
-Both CLIs display this number; the developer confirms they match. Same approach as Signal, Matrix, Bluetooth Secure Simple Pairing. Skippable with `--no-verify` for headless/automated pairing.
+The controller CLI displays this code; the target CLI prompts the operator to enter it. The target verifies the entered code using constant-time comparison — a mismatch aborts pairing automatically, eliminating the risk of a distracted operator rubber-stamping a visual comparison. One-sided verification on the target is sufficient because the target's allow list is the security-critical one (it controls who may authenticate). Same cryptographic approach as Signal, Matrix, Bluetooth Secure Simple Pairing.
 
 ---
 

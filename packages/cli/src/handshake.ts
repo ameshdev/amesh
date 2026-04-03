@@ -124,6 +124,19 @@ function verifySelfSig(peer: PeerIdentity): boolean {
   return verifyMessage(sig, message, publicKey);
 }
 
+/**
+ * Constant-time comparison for SAS codes.
+ * Prevents timing side-channels during code entry verification.
+ */
+export function verifySAS(entered: string, computed: string): boolean {
+  if (entered.length !== computed.length) return false;
+  let diff = 0;
+  for (let i = 0; i < entered.length; i++) {
+    diff |= entered.charCodeAt(i) ^ computed.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 export interface HandshakeResult {
   peerPublicKey: Uint8Array;
   peerFriendlyName: string;

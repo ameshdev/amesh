@@ -246,7 +246,7 @@ amesh invite 482916
 # ✔ "prod-api" added as target.
 ```
 
-Both sides display a verification code — confirm they match. After that:
+The controller displays a 6-digit verification code — enter it on the target to confirm the pairing. After that:
 - The target's allow list has the controller's key with role `controller` (accepts auth from it)
 - The controller's allow list has the target's key with role `target` (cannot auth from it)
 

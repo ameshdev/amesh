@@ -6,6 +6,7 @@ import {
   runTargetHandshake,
   runControllerHandshake,
   computeSAS,
+  verifySAS,
 } from '../../../cli/src/handshake.js';
 
 let relay: ReturnType<typeof createRelayServer>;
@@ -117,5 +118,29 @@ describe('SAS computation', () => {
     const secret = new Uint8Array(33).fill(0xab);
 
     expect(computeSAS(a, b, secret)).not.toBe(computeSAS(b, a, secret));
+  });
+});
+
+describe('verifySAS (constant-time code entry)', () => {
+  it('accepts matching codes', () => {
+    expect(verifySAS('847291', '847291')).toBe(true);
+  });
+
+  it('rejects mismatched codes', () => {
+    expect(verifySAS('847291', '123456')).toBe(false);
+  });
+
+  it('rejects wrong length', () => {
+    expect(verifySAS('12345', '123456')).toBe(false);
+    expect(verifySAS('1234567', '123456')).toBe(false);
+  });
+
+  it('rejects empty input', () => {
+    expect(verifySAS('', '123456')).toBe(false);
+  });
+
+  it('accepts codes with leading zeros', () => {
+    expect(verifySAS('000001', '000001')).toBe(true);
+    expect(verifySAS('000001', '000002')).toBe(false);
   });
 });
