@@ -81,7 +81,10 @@ export class ShellCipher {
     this.recvNonceStart.fill(0);
   }
 
+  private static readonly MAX_COUNTER = (2n ** 64n) - 1n;
+
   private nextSendNonce(): Uint8Array {
+    if (this.sendCounter >= ShellCipher.MAX_COUNTER) throw new Error('Nonce space exhausted');
     const nonce = new Uint8Array(this.sendNonce);
     this.incrementCounter(nonce, this.sendCounter);
     this.sendCounter++;
@@ -89,6 +92,7 @@ export class ShellCipher {
   }
 
   private nextRecvNonce(): Uint8Array {
+    if (this.recvCounter >= ShellCipher.MAX_COUNTER) throw new Error('Nonce space exhausted');
     const nonce = new Uint8Array(this.recvNonceStart);
     this.incrementCounter(nonce, this.recvCounter);
     this.recvCounter++;

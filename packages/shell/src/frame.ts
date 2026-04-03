@@ -65,11 +65,13 @@ export function parseFrame(frame: Uint8Array): { type: FrameTypeValue; payload: 
 }
 
 export function parseResize(payload: Uint8Array): { cols: number; rows: number } {
+  if (payload.byteLength < 4) throw new Error('RESIZE frame too short');
   const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   return { cols: view.getUint16(0, false), rows: view.getUint16(2, false) };
 }
 
 export function parseExit(payload: Uint8Array): { code: number } {
+  if (payload.byteLength < 4) throw new Error('EXIT frame too short');
   const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   return { code: view.getInt32(0, false) };
 }

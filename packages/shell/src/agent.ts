@@ -118,8 +118,11 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
           console.error('[amesh-agent] Max sessions reached, rejecting');
           return;
         }
-        // Start shell handshake on this WebSocket
-        handleShellRequest(ws, allowList, identity, signFn, opts.idleTimeoutMinutes);
+        // H3 fix — increment BEFORE async handshake to prevent race condition
+        activeSessions++;
+        handleShellRequest(ws, allowList, identity, signFn, opts.idleTimeoutMinutes)
+          .catch(() => {})
+          .finally(() => { /* decremented inside handleShellRequest */ });
         return;
       }
     });
@@ -159,14 +162,15 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
         return;
       }
 
-      activeSessions++;
+      // activeSessions already incremented before handshake (H3 fix)
       controllerSessions.set(result.peerDeviceId, current + 1);
       const startTime = Date.now();
 
       console.log(`[amesh-agent] Shell opened by ${result.peerDeviceId} (${result.peerFriendlyName})`);
 
-      // Set up encrypted cipher
+      // Set up encrypted cipher + zero the handshake result copy (L3 fix)
       const cipher = new ShellCipher(result.sessionKey, 'target');
+      result.sessionKey.fill(0);
 
       // Spawn PTY
       const cols = process.stdout.columns ?? 80;
@@ -256,6 +260,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
     } catch (err) {
       console.error('[amesh-agent] Shell handshake failed:', (err as Error).message);
+      activeSessions--; // H3 fix — release slot on failure
     }
   }
 

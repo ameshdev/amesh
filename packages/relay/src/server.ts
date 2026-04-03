@@ -212,8 +212,9 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
     }
     const agentWs = agentStore.matchAndGet(msg.targetDeviceId, msg.targetPublicKey);
     if (!agentWs) {
+      // M6 fix — only count failures against rate limit
+      shellRateLimiter.recordFailure(ws.data.ip);
       // Uniform response — don't reveal whether agent exists (C3 fix)
-      // Send peer_found but don't link; handshake will timeout
       ws.send(JSON.stringify({ type: 'peer_found' }));
       return;
     }

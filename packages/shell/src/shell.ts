@@ -102,6 +102,7 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
   console.error(`Connected. Shell session started.\n`);
 
   const cipher = new ShellCipher(result.sessionKey, 'controller');
+  result.sessionKey.fill(0); // L3 fix — zero handshake result copy
   const startTime = Date.now();
   let exitCode = 0;
 

@@ -5,12 +5,19 @@ WORKDIR /app
 # Copy workspace config
 COPY package.json bun.lock turbo.json tsconfig.base.json ./
 
-# Copy only the packages needed for the relay
+# Copy all package.json files so bun workspace resolution works
 COPY packages/core/package.json packages/core/
+COPY packages/keystore/package.json packages/keystore/
+COPY packages/sdk/package.json packages/sdk/
+COPY packages/cli/package.json packages/cli/
 COPY packages/relay/package.json packages/relay/
+COPY packages/shell/package.json packages/shell/
+
+# Stub missing workspace dirs to satisfy bun install
+RUN mkdir -p demo landpage && echo '{"name":"demo","private":true}' > demo/package.json && echo '{"name":"landpage","private":true}' > landpage/package.json
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy source
 COPY packages/core/src packages/core/src

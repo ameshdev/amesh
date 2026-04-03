@@ -85,6 +85,16 @@ function verifySelfSig(peer: PeerIdentity): boolean {
   return verifyMessage(sig, message, publicKey);
 }
 
+const MAX_TIMESTAMP_SKEW_MS = 60_000; // 60 seconds
+
+function validateTimestamp(timestamp: string): void {
+  const ts = new Date(timestamp).getTime();
+  if (isNaN(ts)) throw new Error('Invalid timestamp in peer identity');
+  if (Math.abs(Date.now() - ts) > MAX_TIMESTAMP_SKEW_MS) {
+    throw new Error('Peer identity timestamp out of range');
+  }
+}
+
 /**
  * Run the TARGET (agent) side of the shell handshake.
  * No OTC, no SAS — trust is pre-established via allow list.
@@ -119,6 +129,7 @@ export async function runAgentShellHandshake(
   if (!verifySelfSig(peerIdentity)) {
     throw new Error('selfSig verification failed');
   }
+  validateTimestamp(peerIdentity.timestamp); // H1 fix
 
   // Step 4: Authorization — check allow list
   const device = await allowList.findByPublicKey(peerIdentity.publicKey);
@@ -142,6 +153,11 @@ export async function runAgentShellHandshake(
 
   // Step 6: Derive final session key bound to actual device IDs
   const sessionKey = deriveShellSessionKey(sharedSecret, myDeviceId, peerIdentity.deviceId);
+
+  // H2 fix — zero key material
+  ephemeral.privateKey.fill(0);
+  sharedSecret.fill(0);
+  tempKey.fill(0);
 
   return {
     sessionKey,
@@ -198,6 +214,7 @@ export async function runControllerShellHandshake(
   if (!verifySelfSig(peerIdentity)) {
     throw new Error('selfSig verification failed');
   }
+  validateTimestamp(peerIdentity.timestamp); // H1 fix
 
   // Step 5: Verify agent is in our allow list
   const device = await allowList.findByPublicKey(peerIdentity.publicKey);
@@ -206,6 +223,11 @@ export async function runControllerShellHandshake(
 
   // Step 6: Derive final session key bound to actual device IDs
   const sessionKey = deriveShellSessionKey(sharedSecret, peerIdentity.deviceId, myDeviceId);
+
+  // H2 fix — zero key material
+  ephemeral.privateKey.fill(0);
+  sharedSecret.fill(0);
+  tempKey.fill(0);
 
   return {
     sessionKey,
