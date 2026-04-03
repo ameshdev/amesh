@@ -1,6 +1,6 @@
 {
   "name": "@authmesh/shell",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Secure remote shell for amesh — SSH-like access with device-bound identity",
   "type": "module",
   "license": "MIT",

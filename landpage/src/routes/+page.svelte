@@ -120,7 +120,7 @@
 			<!-- Left: headline + install -->
 			<div>
 				<a href={REPO + '/releases'} class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-400 no-underline transition hover:border-zinc-600 hover:text-zinc-300">
-					v0.1 — Now in beta <span class="text-emerald-400">&rarr;</span>
+					v0.2 — Remote Shell <span class="text-emerald-400">&rarr;</span>
 				</a>
 
 				<h1 class="mt-6 text-4xl font-bold leading-tight tracking-tight text-zinc-50 sm:text-5xl lg:text-6xl">
