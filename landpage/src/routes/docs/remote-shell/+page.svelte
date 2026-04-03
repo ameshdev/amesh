@@ -45,15 +45,13 @@
 	<!-- Install -->
 	<section class="py-8">
 		<h2 id="install" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Install</h2>
-		<p class="mt-2 text-zinc-400">The shell feature is a separate package from the CLI.</p>
+		<p class="mt-2 text-zinc-400">Two binaries: <code class="text-emerald-400">amesh</code> for the controller (your laptop), <code class="text-emerald-400">amesh-agent</code> for the server.</p>
 		<div class="mt-4">
-			<CodeBlock code={`<span class="text-zinc-500"># Install the shell package (agent + shell client)</span>
-brew install ameshdev/tap/amesh-shell
-<span class="text-zinc-500"># or</span>
-npm install -g @authmesh/shell
+			<CodeBlock code={`<span class="text-zinc-500"># On your laptop (controller)</span>
+brew install ameshdev/tap/amesh
 
-<span class="text-zinc-500"># You also need the CLI for pairing and permissions</span>
-brew install ameshdev/tap/amesh`} />
+<span class="text-zinc-500"># On the server (target) — includes all CLI commands + daemon</span>
+brew install ameshdev/tap/amesh-agent`} />
 		</div>
 	</section>
 
@@ -85,10 +83,10 @@ amesh list
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">3. Start the agent</h3>
 		<div class="mt-3">
 			<CodeBlock code={`<span class="text-zinc-500"># On the target (server) — start the agent daemon</span>
-amesh-agent start
+amesh agent start
 
 <span class="text-zinc-500"># Or with options</span>
-amesh-agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
+amesh agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
 		</div>
 	</section>
 
@@ -98,7 +96,7 @@ amesh-agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
 
 		<h3 class="mt-4 text-sm font-semibold uppercase tracking-wide text-zinc-500">Interactive shell</h3>
 		<div class="mt-3">
-			<CodeBlock code={`<span class="text-zinc-500">$</span> amesh-shell prod-api
+			<CodeBlock code={`<span class="text-zinc-500">$</span> amesh shell prod-api
   Connecting to prod-api (am_7f2e8a1b)...
   Connected. Shell session started.
 
@@ -110,7 +108,7 @@ user
 
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">Single command</h3>
 		<div class="mt-3">
-			<CodeBlock code={`<span class="text-zinc-500">$</span> amesh-shell prod-api -c "df -h"
+			<CodeBlock code={`<span class="text-zinc-500">$</span> amesh shell prod-api -c "df -h"
 Filesystem      Size  Used Avail Use% Mounted on
 /dev/sda1        50G   12G   35G  26% /`} />
 		</div>
@@ -170,7 +168,7 @@ Filesystem      Size  Used Avail Use% Mounted on
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"Handshake failed" / connection timeout</div>
-				<div class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="text-emerald-400">amesh-agent start</code>.</div>
+				<div class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="text-emerald-400">amesh agent start</code>.</div>
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"Refusing to run as root"</div>

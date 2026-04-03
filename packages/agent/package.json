@@ -1,38 +1,38 @@
 {
-  "name": "@authmesh/shell",
+  "name": "@authmesh/agent",
   "version": "0.2.0",
-  "description": "Secure remote shell for amesh — SSH-like access with device-bound identity",
+  "description": "amesh agent daemon + CLI — remote shell target with device-bound identity",
   "type": "module",
   "license": "MIT",
   "author": "Yair Etzion",
   "repository": {
     "type": "git",
     "url": "https://github.com/ameshdev/amesh.git",
-    "directory": "packages/shell"
+    "directory": "packages/agent"
   },
   "homepage": "https://github.com/ameshdev/amesh",
   "keywords": [
     "authentication",
+    "agent",
     "remote-shell",
     "ssh-alternative",
     "device-identity",
     "pty",
-    "encrypted-shell"
+    "daemon"
   ],
   "publishConfig": {
     "access": "public"
   },
   "bin": {
-    "amesh-agent": "./dist/commands/agent-start.js",
-    "amesh-shell": "./dist/commands/shell.js"
+    "amesh-agent": "./dist/index.js"
   },
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+  "oclif": {
+    "commands": "./dist/commands",
+    "bin": "amesh-agent"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -b",
     "test": "bun test src/__tests__/",
@@ -43,9 +43,10 @@
   "dependencies": {
     "@authmesh/core": "workspace:*",
     "@authmesh/keystore": "workspace:*",
-    "@noble/curves": "2.0.1",
     "@noble/ciphers": "2.1.1",
-    "@noble/hashes": "2.0.1"
+    "@noble/curves": "2.0.1",
+    "@noble/hashes": "2.0.1",
+    "@oclif/core": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

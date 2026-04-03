@@ -62,10 +62,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
   const signFn = (message: Uint8Array) => keyStore.sign(keyAlias, message);
 
-  let activeSessions = 0;
-  const maxSessions = 5;
-  const maxSessionsPerController = 1;
-  const controllerSessions = new Map<string, number>();
+  let sessionActive = false;
 
   console.log(`[amesh-agent] Device: ${identity.deviceId} (${identity.friendlyName})`);
   console.log(`[amesh-agent] Connecting to relay: ${opts.relayUrl}`);
@@ -79,14 +76,12 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
     ws.addEventListener('open', () => {
       reconnectDelay = 1000;
-      // Register agent with relay (C1 fix — includes publicKey)
+      // Step 1: Send registration request — relay will issue a challenge
       send(ws, {
         type: 'agent',
         deviceId: identity.deviceId,
         publicKey: identity.publicKey,
-        timestamp: new Date().toISOString(),
       });
-      console.log('[amesh-agent] Registered with relay. Waiting for shell requests...');
 
       // Heartbeat
       const pingInterval = setInterval(() => {
@@ -105,24 +100,38 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       let msg;
       try { msg = JSON.parse(raw); } catch { return; }
 
+      // Step 2: Relay issues challenge — sign it to prove key ownership
+      if (msg.type === 'agent_challenge') {
+        const challenge = new TextEncoder().encode(msg.challenge as string);
+        const sig = await signFn(challenge);
+        send(ws, {
+          type: 'agent_challenge_response',
+          sig: Buffer.from(sig).toString('base64url'),
+        });
+        return;
+      }
+
       if (msg.type === 'agent_registered') {
-        const controllers = await allowList.countByRole('controller');
-        console.log(`[amesh-agent] Authorized controllers: ${controllers}`);
+        console.log('[amesh-agent] Registered with relay (identity verified).');
+        const data = await allowList.read();
+        const shellControllers = data.devices.filter(
+          (d) => d.role === 'controller' && d.permissions?.shell,
+        ).length;
+        console.log(`[amesh-agent] Authorized controllers with shell access: ${shellControllers}`);
         return;
       }
 
       if (msg.type === 'pong') return;
 
       if (msg.type === 'peer_found') {
-        if (activeSessions >= maxSessions) {
-          console.error('[amesh-agent] Max sessions reached, rejecting');
+        if (sessionActive) {
+          console.error('[amesh-agent] Session already active, rejecting');
           return;
         }
-        // H3 fix — increment BEFORE async handshake to prevent race condition
-        activeSessions++;
+        sessionActive = true;
         handleShellRequest(ws, allowList, identity, signFn, opts.idleTimeoutMinutes)
           .catch(() => {})
-          .finally(() => { /* decremented inside handleShellRequest */ });
+          .finally(() => { sessionActive = false; });
         return;
       }
     });
@@ -154,16 +163,6 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
         sign, al,
       );
 
-      // Per-controller session limit (M2 fix)
-      const current = controllerSessions.get(result.peerDeviceId) ?? 0;
-      if (current >= maxSessionsPerController) {
-        console.error(`[amesh-agent] Max sessions for ${result.peerDeviceId}, rejecting`);
-        ws.close();
-        return;
-      }
-
-      // activeSessions already incremented before handshake (H3 fix)
-      controllerSessions.set(result.peerDeviceId, current + 1);
       const startTime = Date.now();
 
       console.log(`[amesh-agent] Shell opened by ${result.peerDeviceId} (${result.peerFriendlyName})`);
@@ -185,7 +184,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
             const frame = encodeDataFrame(data);
             const encrypted = cipher.encrypt(frame);
             if (ws.readyState === WebSocket.OPEN) {
-              ws.send(Buffer.from(encrypted).toString('base64'));
+              ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(encrypted).toString('base64') }));
             }
           },
         },
@@ -255,12 +254,11 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       console.log(`[amesh-agent] Shell closed for ${result.peerDeviceId} (exit=${exitCode}, duration=${duration}s)`);
 
       cipher.close();
-      activeSessions--;
-      controllerSessions.set(result.peerDeviceId, (controllerSessions.get(result.peerDeviceId) ?? 1) - 1);
+      // sessionActive reset by .finally() in caller
 
     } catch (err) {
       console.error('[amesh-agent] Shell handshake failed:', (err as Error).message);
-      activeSessions--; // H3 fix — release slot on failure
+      // sessionActive reset by .finally() in caller
     }
   }
 

@@ -94,7 +94,7 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
     );
   } catch (err) {
     console.error(`Handshake failed: ${(err as Error).message}`);
-    console.error('Is the agent running on the target? Start it with: amesh-agent start');
+    console.error('Is the agent running on the target? Start it with: amesh agent start');
     ws.close();
     return 1;
   }
