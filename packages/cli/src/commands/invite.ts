@@ -1,8 +1,6 @@
 import { Command, Args, Flags } from '@oclif/core';
 import { loadContext } from '../context.js';
 import { runControllerHandshake } from '../handshake.js';
-import { createInterface } from 'node:readline';
-
 const DEFAULT_RELAY = 'wss://relay.authmesh.dev/ws';
 
 export default class Invite extends Command {
@@ -61,17 +59,10 @@ export default class Invite extends Command {
     this.log('');
     this.log('  ┌──────────────────────────────────┐');
     this.log(`  │   Verification code: ${result.sas}       │`);
-    this.log('  │   Confirm this matches the       │');
-    this.log("  │   Target's display.              │");
+    this.log('  │   Enter this code on the Target  │');
+    this.log('  │   device to complete pairing.    │');
     this.log('  └──────────────────────────────────┘');
     this.log('');
-
-    const confirmed = await this.confirm('  Codes match? (Y/n): ');
-    if (!confirmed) {
-      this.log('');
-      this.log('  Pairing cancelled. No changes made.');
-      return;
-    }
 
     await allowList.addDevice({
       deviceId: `am_${Buffer.from(result.peerPublicKey).toString('base64url').slice(0, 16)}`,
@@ -89,13 +80,4 @@ export default class Invite extends Command {
     this.log('');
   }
 
-  private confirm(prompt: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      const rl = createInterface({ input: process.stdin, output: process.stdout });
-      rl.question(prompt, (answer) => {
-        rl.close();
-        resolve(answer.trim().toLowerCase() !== 'n');
-      });
-    });
-  }
 }

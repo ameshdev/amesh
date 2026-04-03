@@ -238,7 +238,7 @@ The relay has no other configuration. It is stateless and requires no database, 
 The relay is designed to be untrusted:
 
 - **All key exchange is encrypted** — the relay forwards opaque ChaCha20-Poly1305 blobs, it cannot read the content
-- **SAS verification prevents MITM** — even if someone controls the relay, both devices display a 6-digit code that must match. A MITM attack would produce different codes.
+- **SAS verification prevents MITM** — even if someone controls the relay, the target must enter the 6-digit code displayed on the controller. A MITM attack produces different codes, and the mismatch is caught automatically.
 - **Rate limiting** — 5 failed OTC attempts per IP per minute
 - **No persistence** — nothing is stored. Sessions exist only in memory during the ~30 second pairing window.
 

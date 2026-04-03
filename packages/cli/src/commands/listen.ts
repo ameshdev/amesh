@@ -1,6 +1,6 @@
 import { Command, Flags } from '@oclif/core';
 import { loadContext } from '../context.js';
-import { generateOTC, runTargetHandshake } from '../handshake.js';
+import { generateOTC, runTargetHandshake, verifySAS } from '../handshake.js';
 import { createInterface } from 'node:readline';
 
 const DEFAULT_RELAY = 'wss://relay.authmesh.dev/ws';
@@ -59,16 +59,15 @@ export default class Listen extends Command {
     this.log('  Keys exchanged and verified.');
     this.log('');
     this.log('  ┌──────────────────────────────────┐');
-    this.log(`  │   Verification code: ${result.sas}       │`);
-    this.log('  │   Confirm this matches the       │');
-    this.log("  │   Controller's display.          │");
+    this.log('  │   Enter the 6-digit code shown  │');
+    this.log("  │   on the Controller's screen.   │");
     this.log('  └──────────────────────────────────┘');
     this.log('');
 
-    const confirmed = await this.confirm('  Codes match? (Y/n): ');
-    if (!confirmed) {
+    const entered = await this.prompt('  Verification code: ');
+    if (!verifySAS(entered.trim(), result.sas)) {
       this.log('');
-      this.log('  Pairing cancelled. No changes made.');
+      this.log('  Code mismatch — possible MITM. Pairing aborted.');
       return;
     }
 
@@ -105,10 +104,20 @@ export default class Listen extends Command {
     this.log('');
   }
 
-  private confirm(prompt: string): Promise<boolean> {
+  private prompt(message: string): Promise<string> {
     return new Promise((resolve) => {
       const rl = createInterface({ input: process.stdin, output: process.stdout });
-      rl.question(prompt, (answer) => {
+      rl.question(message, (answer) => {
+        rl.close();
+        resolve(answer);
+      });
+    });
+  }
+
+  private confirm(message: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      rl.question(message, (answer) => {
         rl.close();
         resolve(answer.trim().toLowerCase() !== 'n');
       });

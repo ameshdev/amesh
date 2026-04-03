@@ -158,7 +158,7 @@ gcloud run deploy amesh-relay \\
 			</div>
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">SAS prevents MITM</div>
-				<div class="mt-1 text-sm text-zinc-400">Even if someone controls the relay, both devices display a 6-digit code. A MITM attack produces different codes.</div>
+				<div class="mt-1 text-sm text-zinc-400">Even if someone controls the relay, the target must enter a 6-digit code from the controller. A MITM attack produces different codes — caught automatically.</div>
 			</div>
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">Rate limiting</div>
