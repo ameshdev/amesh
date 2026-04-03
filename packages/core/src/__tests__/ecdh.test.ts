@@ -124,6 +124,46 @@ describe('deriveSessionKey', () => {
   });
 });
 
+describe('deriveShellSessionKey', () => {
+  it('produces different keys than deriveSessionKey', async () => {
+    const { deriveShellSessionKey } = await import('../ecdh.js');
+    const a = generateEphemeralKeyPair();
+    const b = generateEphemeralKeyPair();
+    const shared = computeSharedSecret(a.privateKey, b.publicKey);
+
+    const pairingKey = deriveSessionKey(shared);
+    const shellKey = deriveShellSessionKey(shared, 'am_target', 'am_controller');
+
+    expect(pairingKey).not.toEqual(shellKey);
+  });
+
+  it('produces different keys for different device ID pairs', async () => {
+    const { deriveShellSessionKey } = await import('../ecdh.js');
+    const a = generateEphemeralKeyPair();
+    const b = generateEphemeralKeyPair();
+    const shared = computeSharedSecret(a.privateKey, b.publicKey);
+
+    const key1 = deriveShellSessionKey(shared, 'am_target1', 'am_controller1');
+    const key2 = deriveShellSessionKey(shared, 'am_target2', 'am_controller1');
+
+    expect(key1).not.toEqual(key2);
+  });
+
+  it('both sides derive the same shell session key', async () => {
+    const { deriveShellSessionKey } = await import('../ecdh.js');
+    const a = generateEphemeralKeyPair();
+    const b = generateEphemeralKeyPair();
+
+    const sharedAB = computeSharedSecret(a.privateKey, b.publicKey);
+    const sharedBA = computeSharedSecret(b.privateKey, a.publicKey);
+
+    const keyA = deriveShellSessionKey(sharedAB, 'am_target', 'am_ctrl');
+    const keyB = deriveShellSessionKey(sharedBA, 'am_target', 'am_ctrl');
+
+    expect(keyA).toEqual(keyB);
+  });
+});
+
 describe('full ECDH handshake simulation', () => {
   it('target and controller derive matching session keys', () => {
     // Simulate the handshake from docs/protocol-spec.md Step 5-6

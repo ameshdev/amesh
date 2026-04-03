@@ -20,6 +20,7 @@ export interface RelatedLink {
 export const docPages: NavItem[] = [
   { slug: 'integration', title: 'Integration Guide', desc: 'Express, microservices, webhooks, remote pairing' },
   { slug: 'self-hosting', title: 'Self-Hosting Guide', desc: 'Docker, Cloud Run, Fly.io, Kubernetes' },
+  { slug: 'remote-shell', title: 'Remote Shell Guide', desc: 'Agent setup, shell access, security model' },
 ];
 
 export const useCasePages: NavItem[] = [
@@ -27,6 +28,7 @@ export const useCasePages: NavItem[] = [
   { slug: 'webhooks', title: 'Webhooks', desc: 'Prove sender identity' },
   { slug: 'cron-jobs', title: 'Cron Jobs', desc: 'Scheduled task identity' },
   { slug: 'internal-tools', title: 'Internal Tools', desc: 'Per-developer audit trail' },
+  { slug: 'remote-shell', title: 'Remote Shell', desc: 'SSH-like access with device identity' },
 ];
 
 export function getDocNav(currentSlug: string): { prev?: NavLink; next?: NavLink } {

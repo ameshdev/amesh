@@ -8,4 +8,5 @@ export {
   generateEphemeralKeyPair,
   computeSharedSecret,
   deriveSessionKey,
+  deriveShellSessionKey,
 } from './ecdh.js';

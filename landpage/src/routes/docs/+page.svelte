@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BookOpen, Shield, Rocket, FileText, GitBranch, Server, ChevronRight } from '@lucide/svelte';
+	import { BookOpen, Shield, Rocket, FileText, GitBranch, Server, Terminal, ChevronRight } from '@lucide/svelte';
 	import { useCasePages } from '$lib/navigation.js';
 
 	const REPO = 'https://github.com/ameshdev/amesh';
@@ -16,6 +16,12 @@
 			title: 'Self-Hosting Guide',
 			desc: 'Run your own relay with Docker, Cloud Run, Fly.io, Kubernetes, or plain Node.js.',
 			href: '/docs/self-hosting',
+		},
+		{
+			icon: Terminal,
+			title: 'Remote Shell Guide',
+			desc: 'Secure remote shell access with device-bound identity. Agent setup, permissions, security model.',
+			href: '/docs/remote-shell',
 		},
 		{
 			icon: BookOpen,
