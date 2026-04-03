@@ -2,17 +2,14 @@
 
 Agent daemon for [amesh](https://github.com/ameshdev/amesh) remote shell --- secure remote access using device-bound identity. Install on the server (target) to accept shell connections from paired controllers.
 
+**Includes the full amesh CLI** — one install on the server gives you everything (init, pair, grant, agent).
+
 ## Install
 
 ```bash
 brew install ameshdev/tap/amesh-agent
 # or
 npm install -g @authmesh/agent
-```
-
-You also need `@authmesh/cli` on the server for identity setup and pairing:
-```bash
-brew install ameshdev/tap/amesh
 ```
 
 ## Setup

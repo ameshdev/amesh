@@ -23,7 +23,8 @@
     "access": "public"
   },
   "bin": {
-    "amesh-agent": "./dist/commands/agent-start.js"
+    "amesh-agent": "./dist/commands/agent-start.js",
+    "amesh": "./dist/cli-proxy.js"
   },
   "exports": {
     ".": {
@@ -40,8 +41,10 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
+    "@authmesh/cli": "workspace:*",
     "@authmesh/core": "workspace:*",
     "@authmesh/keystore": "workspace:*",
+    "@oclif/core": "^4.0.0",
     "@noble/curves": "2.0.1",
     "@noble/ciphers": "2.1.1",
     "@noble/hashes": "2.0.1"

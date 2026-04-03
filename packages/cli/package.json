@@ -30,7 +30,8 @@
     "bin": "amesh"
   },
   "files": [
-    "dist"
+    "dist",
+    "package.json"
   ],
   "scripts": {
     "build": "tsc -b",
