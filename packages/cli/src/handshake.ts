@@ -167,7 +167,7 @@ export async function runTargetHandshake(
     if (ack.type === 'error') throw new Error(`Relay error: ${ack.code}`);
 
     // Step 2-4: Wait for controller
-    const peerFound = await reader.read(120_000);
+    const peerFound = await reader.read(60_000);
     if (peerFound.type !== 'peer_found') throw new Error(`Unexpected: ${peerFound.type}`);
 
     // Step 5: ECDH ephemeral exchange — send our ephemeral public key

@@ -35,7 +35,7 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
   const agentStore = new AgentStore();
   const rateLimiter = new RateLimiter(5, 60_000);
   const shellRateLimiter = new RateLimiter(5, 60_000);
-  const otcAttempts = new OTCAttemptTracker(10);
+  const otcAttempts = new OTCAttemptTracker(5);
   // Bootstrap watchers: jti → { socket, createdAt }
   const bootstrapWatchers = new Map<string, { socket: ServerWebSocket<WebSocketData>; createdAt: number }>();
   // Track all connected sockets for bootstrap response routing

@@ -11,7 +11,7 @@ export interface PairingSession {
 
 /**
  * In-memory session store for active pairing sessions.
- * Sessions are ephemeral — max 120 seconds lifetime.
+ * Sessions are ephemeral — max 60 seconds lifetime for pairing.
  */
 export class SessionStore {
   private sessions = new Map<string, PairingSession>();
@@ -22,7 +22,7 @@ export class SessionStore {
     this.cleanupTimer = setInterval(() => this.purge(), 10_000);
   }
 
-  create(otc: string, target: ServerWebSocket<WebSocketData>, ttlSeconds = 120): PairingSession {
+  create(otc: string, target: ServerWebSocket<WebSocketData>, ttlSeconds = 60): PairingSession {
     if (this.sessions.has(otc)) {
       throw new Error('OTC already in use');
     }
