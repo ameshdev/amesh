@@ -42,7 +42,7 @@ export default class Grant extends Command {
     if (flags.shell) {
       this.log('  Shell access: granted');
       this.log('');
-      this.log('  This device can now open remote shells via amesh-shell.');
+      this.log('  This device can now open remote shells via `amesh shell`.');
     } else {
       this.log('  Shell access: revoked');
     }

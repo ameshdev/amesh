@@ -165,17 +165,17 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 
 ---
 
-## ADR-011: Remote shell as separate package with explicit shell permission
+## ADR-011: Remote shell in the CLI with explicit shell permission
 
-**Decision:** The remote shell feature ships as `@authmesh/shell`, a separate npm package with separate binaries (`amesh-agent`, `amesh-shell`). Shell access requires explicit `amesh grant --shell` after pairing.
+**Decision:** The remote shell feature is part of `@authmesh/cli` — one package, one binary. `amesh shell` connects to a remote target. `amesh agent start` runs the daemon. Shell access requires explicit `amesh grant --shell` after pairing.
 
 **Why:**
 
-1. **Security boundary:** Installing `@authmesh/sdk` for HTTP API auth must never pull in PTY code or an agent daemon. The attack surface for API signing and shell access are fundamentally different.
+1. **One install:** Developers install one thing (`@authmesh/cli`) and get everything — identity management, pairing, API auth, shell client, and agent daemon.
 
-2. **Explicit consent:** Pairing for API authentication (`amesh invite`) does not grant shell access. A `permissions.shell` flag in the allow list defaults to `false`. The target admin must explicitly run `amesh grant <device-id> --shell`. This prevents implicit privilege escalation.
+2. **Explicit consent:** Pairing for API authentication (`amesh invite`) does not grant shell access. A `permissions.shell` flag in the allow list defaults to `false`. The target admin must explicitly run `amesh grant <device-id> --shell`. This is the security boundary, not the package boundary.
 
-3. **Separate binaries:** `amesh-agent` and `amesh-shell` are distinct from `amesh` (the CLI). Users opt into shell capability by installing a separate package.
+3. **The daemon is opt-in by invocation:** `amesh agent start` must be explicitly run. It doesn't auto-start, doesn't install as a service, and refuses to run as root without `--allow-root`.
 
 **Security design choices:**
 

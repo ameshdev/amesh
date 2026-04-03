@@ -30,7 +30,7 @@
 	]}
 	codeTabs={[
 		{ filename: 'Terminal (target)', code: `<span class="text-zinc-500"># On the server — start the agent daemon</span>
-<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh-agent start</span>
+<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh agent start</span>
 
   amesh agent listening on relay.authmesh.dev
   Device: <span class="text-emerald-400">am_7f2e8a1b</span> (prod-api)
@@ -38,7 +38,7 @@
 
   Waiting for shell requests...` },
 		{ filename: 'Terminal (controller)', code: `<span class="text-zinc-500"># On your laptop — open a shell</span>
-<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh-shell prod-api</span>
+<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh shell prod-api</span>
 
   Connecting to prod-api (<span class="text-emerald-400">am_7f2e8a1b</span>)...
   Connected. Shell session started.
