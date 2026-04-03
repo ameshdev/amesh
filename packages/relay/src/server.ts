@@ -1,10 +1,11 @@
 import type { ServerWebSocket } from 'bun';
+import { verifyMessage } from '@authmesh/core';
 import { SessionStore } from './session.js';
 import { RateLimiter, OTCAttemptTracker } from './rate-limit.js';
 import { AgentStore } from './agent-store.js';
 
 interface RelayMessage {
-  type: 'listen' | 'connect' | 'data' | 'done' | 'ping' | 'agent' | 'shell' | 'bootstrap_watch' | 'bootstrap_init' | 'bootstrap_ack' | 'bootstrap_reject';
+  type: 'listen' | 'connect' | 'data' | 'done' | 'ping' | 'agent' | 'agent_challenge_response' | 'shell' | 'bootstrap_watch' | 'bootstrap_init' | 'bootstrap_ack' | 'bootstrap_reject';
   otc?: string;
   payload?: string;
   jti?: string;
@@ -187,18 +188,52 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
     bootstrapWatchers.delete(jti);
   }
 
-  // Shell: agent registration (C1 fix — includes publicKey for anti-squatting)
+  // Pending agent challenges: ws → { deviceId, publicKey, challenge }
+  const pendingChallenges = new Map<ServerWebSocket<WebSocketData>, { deviceId: string; publicKey: string; challenge: string }>();
+
+  // Shell: agent registration step 1 — issue challenge
   function handleAgent(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
     if (!msg.deviceId || !msg.publicKey) {
       ws.send(JSON.stringify({ type: 'error', code: 'missing_fields' }));
       return;
     }
-    const ok = agentStore.register(msg.deviceId, msg.publicKey, ws);
+    // Generate a random challenge nonce
+    const challenge = crypto.randomUUID();
+    pendingChallenges.set(ws, { deviceId: msg.deviceId, publicKey: msg.publicKey, challenge });
+    ws.send(JSON.stringify({ type: 'agent_challenge', challenge }));
+  }
+
+  // Shell: agent registration step 2 — verify challenge response
+  function handleAgentChallengeResponse(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
+    const pending = pendingChallenges.get(ws);
+    if (!pending) {
+      ws.send(JSON.stringify({ type: 'error', code: 'no_pending_challenge' }));
+      return;
+    }
+    pendingChallenges.delete(ws);
+
+    if (!msg.sig) {
+      ws.send(JSON.stringify({ type: 'error', code: 'missing_signature' }));
+      return;
+    }
+
+    // Verify the agent signed the challenge with the claimed private key
+    const publicKey = new Uint8Array(Buffer.from(pending.publicKey, 'base64'));
+    const message = new TextEncoder().encode(pending.challenge);
+    const signature = new Uint8Array(Buffer.from(msg.sig as string, 'base64url'));
+
+    if (!verifyMessage(signature, message, publicKey)) {
+      ws.send(JSON.stringify({ type: 'error', code: 'invalid_signature' }));
+      return;
+    }
+
+    // Signature valid — agent proves it holds the private key
+    const ok = agentStore.register(pending.deviceId, pending.publicKey, ws);
     if (!ok) {
       ws.send(JSON.stringify({ type: 'error', code: 'device_id_conflict' }));
       return;
     }
-    ws.data.agentDeviceId = msg.deviceId;
+    ws.data.agentDeviceId = pending.deviceId;
     ws.send(JSON.stringify({ type: 'agent_registered' }));
   }
 
@@ -241,6 +276,9 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
   }
 
   function cleanupSocket(ws: ServerWebSocket<WebSocketData>) {
+    // Clean up pending challenges
+    pendingChallenges.delete(ws);
+
     // Clean up agent registration
     if (ws.data.agentDeviceId) {
       agentStore.removeBySocket(ws);
@@ -343,6 +381,9 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
                 break;
               case 'agent':
                 handleAgent(ws, msg);
+                break;
+              case 'agent_challenge_response':
+                handleAgentChallengeResponse(ws, msg);
                 break;
               case 'shell':
                 handleShell(ws, msg);
