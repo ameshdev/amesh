@@ -1,6 +1,6 @@
 {
   "name": "@authmesh/cli",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "CLI for amesh device identity management — init, pair, list, revoke",
   "type": "module",
   "license": "MIT",
@@ -40,8 +40,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@authmesh/core": "0.3.2",
-    "@authmesh/keystore": "0.3.2",
+    "@authmesh/core": "0.3.3",
+    "@authmesh/keystore": "0.3.3",
     "@noble/ciphers": "2.1.1",
     "@noble/curves": "2.0.1",
     "@noble/hashes": "2.0.1",

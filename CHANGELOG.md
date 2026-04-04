@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.3] - 2026-04-04
+
+### Fixed
+
+- **Device ID derivation mismatch** — `invite` and `listen` derived device IDs with raw `base64url(pubkey)` while `init` used `SHA-256(pubkey)` per the protocol spec. The relay could never match the controller's allow list entry to the agent's registration, silently breaking shell routing. All commands now use `generateDeviceId()` consistently. **Existing pairings need re-pairing.**
+- **Compiled binary broken** (carried from v0.3.2) — `sea.ts` entry point restored with all 8 commands.
+
 ## [0.3.2] - 2026-04-04
 
 ### Fixed
