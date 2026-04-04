@@ -37,7 +37,7 @@ const outfile = join(distDir, 'amesh');
 
 const cmd = [
   'build',
-  join(root, 'packages/cli/src/sea.ts'),
+  join(root, 'packages/cli/src/index.ts'),
   '--compile',
   '--minify',
   '--define', `__VERSION__=${JSON.stringify(pkg.version)}`,
