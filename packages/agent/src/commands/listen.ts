@@ -1,6 +1,7 @@
 import { Command, Flags } from '@oclif/core';
 import { loadContext } from '../context.js';
 import { generateOTC, runTargetHandshake, verifySAS } from '../handshake.js';
+import { generateDeviceId } from '../identity.js';
 import { createInterface } from 'node:readline';
 
 const DEFAULT_RELAY = 'wss://relay.authmesh.dev/ws';
@@ -72,7 +73,7 @@ export default class Listen extends Command {
     }
 
     const newDevice = {
-      deviceId: `am_${Buffer.from(result.peerPublicKey).toString('base64url').slice(0, 16)}`,
+      deviceId: generateDeviceId(result.peerPublicKey),
       publicKey: Buffer.from(result.peerPublicKey).toString('base64'),
       friendlyName: result.peerFriendlyName,
       addedAt: new Date().toISOString(),
