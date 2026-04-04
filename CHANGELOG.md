@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-04-04
+
+### Added
+
+- **Auto-generated passphrase** for encrypted-file backend — `--passphrase` flag removed; a 256-bit random passphrase is generated and stored in `identity.json` automatically.
+- **Detection verbosity** — `amesh init` now shows which backend tiers were checked and which was selected.
+- **Identity info in `amesh list`** — new "This device" section at top showing device ID, friendly name, backend, and created date.
+- **Docs sidebar** — persistent left navigation on all doc pages (desktop: always visible, mobile: collapsible dropdown).
+- **ADR-010** — documents the passphrase-colocation security decision and threat analysis.
+
+### Changed
+
+- **`BACKEND_LABELS` and `generatePassphrase()` exported from `@authmesh/keystore`** — eliminates 4x duplication across CLI and agent packages.
+- **Inline `Identity` interfaces removed** — 6 duplicated partial interfaces replaced with imports from canonical source.
+- **Encrypted-file backend warning strengthened** — now explicitly says "SOFTWARE-PROTECTED only" and "not bound to hardware" in `amesh init`, `amesh list`, and auto-detection output.
+- **Comparison table and feature claims corrected** — "Nothing to leak" → "One device" blast radius, "first no shared secrets" removed (mTLS predates amesh), SOC2 claims replaced with "per-device audit trail", Signal comparison replaced with "similar to Bluetooth pairing".
+- **28 stale doc references updated** — removed `--passphrase` from all guides, landing page, and CLI output samples.
+- **Use cases index** now includes Remote Shell; navbar "Use Cases" is a clickable link; docs hub uses cross-link instead of full grid.
+
+### Fixed
+
+- **Stale `--passphrase` error message** in `createForBackend()` — now directs users to `amesh init` or `AUTH_MESH_PASSPHRASE` env var.
+- **Non-existent Docker image** (`ghcr.io/ameshdev/amesh-relay:latest`) removed from self-hosting guide.
+- **Node.js REPL reference** in guide.md updated to Bun.
+
+### Security
+
+- **Passphrase stripped from memory** after KeyStore creation at all 6 call sites (`delete identity.passphrase`).
+- **Atomic write** for `identity.json` in SDK bootstrap (tmp + rename pattern).
+- **Bun runtime guard** added to relay start — clear error message with install instructions when run on Node.js.
+
 ## [0.1.3] - 2026-03-31
 
 ### Fixed
