@@ -81,11 +81,14 @@ export default class Listen extends Command {
     };
 
     // Enforce maxControllers limit (default: 1)
-    const maxControllers = (identity as typeof identity & { maxControllers?: number }).maxControllers ?? 1;
+    const maxControllers =
+      (identity as typeof identity & { maxControllers?: number }).maxControllers ?? 1;
     const currentControllers = await allowList.countByRole('controller');
 
     if (currentControllers >= maxControllers) {
-      this.log(`  This device already has ${currentControllers} controller(s) (max: ${maxControllers}).`);
+      this.log(
+        `  This device already has ${currentControllers} controller(s) (max: ${maxControllers}).`,
+      );
       const replace = await this.confirm('  Replace existing controller(s)? (Y/n): ');
       if (!replace) {
         this.log('');

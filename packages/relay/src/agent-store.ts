@@ -47,7 +47,10 @@ export class AgentStore {
    * Look up an agent by device ID and verify the public key matches.
    * Returns the agent's WebSocket if matched, undefined otherwise.
    */
-  matchAndGet(deviceId: string, expectedPublicKey: string): ServerWebSocket<WebSocketData> | undefined {
+  matchAndGet(
+    deviceId: string,
+    expectedPublicKey: string,
+  ): ServerWebSocket<WebSocketData> | undefined {
     const entry = this.agents.get(deviceId);
     if (!entry) return undefined;
     if (entry.publicKey !== expectedPublicKey) return undefined;
@@ -83,7 +86,10 @@ export class AgentStore {
   private purgeStale(): void {
     const now = Date.now();
     for (const [deviceId, entry] of this.agents) {
-      if (now - entry.lastPing > this.heartbeatTimeoutMs || entry.socket.readyState !== WebSocket.OPEN) {
+      if (
+        now - entry.lastPing > this.heartbeatTimeoutMs ||
+        entry.socket.readyState !== WebSocket.OPEN
+      ) {
         this.agents.delete(deviceId);
       }
     }

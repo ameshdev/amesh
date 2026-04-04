@@ -6,12 +6,12 @@
  */
 
 export const FrameType = {
-  DATA: 0x01,     // Raw terminal bytes (stdin/stdout)
-  RESIZE: 0x02,   // Terminal resize: { cols: u16, rows: u16 } (4 bytes BE)
-  EXIT: 0x03,     // Process exit: { code: i32 } (4 bytes BE)
-  PING: 0x04,     // Keepalive ping (empty payload)
-  PONG: 0x05,     // Keepalive pong (empty payload)
-  COMMAND: 0x06,  // Single command for -c mode (UTF-8 string)
+  DATA: 0x01, // Raw terminal bytes (stdin/stdout)
+  RESIZE: 0x02, // Terminal resize: { cols: u16, rows: u16 } (4 bytes BE)
+  EXIT: 0x03, // Process exit: { code: i32 } (4 bytes BE)
+  PING: 0x04, // Keepalive ping (empty payload)
+  PONG: 0x05, // Keepalive pong (empty payload)
+  COMMAND: 0x06, // Single command for -c mode (UTF-8 string)
 } as const;
 
 export type FrameTypeValue = (typeof FrameType)[keyof typeof FrameType];
@@ -57,13 +57,18 @@ export function encodeCommandFrame(command: string): Uint8Array {
 }
 
 const VALID_FRAME_TYPES = new Set<number>([
-  FrameType.DATA, FrameType.RESIZE, FrameType.EXIT,
-  FrameType.PING, FrameType.PONG, FrameType.COMMAND,
+  FrameType.DATA,
+  FrameType.RESIZE,
+  FrameType.EXIT,
+  FrameType.PING,
+  FrameType.PONG,
+  FrameType.COMMAND,
 ]);
 
 export function parseFrame(frame: Uint8Array): { type: FrameTypeValue; payload: Uint8Array } {
   if (frame.length < 1) throw new Error('Empty frame');
-  if (!VALID_FRAME_TYPES.has(frame[0])) throw new Error(`Unknown frame type: 0x${frame[0].toString(16)}`);
+  if (!VALID_FRAME_TYPES.has(frame[0]))
+    throw new Error(`Unknown frame type: 0x${frame[0].toString(16)}`);
   return {
     type: frame[0] as FrameTypeValue,
     payload: frame.subarray(1),

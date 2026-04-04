@@ -29,7 +29,10 @@ function send(ws: WebSocket, msg: object): void {
 
 function createMessageReader(ws: WebSocket) {
   const queue: Record<string, unknown>[] = [];
-  let waiter: { resolve: (msg: Record<string, unknown>) => void; reject: (err: Error) => void } | null = null;
+  let waiter: {
+    resolve: (msg: Record<string, unknown>) => void;
+    reject: (err: Error) => void;
+  } | null = null;
 
   ws.addEventListener('message', (event: MessageEvent) => {
     const raw = typeof event.data === 'string' ? event.data : String(event.data);
@@ -52,8 +55,14 @@ function createMessageReader(ws: WebSocket) {
           reject(new Error('Timeout waiting for message'));
         }, timeoutMs);
         waiter = {
-          resolve: (msg) => { clearTimeout(timer); resolve(msg); },
-          reject: (err) => { clearTimeout(timer); reject(err); },
+          resolve: (msg) => {
+            clearTimeout(timer);
+            resolve(msg);
+          },
+          reject: (err) => {
+            clearTimeout(timer);
+            reject(err);
+          },
         };
       });
     },
@@ -149,7 +158,10 @@ export async function runAgentShellHandshake(
     timestamp,
     selfSig: Buffer.from(selfSig).toString('base64'),
   };
-  send(ws, { type: 'data', payload: encrypt(tempKey, new TextEncoder().encode(JSON.stringify(myIdentity))) });
+  send(ws, {
+    type: 'data',
+    payload: encrypt(tempKey, new TextEncoder().encode(JSON.stringify(myIdentity))),
+  });
 
   // Step 6: Derive final session key bound to actual device IDs
   const sessionKey = deriveShellSessionKey(sharedSecret, myDeviceId, peerIdentity.deviceId);
@@ -203,7 +215,10 @@ export async function runControllerShellHandshake(
     timestamp,
     selfSig: Buffer.from(selfSig).toString('base64'),
   };
-  send(ws, { type: 'data', payload: encrypt(tempKey, new TextEncoder().encode(JSON.stringify(myIdentity))) });
+  send(ws, {
+    type: 'data',
+    payload: encrypt(tempKey, new TextEncoder().encode(JSON.stringify(myIdentity))),
+  });
 
   // Step 4: Receive agent identity
   const encPeerIdentity = await reader.read();

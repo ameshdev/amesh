@@ -89,7 +89,13 @@ describe('buildCanonicalString', () => {
   // Spec Appendix A test vector
   it('matches spec test vector', () => {
     const body = '{"amount":100}';
-    const result = buildCanonicalString('POST', '/api/orders?b=2&a=1', '1743160800', 'dGVzdG5vbmNl', body);
+    const result = buildCanonicalString(
+      'POST',
+      '/api/orders?b=2&a=1',
+      '1743160800',
+      'dGVzdG5vbmNl',
+      body,
+    );
     const lines = result.split('\n');
     expect(lines[0]).toBe('AMv1');
     expect(lines[1]).toBe('POST');

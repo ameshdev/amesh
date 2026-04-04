@@ -29,7 +29,10 @@ function send(ws: WebSocket, msg: object): void {
  */
 function createMessageReader(ws: WebSocket) {
   const queue: Record<string, unknown>[] = [];
-  let waiter: { resolve: (msg: Record<string, unknown>) => void; reject: (err: Error) => void } | null = null;
+  let waiter: {
+    resolve: (msg: Record<string, unknown>) => void;
+    reject: (err: Error) => void;
+  } | null = null;
 
   ws.addEventListener('message', (event: MessageEvent) => {
     const raw = typeof event.data === 'string' ? event.data : String(event.data);
@@ -54,8 +57,14 @@ function createMessageReader(ws: WebSocket) {
           reject(new Error('Timeout waiting for message'));
         }, timeoutMs);
         waiter = {
-          resolve: (msg) => { clearTimeout(timer); resolve(msg); },
-          reject: (err) => { clearTimeout(timer); reject(err); },
+          resolve: (msg) => {
+            clearTimeout(timer);
+            resolve(msg);
+          },
+          reject: (err) => {
+            clearTimeout(timer);
+            reject(err);
+          },
         };
       });
     },
@@ -96,7 +105,9 @@ export function computeSAS(
   controllerPubKey: Uint8Array,
   sharedSecret: Uint8Array,
 ): string {
-  const combined = new Uint8Array(targetPubKey.length + controllerPubKey.length + sharedSecret.length);
+  const combined = new Uint8Array(
+    targetPubKey.length + controllerPubKey.length + sharedSecret.length,
+  );
   combined.set(targetPubKey, 0);
   combined.set(controllerPubKey, targetPubKey.length);
   combined.set(sharedSecret, targetPubKey.length + controllerPubKey.length);

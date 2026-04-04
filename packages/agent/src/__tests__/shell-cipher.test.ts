@@ -83,7 +83,9 @@ describe('ShellCipher', () => {
   });
 
   it('rejects session key of wrong length', () => {
-    expect(() => new ShellCipher(new Uint8Array(16), 'controller')).toThrow('Session key must be 32 bytes');
+    expect(() => new ShellCipher(new Uint8Array(16), 'controller')).toThrow(
+      'Session key must be 32 bytes',
+    );
   });
 
   it('controller and target nonces do not overlap', () => {

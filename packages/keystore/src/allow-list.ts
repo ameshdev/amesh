@@ -149,7 +149,10 @@ export class AllowList {
    * Replace all devices with the given role with a single new device.
    * Used to enforce single-controller limit on targets.
    */
-  async replaceByRole(role: 'controller' | 'target', device: AllowListDevice): Promise<AllowListData> {
+  async replaceByRole(
+    role: 'controller' | 'target',
+    device: AllowListDevice,
+  ): Promise<AllowListData> {
     const data = await this.read();
     data.devices = data.devices.filter((d) => d.role !== role);
     data.devices.push(device);
@@ -161,7 +164,10 @@ export class AllowList {
   /**
    * Update permissions for a device. Reseals the allow list.
    */
-  async updatePermissions(deviceId: string, permissions: DevicePermissions): Promise<AllowListData> {
+  async updatePermissions(
+    deviceId: string,
+    permissions: DevicePermissions,
+  ): Promise<AllowListData> {
     const data = await this.read();
     const device = data.devices.find((d) => d.deviceId === deviceId);
     if (!device) {

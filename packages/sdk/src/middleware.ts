@@ -142,7 +142,9 @@ function sendError(res: ServerResponse, status: number, _code: string): void {
  *   - express.json() → req.body is an object (re-serialized deterministically)
  *   - No body parser → buffer from the request stream
  */
-async function getBody(req: IncomingMessage & { body?: string | Buffer | object }): Promise<string> {
+async function getBody(
+  req: IncomingMessage & { body?: string | Buffer | object },
+): Promise<string> {
   if (typeof req.body === 'string') return req.body;
   if (Buffer.isBuffer(req.body)) return req.body.toString('utf-8');
   // express.json() or similar parsed body into an object — re-serialize deterministically
@@ -160,5 +162,7 @@ async function getBody(req: IncomingMessage & { body?: string | Buffer | object 
 
 function logServerSide(code: string, deviceId: string, serverNow: number, requestTs: number): void {
   // Server-side logging only — never exposed to client
-  console.error(`[amesh] ${code}: device=${deviceId} serverNow=${serverNow} requestTs=${requestTs}`);
+  console.error(
+    `[amesh] ${code}: device=${deviceId} serverNow=${serverNow} requestTs=${requestTs}`,
+  );
 }

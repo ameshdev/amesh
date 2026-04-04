@@ -10,7 +10,9 @@ describe('buildAuthHeader', () => {
       nonce: 'abc123',
       sig: 'sig456',
     });
-    expect(header).toBe('AuthMesh v="1",id="pubkey123",ts="1743160800",nonce="abc123",sig="sig456"');
+    expect(header).toBe(
+      'AuthMesh v="1",id="pubkey123",ts="1743160800",nonce="abc123",sig="sig456"',
+    );
   });
 });
 

@@ -70,8 +70,16 @@ export class SessionStore {
     for (const [otc, session] of this.sessions) {
       if (now > session.expiresAt) {
         // Close connections if still open
-        try { session.target.close(); } catch { /* ignore */ }
-        try { session.controller?.close(); } catch { /* ignore */ }
+        try {
+          session.target.close();
+        } catch {
+          /* ignore */
+        }
+        try {
+          session.controller?.close();
+        } catch {
+          /* ignore */
+        }
         this.sessions.delete(otc);
       }
     }
