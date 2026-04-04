@@ -1,6 +1,7 @@
 import { Command, Args, Flags } from '@oclif/core';
 import { loadContext } from '../context.js';
 import { runControllerHandshake } from '../handshake.js';
+import { generateDeviceId } from '../identity.js';
 const DEFAULT_RELAY = 'wss://relay.authmesh.dev/ws';
 
 export default class Invite extends Command {
@@ -65,7 +66,7 @@ export default class Invite extends Command {
     this.log('');
 
     await allowList.addDevice({
-      deviceId: `am_${Buffer.from(result.peerPublicKey).toString('base64url').slice(0, 16)}`,
+      deviceId: generateDeviceId(result.peerPublicKey),
       publicKey: Buffer.from(result.peerPublicKey).toString('base64'),
       friendlyName: result.peerFriendlyName,
       addedAt: new Date().toISOString(),
