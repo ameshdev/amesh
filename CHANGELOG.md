@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.1] - 2026-04-04
+
+### Fixed
+
+- **macOS Keychain stale key accumulation** — `SecItemDelete` only removes one Keychain item per call; multiple `amesh init --force` runs accumulated stale keys under the same tag, causing `selfSig verification failed` on remote peers during pairing and shell handshakes. Fixed by looping delete until all matching items are cleared before generating a new key.
+
+### Changed
+
+- **Landing page version badge** updated from v0.2 to v0.3.0.
+- **Security claims softened** — "replay-proof" → "replay protection", "MITM-proof" → "MITM-resistant", "hardware-bound" → "protected by Keychain, TPM, or encrypted file".
+- **Remote shell install section** redesigned with tabbed Homebrew/npm/Binary options and per-command copy buttons.
+- **Footer disclaimer** added — clarifies security claims describe design goals, not guarantees, with link to threat model.
+
+### Added
+
+- **Key Storage doc page** (`/docs/key-storage`) — explains the 3-tier fallback: Secure Enclave → macOS Keychain → TPM 2.0 → encrypted file.
+- **macOS Keychain driver tests** — sign/verify round-trip, stale key regression test, key overwrite verification.
+- **Encrypted-file key overwrite tests** — verifies `generateAndStore` twice uses the new key.
+
 ## [0.3.0] - 2026-04-04
 
 ### Added
