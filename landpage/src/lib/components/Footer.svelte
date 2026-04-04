@@ -49,9 +49,14 @@
 			</div>
 		</div>
 
-		<div class="mt-10 flex items-center justify-between border-t border-zinc-800 pt-6">
-			<p class="text-xs text-zinc-600">MIT License</p>
-			<p class="text-xs text-zinc-600">Built with SvelteKit</p>
+		<div class="mt-10 border-t border-zinc-800 pt-6">
+			<p class="text-[11px] leading-relaxed text-zinc-600 max-w-2xl">
+				amesh is open-source software provided "as is" under the <a href={REPO + '/blob/main/LICENSE'} target="_blank" rel="noopener" class="text-zinc-500 hover:text-zinc-400 no-underline">MIT License</a>, without warranty of any kind. Security claims describe design goals and implemented mechanisms, not guarantees. You are responsible for evaluating whether amesh meets your requirements. See the <a href={REPO + '/blob/main/docs/protocol-spec.md#13-security-considerations'} target="_blank" rel="noopener" class="text-zinc-500 hover:text-zinc-400 no-underline">protocol spec</a> for the full threat model and known limitations.
+			</p>
+			<div class="mt-4 flex items-center justify-between">
+				<p class="text-xs text-zinc-600">MIT License</p>
+				<p class="text-xs text-zinc-600">Built with SvelteKit</p>
+			</div>
 		</div>
 	</div>
 </footer>

@@ -4,10 +4,38 @@
 	import TableOfContents from '$lib/components/TableOfContents.svelte';
 	import PrevNextNav from '$lib/components/PrevNextNav.svelte';
 	import RelatedContent from '$lib/components/RelatedContent.svelte';
+	import { Copy, Check } from '@lucide/svelte';
 	import { getDocNav } from '$lib/navigation.js';
 	import type { RelatedLink } from '$lib/navigation.js';
 
 	const { prev, next } = getDocNav('remote-shell');
+
+	// Install method tabs
+	const installMethods = [
+		{
+			label: 'Homebrew',
+			controller: 'brew install ameshdev/tap/amesh',
+			server: 'brew install ameshdev/tap/amesh-agent',
+		},
+		{
+			label: 'npm',
+			controller: 'npm install -g @authmesh/cli',
+			server: 'npm install -g @authmesh/agent',
+		},
+		{
+			label: 'Binary',
+			controller: 'curl -sLO https://github.com/ameshdev/amesh/releases/latest/download/amesh-darwin-arm64.tar.gz\ntar xzf amesh-darwin-arm64.tar.gz && sudo mv amesh /usr/local/bin/',
+			server: 'curl -sLO https://github.com/ameshdev/amesh/releases/latest/download/amesh-agent-linux-x64.tar.gz\ntar xzf amesh-agent-linux-x64.tar.gz && sudo mv amesh-agent /usr/local/bin/',
+		},
+	];
+	let activeInstallMethod = $state(0);
+	let copiedField: string | null = $state(null);
+
+	function copyCmd(text: string, field: string) {
+		navigator.clipboard.writeText(text);
+		copiedField = field;
+		setTimeout(() => copiedField = null, 2000);
+	}
 
 	const tocItems = [
 		{ id: 'install', label: 'Install' },
@@ -46,12 +74,51 @@
 	<section class="py-8">
 		<h2 id="install" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Install</h2>
 		<p class="mt-2 text-zinc-400">Two binaries: <code class="text-emerald-400">amesh</code> for the controller (your laptop), <code class="text-emerald-400">amesh-agent</code> for the server.</p>
-		<div class="mt-4">
-			<CodeBlock code={`<span class="text-zinc-500"># On your laptop (controller)</span>
-brew install ameshdev/tap/amesh
 
-<span class="text-zinc-500"># On the server (target) — includes all CLI commands + daemon</span>
-brew install ameshdev/tap/amesh-agent`} />
+		<!-- Install method tabs -->
+		<div class="mt-4 rounded-xl border border-zinc-800 overflow-hidden" style="background:#0C0C0E">
+			<div class="flex border-b border-zinc-800">
+				{#each installMethods as method, i}
+					<button
+						onclick={() => { activeInstallMethod = i; copiedField = null; }}
+						class="cursor-pointer border-none px-4 py-2.5 text-sm transition {i === activeInstallMethod ? 'bg-zinc-800/50 text-zinc-50 font-medium' : 'bg-transparent text-zinc-500 hover:text-zinc-300'} {i === 0 ? 'rounded-tl-xl' : ''}"
+					>
+						{method.label}
+					</button>
+				{/each}
+			</div>
+
+			<div class="divide-y divide-zinc-800/60">
+				<!-- Controller -->
+				<div class="px-4 py-3">
+					<div class="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500">Your laptop (controller)</div>
+					<div class="flex items-start justify-between gap-3">
+						<code class="overflow-x-auto font-mono text-[13px] text-zinc-300 whitespace-pre">{installMethods[activeInstallMethod].controller}</code>
+						<button onclick={() => copyCmd(installMethods[activeInstallMethod].controller, 'controller')} class="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-1.5 text-zinc-600 transition hover:text-zinc-300 mt-0.5" title="Copy">
+							{#if copiedField === 'controller'}
+								<Check size={14} class="text-emerald-400" />
+							{:else}
+								<Copy size={14} />
+							{/if}
+						</button>
+					</div>
+				</div>
+
+				<!-- Server -->
+				<div class="px-4 py-3">
+					<div class="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500">Server (target)</div>
+					<div class="flex items-start justify-between gap-3">
+						<code class="overflow-x-auto font-mono text-[13px] text-zinc-300 whitespace-pre">{installMethods[activeInstallMethod].server}</code>
+						<button onclick={() => copyCmd(installMethods[activeInstallMethod].server, 'server')} class="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-1.5 text-zinc-600 transition hover:text-zinc-300 mt-0.5" title="Copy">
+							{#if copiedField === 'server'}
+								<Check size={14} class="text-emerald-400" />
+							{:else}
+								<Copy size={14} />
+							{/if}
+						</button>
+					</div>
+				</div>
+			</div>
 		</div>
 	</section>
 

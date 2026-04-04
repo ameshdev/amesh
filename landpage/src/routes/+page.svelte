@@ -35,7 +35,7 @@
 	const steps = [
 		{
 			n: '1', title: 'Create a device identity',
-			desc: 'Each machine gets a unique keypair. The private key never leaves the device.',
+			desc: 'Each machine gets a unique keypair. The private key stays on the device.',
 			code: `<span class="text-zinc-500">$</span> amesh init --name "prod-api"\n\nIdentity created.\n  Device ID     : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend       : <span class="text-emerald-400">Secure Enclave</span>\n  Friendly Name : <span class="text-emerald-400">prod-api</span>`
 		},
 		{
@@ -70,9 +70,9 @@
 	const features = [
 		{ icon: ShieldOff, title: 'No shared secrets', desc: 'No .env file. No secret in CI. No token in Slack. Each device holds its own key.' },
 		{ icon: RotateCcw, title: 'Nothing to rotate', desc: 'Device keys don\'t expire. Revoke a device instantly with amesh revoke.' },
-		{ icon: Fingerprint, title: 'Replay-proof', desc: 'Every request has a unique nonce and a 30-second timestamp window.' },
+		{ icon: Fingerprint, title: 'Replay protection', desc: 'Every request has a unique nonce and a 30-second timestamp window.' },
 		{ icon: FileLock2, title: 'One-way trust', desc: 'Controllers authenticate to targets, never the reverse. A compromised server can\'t call back to your laptop.' },
-		{ icon: ShieldCheck, title: 'MITM-proof pairing', desc: 'ECDH key exchange with 6-digit SAS verification (similar to Bluetooth pairing) and HMAC-sealed allow list.' },
+		{ icon: ShieldCheck, title: 'MITM-resistant pairing', desc: 'ECDH key exchange with 6-digit SAS verification (similar to Bluetooth pairing) and HMAC-sealed allow list.' },
 		{ icon: Code, title: 'Open source', desc: 'MIT licensed. Audit the crypto, fork the relay, self-host everything.' },
 	];
 
@@ -96,7 +96,7 @@
 
 <svelte:head>
 	<title>amesh — Device-Bound M2M Authentication. No API Keys.</title>
-	<meta name="description" content="Replace static API keys with cryptographic device identity. Private keys are hardware-bound (Keychain, TPM) and never leave the device." />
+	<meta name="description" content="Replace static API keys with cryptographic device identity. Private keys stay on the device — protected by Keychain, TPM, or encrypted file." />
 	<link rel="canonical" href="https://authmesh.dev/" />
 	<meta property="og:title" content="amesh — Device-Bound M2M Authentication. No API Keys." />
 	<meta property="og:description" content="Replace static API keys with cryptographic device identity. Private keys stay on your machine." />
@@ -120,7 +120,7 @@
 			<!-- Left: headline + install -->
 			<div>
 				<a href={REPO + '/releases'} class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-400 no-underline transition hover:border-zinc-600 hover:text-zinc-300">
-					v0.2 — Remote Shell <span class="text-emerald-400">&rarr;</span>
+					v0.3.0 <span class="text-emerald-400">&rarr;</span>
 				</a>
 
 				<h1 class="mt-6 text-4xl font-bold leading-tight tracking-tight text-zinc-50 sm:text-5xl lg:text-6xl">
@@ -129,7 +129,7 @@
 
 				<p class="mt-6 max-w-lg text-lg text-zinc-400 sm:text-xl">
 					amesh replaces static secrets with cryptographic device identity.
-					Private keys are bound to hardware (Keychain, TPM) and never leave the device.
+					Private keys stay on the device — protected by Keychain, TPM, or <a href="/docs/key-storage" class="text-emerald-400/80 no-underline hover:text-emerald-400">encrypted file</a>.
 				</p>
 
 				<!-- Install CTA -->

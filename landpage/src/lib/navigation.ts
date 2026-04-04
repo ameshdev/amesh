@@ -19,6 +19,7 @@ export interface RelatedLink {
 
 export const docPages: NavItem[] = [
   { slug: 'integration', title: 'Integration Guide', desc: 'Express, microservices, webhooks, remote pairing' },
+  { slug: 'key-storage', title: 'Key Storage', desc: 'Secure Enclave, TPM, encrypted file — tiered auto-detection' },
   { slug: 'self-hosting', title: 'Self-Hosting Guide', desc: 'Docker, Cloud Run, Fly.io, Kubernetes' },
   { slug: 'remote-shell', title: 'Remote Shell Guide', desc: 'Agent setup, shell access, security model' },
 ];

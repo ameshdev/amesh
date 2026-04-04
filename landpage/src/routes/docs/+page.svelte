@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BookOpen, Shield, Rocket, FileText, GitBranch, Server, Terminal } from '@lucide/svelte';
+	import { BookOpen, Shield, Rocket, FileText, GitBranch, Server, Terminal, KeyRound } from '@lucide/svelte';
 
 	const REPO = 'https://github.com/ameshdev/amesh';
 
@@ -9,6 +9,12 @@
 			title: 'Integration Guide',
 			desc: 'Step-by-step recipes for Express, microservices, webhooks, and remote pairing.',
 			href: '/docs/integration',
+		},
+		{
+			icon: KeyRound,
+			title: 'Key Storage',
+			desc: 'How amesh protects private keys: Secure Enclave, Keychain, TPM 2.0, and encrypted file fallback.',
+			href: '/docs/key-storage',
 		},
 		{
 			icon: Server,
