@@ -17,6 +17,7 @@ interface Identity {
   publicKey: string;
   friendlyName: string;
   storageBackend: string;
+  passphrase?: string;
 }
 
 function getAmeshDir(): string {
@@ -24,11 +25,15 @@ function getAmeshDir(): string {
 }
 
 let cachedIdentity: Identity | null = null;
+let cachedPassphrase: string | undefined;
 
 async function loadIdentity(): Promise<Identity> {
   if (cachedIdentity) return cachedIdentity;
   const content = await readFile(join(getAmeshDir(), 'identity.json'), 'utf-8');
-  cachedIdentity = JSON.parse(content) as Identity;
+  const identity = JSON.parse(content) as Identity;
+  cachedPassphrase = identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE;
+  delete identity.passphrase;
+  cachedIdentity = identity;
   return cachedIdentity;
 }
 
@@ -44,7 +49,7 @@ async function ameshFetch(url: string | URL, init?: RequestInit): Promise<Respon
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     join(getAmeshDir(), 'keys'),
-    process.env.AUTH_MESH_PASSPHRASE,
+    cachedPassphrase,
   );
 
   const keyAlias = identity.keyAlias ?? identity.deviceId;
@@ -81,7 +86,11 @@ async function ameshFetch(url: string | URL, init?: RequestInit): Promise<Respon
  *   import { amesh } from '@authmesh/sdk';
  *   app.use(amesh.verify());
  */
-function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: number; nonceStore?: NonceStore }) {
+function ameshVerify(opts?: {
+  clockSkewSeconds?: number;
+  nonceWindowSeconds?: number;
+  nonceStore?: NonceStore;
+}) {
   const clockSkew = opts?.clockSkewSeconds ?? 30;
   const nonceWindowSeconds = opts?.nonceWindowSeconds ?? 60;
   const nonceStore = opts?.nonceStore ?? new InMemoryNonceStore();
@@ -89,7 +98,7 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
   if (!opts?.nonceStore && process.env.NODE_ENV === 'production') {
     console.warn(
       '[amesh] WARNING: Using in-memory nonce store. Replay protection will not work across multiple instances.\n' +
-      '  Provide a RedisNonceStore for production multi-instance deployments.',
+        '  Provide a RedisNonceStore for production multi-instance deployments.',
     );
   }
   let allowList: AllowList | null = null;
@@ -100,7 +109,7 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
     const keyStore = await createForBackend(
       identity.storageBackend as StorageBackend,
       join(getAmeshDir(), 'keys'),
-      process.env.AUTH_MESH_PASSPHRASE,
+      cachedPassphrase,
     );
     const keyAlias = identity.keyAlias ?? identity.deviceId;
     const hmacKey = await keyStore.getHmacKeyMaterial(keyAlias);
@@ -117,7 +126,11 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
       const parsed = parseAuthHeader(req.headers['authorization']);
       if (!parsed) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: req.headers['authorization'] ? 'malformed_header' : 'missing_header' }));
+        res.end(
+          JSON.stringify({
+            error: req.headers['authorization'] ? 'malformed_header' : 'missing_header',
+          }),
+        );
         return;
       }
 
@@ -129,26 +142,51 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
 
       const al = await getAllowList();
       const device = await al.findByPublicKey(parsed.id);
-      if (!device) { sendUnauthorized(res); return; }
+      if (!device) {
+        sendUnauthorized(res);
+        return;
+      }
 
       // Directionality check: targets cannot authenticate
-      if (device.role === 'target') { sendUnauthorized(res); return; }
+      if (device.role === 'target') {
+        sendUnauthorized(res);
+        return;
+      }
 
       const serverNow = Math.floor(Date.now() / 1000);
       const requestTs = parseInt(parsed.ts, 10);
-      if (isNaN(requestTs) || Math.abs(serverNow - requestTs) > clockSkew) { sendUnauthorized(res); return; }
+      if (isNaN(requestTs) || Math.abs(serverNow - requestTs) > clockSkew) {
+        sendUnauthorized(res);
+        return;
+      }
 
-      if (!(await nonceStore.checkAndRecord(parsed.nonce, nonceWindowSeconds))) { sendUnauthorized(res); return; }
+      if (!(await nonceStore.checkAndRecord(parsed.nonce, nonceWindowSeconds))) {
+        sendUnauthorized(res);
+        return;
+      }
 
       const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
       const body = await getBody(req);
-      const canonical = buildCanonicalString(req.method ?? 'GET', url.pathname + url.search, parsed.ts, parsed.nonce, body);
+      const canonical = buildCanonicalString(
+        req.method ?? 'GET',
+        url.pathname + url.search,
+        parsed.ts,
+        parsed.nonce,
+        body,
+      );
       const signature = new Uint8Array(Buffer.from(parsed.sig, 'base64url'));
       const publicKey = new Uint8Array(Buffer.from(parsed.id, 'base64url'));
 
-      if (!verifyMessage(signature, new TextEncoder().encode(canonical), publicKey)) { sendUnauthorized(res); return; }
+      if (!verifyMessage(signature, new TextEncoder().encode(canonical), publicKey)) {
+        sendUnauthorized(res);
+        return;
+      }
 
-      req.authMesh = { deviceId: device.deviceId, friendlyName: device.friendlyName, verifiedAt: serverNow };
+      req.authMesh = {
+        deviceId: device.deviceId,
+        friendlyName: device.friendlyName,
+        verifiedAt: serverNow,
+      };
       next();
     } catch (err) {
       if (err instanceof Error && err.message.includes('integrity check failed')) {
@@ -167,7 +205,9 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
  * Handles: express.text() (string), express.raw() (Buffer), express.json() (object),
  * and no body parser (buffers from stream).
  */
-async function getBody(req: IncomingMessage & { body?: string | Buffer | object }): Promise<string> {
+async function getBody(
+  req: IncomingMessage & { body?: string | Buffer | object },
+): Promise<string> {
   if (typeof req.body === 'string') return req.body;
   if (Buffer.isBuffer(req.body)) return req.body.toString('utf-8');
   if (req.body !== null && req.body !== undefined && typeof req.body === 'object') {

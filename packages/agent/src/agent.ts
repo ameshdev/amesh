@@ -1,9 +1,9 @@
 import { ShellCipher } from './shell-cipher.js';
 import { AllowList, createForBackend } from '@authmesh/keystore';
 import type { StorageBackend } from '@authmesh/keystore';
-import { readFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { loadIdentity } from './identity.js';
+import type { Identity } from './identity.js';
+import { getIdentityPath, getKeysDir, getAllowListPath } from './paths.js';
 import { runAgentShellHandshake, createMessageReader, send } from './shell-handshake.js';
 import {
   FrameType,
@@ -20,18 +20,6 @@ interface AgentOptions {
   idleTimeoutMinutes: number;
 }
 
-interface Identity {
-  deviceId: string;
-  keyAlias?: string;
-  publicKey: string;
-  friendlyName: string;
-  storageBackend: string;
-}
-
-function getAmeshDir(): string {
-  return process.env.AUTH_MESH_DIR ?? join(homedir(), '.amesh');
-}
-
 function sanitizeForLog(str: string, maxLen = 200): string {
   // Strip non-printable characters and truncate
   return str.replace(/[^\x20-\x7E]/g, '').slice(0, maxLen);
@@ -46,19 +34,19 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
     process.exit(1);
   }
 
-  const ameshDir = getAmeshDir();
-  const identityContent = await readFile(join(ameshDir, 'identity.json'), 'utf-8');
-  const identity = JSON.parse(identityContent) as Identity;
+  const identity = await loadIdentity(getIdentityPath());
 
+  const passphrase = identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE;
+  delete identity.passphrase;
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
-    join(ameshDir, 'keys'),
-    process.env.AUTH_MESH_PASSPHRASE,
+    getKeysDir(),
+    passphrase,
   );
 
   const keyAlias = identity.keyAlias ?? identity.deviceId;
   const hmacKey = await keyStore.getHmacKeyMaterial(keyAlias);
-  const allowList = new AllowList(join(ameshDir, 'allow_list.json'), hmacKey, identity.deviceId);
+  const allowList = new AllowList(getAllowListPath(), hmacKey, identity.deviceId);
 
   const signFn = (message: Uint8Array) => keyStore.sign(keyAlias, message);
 
@@ -98,7 +86,11 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
     ws.addEventListener('message', async (event: MessageEvent) => {
       const raw = typeof event.data === 'string' ? event.data : String(event.data);
       let msg;
-      try { msg = JSON.parse(raw); } catch { return; }
+      try {
+        msg = JSON.parse(raw);
+      } catch {
+        return;
+      }
 
       // Step 2: Relay issues challenge — sign it to prove key ownership
       if (msg.type === 'agent_challenge') {
@@ -131,7 +123,9 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
         sessionActive = true;
         handleShellRequest(ws, allowList, identity, signFn, opts.idleTimeoutMinutes)
           .catch(() => {})
-          .finally(() => { sessionActive = false; });
+          .finally(() => {
+            sessionActive = false;
+          });
         return;
       }
     });
@@ -158,14 +152,20 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
     try {
       const result = await runAgentShellHandshake(
-        ws, reader,
-        id.deviceId, id.publicKey, id.friendlyName,
-        sign, al,
+        ws,
+        reader,
+        id.deviceId,
+        id.publicKey,
+        id.friendlyName,
+        sign,
+        al,
       );
 
       const startTime = Date.now();
 
-      console.log(`[amesh-agent] Shell opened by ${result.peerDeviceId} (${result.peerFriendlyName})`);
+      console.log(
+        `[amesh-agent] Shell opened by ${result.peerDeviceId} (${result.peerFriendlyName})`,
+      );
 
       // Set up encrypted cipher + zero the handshake result copy (L3 fix)
       const cipher = new ShellCipher(result.sessionKey, 'target');
@@ -184,7 +184,12 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
             const frame = encodeDataFrame(data);
             const encrypted = cipher.encrypt(frame);
             if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(encrypted).toString('base64') }));
+              ws.send(
+                JSON.stringify({
+                  type: 'data',
+                  payload: Buffer.from(encrypted).toString('base64'),
+                }),
+              );
             }
           },
         },
@@ -203,7 +208,11 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       ws.addEventListener('message', (event: MessageEvent) => {
         const raw = typeof event.data === 'string' ? event.data : String(event.data);
         let msg;
-        try { msg = JSON.parse(raw); } catch { return; }
+        try {
+          msg = JSON.parse(raw);
+        } catch {
+          return;
+        }
 
         if (msg.type !== 'data' || !msg.payload) return;
         lastActivity = Date.now();
@@ -223,12 +232,16 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
             }
             case FrameType.PING: {
               const pong = cipher.encrypt(encodePongFrame());
-              ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(pong).toString('base64') }));
+              ws.send(
+                JSON.stringify({ type: 'data', payload: Buffer.from(pong).toString('base64') }),
+              );
               break;
             }
             case FrameType.COMMAND: {
               const cmd = new TextDecoder().decode(payload);
-              console.log(`[amesh-agent] Command from ${result.peerDeviceId}: ${sanitizeForLog(cmd)}`);
+              console.log(
+                `[amesh-agent] Command from ${result.peerDeviceId}: ${sanitizeForLog(cmd)}`,
+              );
               proc.terminal?.write(cmd + '\nexit\n');
               break;
             }
@@ -246,16 +259,21 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       try {
         const exitFrame = cipher.encrypt(encodeExitFrame(exitCode));
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(exitFrame).toString('base64') }));
+          ws.send(
+            JSON.stringify({ type: 'data', payload: Buffer.from(exitFrame).toString('base64') }),
+          );
         }
-      } catch { /* cipher may be closed */ }
+      } catch {
+        /* cipher may be closed */
+      }
 
       const duration = Math.round((Date.now() - startTime) / 1000);
-      console.log(`[amesh-agent] Shell closed for ${result.peerDeviceId} (exit=${exitCode}, duration=${duration}s)`);
+      console.log(
+        `[amesh-agent] Shell closed for ${result.peerDeviceId} (exit=${exitCode}, duration=${duration}s)`,
+      );
 
       cipher.close();
       // sessionActive reset by .finally() in caller
-
     } catch (err) {
       console.error('[amesh-agent] Shell handshake failed:', (err as Error).message);
       // sessionActive reset by .finally() in caller

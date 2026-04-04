@@ -115,9 +115,9 @@ describe('EncryptedFileKeyStore', () => {
       await store.generateAndStore(DEVICE_ID);
 
       const wrongStore = new EncryptedFileKeyStore(tempDir, 'wrong-passphrase');
-      await expect(
-        wrongStore.sign(DEVICE_ID, new TextEncoder().encode('test')),
-      ).rejects.toThrow(/[Dd]ecryption failed/);
+      await expect(wrongStore.sign(DEVICE_ID, new TextEncoder().encode('test'))).rejects.toThrow(
+        /[Dd]ecryption failed/,
+      );
     });
   });
 
@@ -170,9 +170,9 @@ describe('EncryptedFileKeyStore', () => {
       content.ciphertext = ct.toString('base64');
       await writeFile(filePath, JSON.stringify(content));
 
-      await expect(
-        store.sign(DEVICE_ID, new TextEncoder().encode('test')),
-      ).rejects.toThrow(/[Dd]ecryption failed/);
+      await expect(store.sign(DEVICE_ID, new TextEncoder().encode('test'))).rejects.toThrow(
+        /[Dd]ecryption failed/,
+      );
     });
   });
 });

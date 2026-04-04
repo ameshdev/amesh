@@ -81,7 +81,7 @@ export class ShellCipher {
     this.recvNonceStart.fill(0);
   }
 
-  private static readonly MAX_COUNTER = (2n ** 64n) - 1n;
+  private static readonly MAX_COUNTER = 2n ** 64n - 1n;
 
   private nextSendNonce(): Uint8Array {
     if (this.sendCounter >= ShellCipher.MAX_COUNTER) throw new Error('Nonce space exhausted');

@@ -1,12 +1,28 @@
 import { platform } from 'node:os';
+import { randomBytes } from '@noble/ciphers/utils.js';
 import type { KeyStore } from './interface.js';
 
 export type StorageBackend = 'secure-enclave' | 'keychain' | 'tpm2' | 'encrypted-file';
+
+/** Human-readable labels for each storage backend. */
+export const BACKEND_LABELS: Record<StorageBackend, string> = {
+  'secure-enclave': 'Secure Enclave',
+  keychain: 'macOS Keychain',
+  tpm2: 'TPM 2.0',
+  'encrypted-file': 'Encrypted file',
+};
+
+/** Generate a 256-bit random passphrase for the encrypted-file backend. */
+export function generatePassphrase(): string {
+  return Buffer.from(randomBytes(32)).toString('hex');
+}
 
 export interface DetectionResult {
   backend: StorageBackend;
   keyStore: KeyStore;
   warning?: string;
+  /** SENSITIVE — auto-generated passphrase for encrypted-file backend. Never log or display. */
+  passphrase?: string;
 }
 
 /**
@@ -15,24 +31,23 @@ export interface DetectionResult {
  * Detection chain:
  *   Tier 1: macOS Keychain (tries Secure Enclave first, falls back to software keychain)
  *   Tier 2: TPM 2.0 (Linux)
- *   Tier 3: Encrypted file (only if passphrase is provided — explicit opt-in)
- *
- * If no backend is available, throws with guidance.
+ *   Tier 3: Encrypted file (always available — passphrase auto-generated)
  */
 export async function detectAndCreate(
   basePath: string,
-  passphrase?: string,
+  onProgress?: (msg: string) => void,
 ): Promise<DetectionResult> {
   // Tier 1: macOS — Swift helper (Secure Enclave → software keychain)
   if (platform() === 'darwin') {
     try {
-      const { isMacOSKeychainAvailable, MacOSKeychainKeyStore } = await import(
-        './drivers/macos-keychain.js'
-      );
+      const { isMacOSKeychainAvailable, MacOSKeychainKeyStore } =
+        await import('./drivers/macos-keychain.js');
       const { available, backend } = await isMacOSKeychainAvailable();
       if (available) {
         const keyStore = new MacOSKeychainKeyStore(basePath);
         if (backend === 'keychain') {
+          onProgress?.('  Secure Enclave    not available (binary not signed)');
+          onProgress?.('  macOS Keychain    selected');
           return {
             backend: 'keychain',
             keyStore,
@@ -40,10 +55,14 @@ export async function detectAndCreate(
               'Secure Enclave not available (binary not signed). Using macOS Keychain (software-protected).',
           };
         }
+        onProgress?.('  Secure Enclave    selected');
         return { backend: 'secure-enclave', keyStore };
       }
+      onProgress?.('  Secure Enclave    not available');
+      onProgress?.('  macOS Keychain    not available');
     } catch {
-      // Swift helper not found or not compiled — fall through
+      onProgress?.('  Secure Enclave    not available (helper not found)');
+      onProgress?.('  macOS Keychain    not available');
     }
   }
 
@@ -52,31 +71,28 @@ export async function detectAndCreate(
     try {
       const { isTPM2Available, TPMKeyStore } = await import('./drivers/tpm.js');
       if (await isTPM2Available()) {
+        onProgress?.('  TPM 2.0           selected');
         return { backend: 'tpm2', keyStore: new TPMKeyStore(basePath) };
       }
+      onProgress?.('  TPM 2.0           not available (tpm2-tools not found)');
     } catch {
-      // tpm2-tools not installed — fall through
+      onProgress?.('  TPM 2.0           not available (tpm2-tools not found)');
     }
   }
 
-  // Tier 3: Encrypted file — only if passphrase was explicitly provided
-  if (passphrase) {
-    const { EncryptedFileKeyStore } = await import('./drivers/encrypted-file.js');
-    return {
-      backend: 'encrypted-file',
-      keyStore: new EncryptedFileKeyStore(basePath, passphrase),
-      warning:
-        'Using file-based key storage. Keys are protected by filesystem permissions and a passphrase, not hardware. ' +
-        'For hardware-backed storage, use macOS or a Linux host with TPM 2.0.',
-    };
-  }
-
-  throw new Error(
-    'No supported key storage backend detected.\n' +
-      '  • macOS: Secure Enclave or Keychain (requires amesh-se-helper)\n' +
-      '  • Linux: TPM 2.0 (requires tpm2-tools)\n' +
-      '  • Any platform: --backend file --passphrase <passphrase> (file-based, explicit opt-in)',
-  );
+  // Tier 3: Encrypted file — always available, passphrase auto-generated
+  const passphrase = generatePassphrase();
+  onProgress?.('  Encrypted file    selected (software fallback)');
+  const { EncryptedFileKeyStore } = await import('./drivers/encrypted-file.js');
+  return {
+    backend: 'encrypted-file',
+    keyStore: new EncryptedFileKeyStore(basePath, passphrase),
+    passphrase,
+    warning:
+      'Using encrypted-file backend — keys are SOFTWARE-PROTECTED only.\n' +
+      '  Private key is encrypted on disk but not bound to hardware.\n' +
+      '  For hardware-backed storage, use macOS (Keychain) or Linux with TPM 2.0, then re-run `amesh init --force`.',
+  };
 }
 
 /**
@@ -101,7 +117,7 @@ export async function createForBackend(
       if (!passphrase) {
         throw new Error(
           'Encrypted-file backend requires a passphrase. ' +
-            'Set AUTH_MESH_PASSPHRASE or pass --passphrase.',
+            'Set AUTH_MESH_PASSPHRASE or re-run `amesh init` to auto-generate one.',
         );
       }
       const { EncryptedFileKeyStore } = await import('./drivers/encrypted-file.js');

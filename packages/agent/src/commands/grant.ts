@@ -22,7 +22,9 @@ export default class Grant extends Command {
     const { args, flags } = await this.parse(Grant);
 
     if (flags.shell === undefined) {
-      this.error('Specify a permission to grant or revoke. Example: amesh grant <device-id> --shell');
+      this.error(
+        'Specify a permission to grant or revoke. Example: amesh grant <device-id> --shell',
+      );
     }
 
     const { allowList } = await loadContext().catch(() => {

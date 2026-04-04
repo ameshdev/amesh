@@ -59,7 +59,7 @@ app.post(<span class="text-emerald-400">'/billing/sync'</span>, (req, res) => {
 <span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh revoke am_7f2e8a1b</span>` },
 	]}
 	changes={[
-		{ before: 'API key in .env or crontab', after: 'No key. Device identity signs the request.' },
+		{ before: 'API key in .env or crontab', after: 'Device-bound key signs the request automatically' },
 		{ before: 'Can\'t tell cron job from attacker', after: 'req.authMesh.deviceId on every request' },
 		{ before: 'Compromised server = key works anywhere', after: 'amesh revoke kills that device only' },
 	]}

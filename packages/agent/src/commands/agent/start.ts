@@ -26,8 +26,8 @@ export default class AgentStart extends Command {
     if (typeof globalThis.Bun === 'undefined') {
       this.error(
         'The agent daemon requires Bun runtime for PTY support.\n' +
-        '  Install Bun: curl -fsSL https://bun.sh/install | bash\n' +
-        '  Then run: bun amesh-agent agent start',
+          '  Install Bun: curl -fsSL https://bun.sh/install | bash\n' +
+          '  Then run: bun amesh-agent agent start',
       );
     }
 

@@ -46,8 +46,9 @@ npm install -g @authmesh/cli       # CLI for device management
 ```bash
 amesh init --name "prod-api"
 # Identity created.
-#   Device ID : am_cOixWcOdI8-pLh4P
-#   Backend   : secure-enclave
+#   Device ID     : am_cOixWcOdI8-pLh4P
+#   Backend       : Secure Enclave
+#   Friendly Name : prod-api
 ```
 
 ### 2. Pair two machines

@@ -28,7 +28,7 @@
 		{ old: 'Bearer tokens', desc: 'Shared secrets' },
 		{ old: 'JWT secrets', desc: 'Rotated manually' },
 		{ old: 'OAuth secrets', desc: 'Client credentials' },
-		{ old: 'mTLS certs', desc: 'Certificate files' },
+		{ old: 'mTLS certs', desc: 'CA infrastructure' },
 	];
 
 	// How it works steps
@@ -36,7 +36,7 @@
 		{
 			n: '1', title: 'Create a device identity',
 			desc: 'Each machine gets a unique keypair. The private key never leaves the device.',
-			code: `<span class="text-zinc-500">$</span> amesh init --name "prod-api"\n\nIdentity created.\n  Device ID : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend   : <span class="text-emerald-400">secure-enclave</span>`
+			code: `<span class="text-zinc-500">$</span> amesh init --name "prod-api"\n\nIdentity created.\n  Device ID     : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend       : <span class="text-emerald-400">Secure Enclave</span>\n  Friendly Name : <span class="text-emerald-400">prod-api</span>`
 		},
 		{
 			n: '2', title: 'Pair two machines',
@@ -58,9 +58,9 @@
 	// Comparison table
 	const competitors = ['API Keys', 'mTLS', 'Vault', 'OAuth'];
 	const comparisonRows = [
-		{ feature: 'Secrets on disk', amesh: { val: 'None', good: true }, values: ['Yes', 'Cert files', 'Token', 'Client secret'] },
-		{ feature: 'Manual rotation', amesh: { val: 'Never', good: true }, values: ['Required', 'Cert renewal', 'Token TTL', 'Secret rotation'] },
-		{ feature: 'Blast radius of leak', amesh: { val: 'Nothing to leak', good: true }, values: ['Unlimited', 'Per-cert', 'Token scope', 'Client scope'] },
+		{ feature: 'Secrets on disk', amesh: { val: 'None (hardware) / encrypted (file)', good: true }, values: ['Yes', 'Cert files', 'Token', 'Client secret'] },
+		{ feature: 'Manual rotation', amesh: { val: 'Never (revoke instead)', good: true }, values: ['Required', 'Cert renewal', 'Token TTL', 'Secret rotation'] },
+		{ feature: 'Blast radius of leak', amesh: { val: 'One device', good: true }, values: ['Unlimited', 'Per-cert', 'Token scope', 'Client scope'] },
 		{ feature: 'Setup complexity', amesh: { val: '2 CLI commands', good: true }, values: ['Copy-paste', 'CA + cert infra', 'Server + policies', 'Auth server'] },
 		{ feature: 'Per-device identity', amesh: { val: 'Yes', good: true }, values: ['No', 'Per-cert', 'No', 'Per-client'] },
 		{ feature: 'Device-bound key', amesh: { val: 'Keychain / TPM / file', good: true }, values: ['No', 'No', 'No', 'No'] },
@@ -68,11 +68,11 @@
 
 	// Features
 	const features = [
-		{ icon: ShieldOff, title: 'Nothing to leak', desc: 'No .env file. No secret in CI. No token in Slack. The key stays on your device.' },
+		{ icon: ShieldOff, title: 'No shared secrets', desc: 'No .env file. No secret in CI. No token in Slack. Each device holds its own key.' },
 		{ icon: RotateCcw, title: 'Nothing to rotate', desc: 'Device keys don\'t expire. Revoke a device instantly with amesh revoke.' },
 		{ icon: Fingerprint, title: 'Replay-proof', desc: 'Every request has a unique nonce and a 30-second timestamp window.' },
 		{ icon: FileLock2, title: 'One-way trust', desc: 'Controllers authenticate to targets, never the reverse. A compromised server can\'t call back to your laptop.' },
-		{ icon: ShieldCheck, title: 'MITM-proof pairing', desc: 'Encrypted key exchange with 6-digit verification and HMAC-sealed allow list. Same as Signal and Bluetooth.' },
+		{ icon: ShieldCheck, title: 'MITM-proof pairing', desc: 'ECDH key exchange with 6-digit SAS verification (similar to Bluetooth pairing) and HMAC-sealed allow list.' },
 		{ icon: Code, title: 'Open source', desc: 'MIT licensed. Audit the crypto, fork the relay, self-host everything.' },
 	];
 
@@ -80,7 +80,7 @@
 	const cliTabs = [
 		{
 			label: 'Device Management',
-			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh list</span>\n\n  Trusted Devices (2)\n  <span class="text-zinc-600">──────────────────────────────────────────────────────</span>\n  <span class="text-emerald-400">am_1a2b3c4d</span>  Dev Laptop     <span class="text-zinc-500">[controller]</span>   added 2026-03-28\n  <span class="text-emerald-400">am_9f8e7d6c</span>  staging-api    <span class="text-zinc-500">[target]</span>       added 2026-03-29\n  <span class="text-zinc-600">──────────────────────────────────────────────────────</span>\n\n<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh revoke am_1a2b3c4d</span>\n\n  Are you sure? (y/N): <span class="text-zinc-50">y</span>\n<span class="text-emerald-400">✔</span> Removed. Access revoked immediately.`
+			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh list</span>\n\n  This device\n  <span class="text-zinc-600">───────────────────────────────────────────────────────</span>\n  Device ID     : <span class="text-emerald-400">am_cOixWcOd</span>\n  Friendly Name : prod-api\n  Backend       : Secure Enclave\n\n  Trusted Devices (2)\n  <span class="text-zinc-600">───────────────────────────────────────────────────────</span>\n  <span class="text-emerald-400">am_1a2b3c4d</span>  Dev Laptop     <span class="text-zinc-500">[controller]</span>   added 2026-03-28\n  <span class="text-emerald-400">am_9f8e7d6c</span>  staging-api    <span class="text-zinc-500">[target]</span>       added 2026-03-29\n  <span class="text-zinc-600">───────────────────────────────────────────────────────</span>\n\n<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh revoke am_1a2b3c4d</span>\n\n  Are you sure? (y/N): <span class="text-zinc-50">y</span>\n<span class="text-emerald-400">✔</span> Removed. Access revoked immediately.`
 		},
 		{
 			label: 'Pairing',
@@ -88,7 +88,7 @@
 		},
 		{
 			label: 'Init',
-			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh init --name "prod-api"</span>\n\n  Identity created.\n  Device ID : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend   : <span class="text-emerald-400">secure-enclave</span>\n  Public key: <span class="text-zinc-500">04a1b2c3...(65 bytes)</span>\n\n<span class="text-emerald-400">✔</span> Ready. Run <span class="text-zinc-50">amesh invite</span> to pair with another device.`
+			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh init --name "prod-api"</span>\n\n  Identity created.\n  Device ID     : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend       : <span class="text-emerald-400">Secure Enclave</span>\n  Friendly Name : <span class="text-emerald-400">prod-api</span>\n\n  Next steps:\n    Target:     run amesh listen, then amesh invite from your controller\n    Controller: run amesh listen on a target first, then amesh invite here`
 		},
 	];
 	let activeCliTab = $state(0);
@@ -96,7 +96,7 @@
 
 <svelte:head>
 	<title>amesh — Device-Bound M2M Authentication. No API Keys.</title>
-	<meta name="description" content="Replace static API keys with cryptographic device identity. Private keys stay on your machine. Nothing to leak, rotate, or steal." />
+	<meta name="description" content="Replace static API keys with cryptographic device identity. Private keys are hardware-bound (Keychain, TPM) and never leave the device." />
 	<link rel="canonical" href="https://authmesh.dev/" />
 	<meta property="og:title" content="amesh — Device-Bound M2M Authentication. No API Keys." />
 	<meta property="og:description" content="Replace static API keys with cryptographic device identity. Private keys stay on your machine." />
@@ -129,7 +129,7 @@
 
 				<p class="mt-6 max-w-lg text-lg text-zinc-400 sm:text-xl">
 					amesh replaces static secrets with cryptographic device identity.
-					The private key stays on your device. There is nothing to leak.
+					Private keys are bound to hardware (Keychain, TPM) and never leave the device.
 				</p>
 
 				<!-- Install CTA -->
@@ -274,7 +274,7 @@ amesh.fetch(<span class="text-emerald-400">"/api/orders"</span>, {'{'}
 		<div class="mx-auto max-w-5xl">
 			<h2 class="text-3xl font-bold text-zinc-50 sm:text-4xl">How amesh compares</h2>
 			<p class="mt-3 mb-10 max-w-2xl text-zinc-400">
-				amesh is not the first approach to machine-to-machine auth. But it is the first that requires no shared secrets.
+				amesh is not the first approach to machine-to-machine auth. But it is the simplest that binds identity to hardware.
 			</p>
 
 			<div class="overflow-x-auto rounded-xl border border-zinc-800">

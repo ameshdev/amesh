@@ -1,9 +1,8 @@
 import { ShellCipher } from './shell-cipher.js';
 import { AllowList, createForBackend } from '@authmesh/keystore';
 import type { StorageBackend } from '@authmesh/keystore';
-import { readFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { loadIdentity } from './identity.js';
+import { getIdentityPath, getKeysDir, getAllowListPath } from './paths.js';
 import { runControllerShellHandshake, createMessageReader, send } from './shell-handshake.js';
 import {
   FrameType,
@@ -21,32 +20,20 @@ interface ShellOptions {
   command?: string; // -c mode
 }
 
-interface Identity {
-  deviceId: string;
-  keyAlias?: string;
-  publicKey: string;
-  friendlyName: string;
-  storageBackend: string;
-}
-
-function getAmeshDir(): string {
-  return process.env.AUTH_MESH_DIR ?? join(homedir(), '.amesh');
-}
-
 export async function connectShell(opts: ShellOptions): Promise<number> {
-  const ameshDir = getAmeshDir();
-  const identityContent = await readFile(join(ameshDir, 'identity.json'), 'utf-8');
-  const identity = JSON.parse(identityContent) as Identity;
+  const identity = await loadIdentity(getIdentityPath());
 
+  const passphrase = identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE;
+  delete identity.passphrase;
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
-    join(ameshDir, 'keys'),
-    process.env.AUTH_MESH_PASSPHRASE,
+    getKeysDir(),
+    passphrase,
   );
 
   const keyAlias = identity.keyAlias ?? identity.deviceId;
   const hmacKey = await keyStore.getHmacKeyMaterial(keyAlias);
-  const allowList = new AllowList(join(ameshDir, 'allow_list.json'), hmacKey, identity.deviceId);
+  const allowList = new AllowList(getAllowListPath(), hmacKey, identity.deviceId);
   const signFn = (message: Uint8Array) => keyStore.sign(keyAlias, message);
 
   // Resolve target: by device ID or friendly name
@@ -88,9 +75,13 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
   let result;
   try {
     result = await runControllerShellHandshake(
-      ws, reader,
-      identity.deviceId, identity.publicKey, identity.friendlyName,
-      signFn, allowList,
+      ws,
+      reader,
+      identity.deviceId,
+      identity.publicKey,
+      identity.friendlyName,
+      signFn,
+      allowList,
     );
   } catch (err) {
     console.error(`Handshake failed: ${(err as Error).message}`);
@@ -125,7 +116,9 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
 
       // Handle terminal resize
       process.stdout.on('resize', () => {
-        const frame = cipher.encrypt(encodeResizeFrame(process.stdout.columns, process.stdout.rows));
+        const frame = cipher.encrypt(
+          encodeResizeFrame(process.stdout.columns, process.stdout.rows),
+        );
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(frame).toString('base64') }));
         }
@@ -133,7 +126,9 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
 
       // Send initial resize
       if (process.stdout.columns && process.stdout.rows) {
-        const frame = cipher.encrypt(encodeResizeFrame(process.stdout.columns, process.stdout.rows));
+        const frame = cipher.encrypt(
+          encodeResizeFrame(process.stdout.columns, process.stdout.rows),
+        );
         ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(frame).toString('base64') }));
       }
     }
@@ -150,7 +145,11 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
     ws.addEventListener('message', (event: MessageEvent) => {
       const raw = typeof event.data === 'string' ? event.data : String(event.data);
       let msg;
-      try { msg = JSON.parse(raw); } catch { return; }
+      try {
+        msg = JSON.parse(raw);
+      } catch {
+        return;
+      }
 
       if (msg.type !== 'data' || !msg.payload) return;
 

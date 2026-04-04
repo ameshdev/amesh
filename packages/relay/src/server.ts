@@ -5,7 +5,19 @@ import { RateLimiter, OTCAttemptTracker } from './rate-limit.js';
 import { AgentStore } from './agent-store.js';
 
 interface RelayMessage {
-  type: 'listen' | 'connect' | 'data' | 'done' | 'ping' | 'agent' | 'agent_challenge_response' | 'shell' | 'bootstrap_watch' | 'bootstrap_init' | 'bootstrap_ack' | 'bootstrap_reject';
+  type:
+    | 'listen'
+    | 'connect'
+    | 'data'
+    | 'done'
+    | 'ping'
+    | 'agent'
+    | 'agent_challenge_response'
+    | 'shell'
+    | 'bootstrap_watch'
+    | 'bootstrap_init'
+    | 'bootstrap_ack'
+    | 'bootstrap_reject';
   otc?: string;
   payload?: string;
   jti?: string;
@@ -38,7 +50,10 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
   const shellRateLimiter = new RateLimiter(5, 60_000);
   const otcAttempts = new OTCAttemptTracker(5);
   // Bootstrap watchers: jti → { socket, createdAt }
-  const bootstrapWatchers = new Map<string, { socket: ServerWebSocket<WebSocketData>; createdAt: number }>();
+  const bootstrapWatchers = new Map<
+    string,
+    { socket: ServerWebSocket<WebSocketData>; createdAt: number }
+  >();
   // Track all connected sockets for bootstrap response routing
   const connectedSockets = new Set<ServerWebSocket<WebSocketData>>();
   let connectionCount = 0;
@@ -47,7 +62,10 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
   const bootstrapCleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [jti, entry] of bootstrapWatchers) {
-      if (now - entry.createdAt > BOOTSTRAP_WATCHER_TTL_MS || entry.socket.readyState !== WebSocket.OPEN) {
+      if (
+        now - entry.createdAt > BOOTSTRAP_WATCHER_TTL_MS ||
+        entry.socket.readyState !== WebSocket.OPEN
+      ) {
         bootstrapWatchers.delete(jti);
       }
     }
@@ -148,14 +166,20 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
 
   // Bootstrap: controller registers to watch for a specific jti
   function handleBootstrapWatch(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
-    if (!msg.jti) { ws.send(JSON.stringify({ type: 'error', code: 'missing_jti' })); return; }
+    if (!msg.jti) {
+      ws.send(JSON.stringify({ type: 'error', code: 'missing_jti' }));
+      return;
+    }
     bootstrapWatchers.set(msg.jti, { socket: ws, createdAt: Date.now() });
     ws.send(JSON.stringify({ type: 'bootstrap_watching', jti: msg.jti }));
   }
 
   // Bootstrap: target initiates pairing with a token
   function handleBootstrapInit(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
-    if (!msg.jti) { ws.send(JSON.stringify({ type: 'error', code: 'missing_jti' })); return; }
+    if (!msg.jti) {
+      ws.send(JSON.stringify({ type: 'error', code: 'missing_jti' }));
+      return;
+    }
     const entry = bootstrapWatchers.get(msg.jti);
     if (!entry || entry.socket.readyState !== WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'bootstrap_reject', error: 'no_watcher' }));
@@ -164,12 +188,14 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
     // Store target socket for response routing
     ws.data.btJti = msg.jti;
     // Whitelist forwarded fields — do not forward arbitrary attacker-controlled data
-    entry.socket.send(JSON.stringify({
-      type: msg.type,
-      jti: msg.jti,
-      token: msg.token,
-      targetPubKey: msg.targetPubKey,
-    }));
+    entry.socket.send(
+      JSON.stringify({
+        type: msg.type,
+        jti: msg.jti,
+        token: msg.token,
+        targetPubKey: msg.targetPubKey,
+      }),
+    );
   }
 
   // Bootstrap: controller responds (ack or reject) — forward to target
@@ -189,7 +215,10 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
   }
 
   // Pending agent challenges: ws → { deviceId, publicKey, challenge }
-  const pendingChallenges = new Map<ServerWebSocket<WebSocketData>, { deviceId: string; publicKey: string; challenge: string }>();
+  const pendingChallenges = new Map<
+    ServerWebSocket<WebSocketData>,
+    { deviceId: string; publicKey: string; challenge: string }
+  >();
 
   // Shell: agent registration step 1 — issue challenge
   function handleAgent(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
@@ -313,7 +342,9 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
 
   return {
     sessions,
-    get server() { return server; },
+    get server() {
+      return server;
+    },
     start() {
       server = Bun.serve<WebSocketData>({
         hostname: host,
@@ -322,7 +353,11 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
           const url = new URL(req.url);
 
           if (url.pathname === '/health') {
-            return Response.json({ status: 'ok', sessions: sessions.size, agents: agentStore.size });
+            return Response.json({
+              status: 'ok',
+              sessions: sessions.size,
+              agents: agentStore.size,
+            });
           }
 
           if (url.pathname === '/ws') {

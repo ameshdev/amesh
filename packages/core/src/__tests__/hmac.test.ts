@@ -78,9 +78,7 @@ describe('verifyHmac', () => {
 
   // Adversarial: allow list tamper detection scenario
   it('detects allow list tampering', () => {
-    const allowList = new TextEncoder().encode(
-      JSON.stringify({ devices: [{ id: 'am_abc123' }] }),
-    );
+    const allowList = new TextEncoder().encode(JSON.stringify({ devices: [{ id: 'am_abc123' }] }));
     const seal = computeHmac(key, allowList);
     expect(verifyHmac(key, allowList, seal)).toBe(true);
 

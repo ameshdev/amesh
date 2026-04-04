@@ -137,7 +137,7 @@ gcloud run deploy amesh-relay \\
     <span class="text-zinc-400">spec:</span>
       <span class="text-zinc-400">containers:</span>
         - <span class="text-zinc-400">name:</span> relay
-          <span class="text-zinc-400">image:</span> <span class="text-emerald-400">ghcr.io/ameshdev/amesh-relay:latest</span>
+          <span class="text-zinc-400">image:</span> <span class="text-emerald-400">node:22-slim</span>  <span class="text-zinc-500"># build your own image — see Dockerfile below</span>
           <span class="text-zinc-400">ports:</span>
             - <span class="text-zinc-400">containerPort:</span> <span class="text-emerald-400">3001</span>
           <span class="text-zinc-400">readinessProbe:</span>

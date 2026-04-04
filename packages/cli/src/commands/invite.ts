@@ -79,5 +79,4 @@ export default class Invite extends Command {
     this.log('  Pairing complete. The relay connection is closed.');
     this.log('');
   }
-
 }

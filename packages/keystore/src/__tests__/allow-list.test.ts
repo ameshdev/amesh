@@ -13,7 +13,11 @@ function filePath() {
   return join(tempDir, 'allow_list.json');
 }
 
-function makeDevice(id: string, name: string, role: 'controller' | 'target' = 'controller'): AllowListDevice {
+function makeDevice(
+  id: string,
+  name: string,
+  role: 'controller' | 'target' = 'controller',
+): AllowListDevice {
   return {
     deviceId: id,
     publicKey: Buffer.from(new Uint8Array(33).fill(0x02)).toString('base64'),
@@ -202,16 +206,23 @@ describe('AllowList', () => {
       // sealed with valid HMAC (simulating pre-role allow list)
       const { computeHmac } = await import('@authmesh/core');
       const { deriveKey } = await import('@authmesh/core');
-      const hmacKey = deriveKey(PRIVATE_KEY_MATERIAL, 'amesh-allow-list-integrity-v1', DEVICE_ID, 32);
+      const hmacKey = deriveKey(
+        PRIVATE_KEY_MATERIAL,
+        'amesh-allow-list-integrity-v1',
+        DEVICE_ID,
+        32,
+      );
       const legacyData = {
         version: '2.0.0',
-        devices: [{
-          deviceId: 'am_legacy',
-          publicKey: content.devices[0].publicKey,
-          friendlyName: 'Legacy',
-          addedAt: content.devices[0].addedAt,
-          addedBy: 'handshake',
-        }],
+        devices: [
+          {
+            deviceId: 'am_legacy',
+            publicKey: content.devices[0].publicKey,
+            friendlyName: 'Legacy',
+            addedAt: content.devices[0].addedAt,
+            addedBy: 'handshake',
+          },
+        ],
         updatedAt: new Date().toISOString(),
       };
       const canonical = JSON.stringify({
@@ -281,11 +292,7 @@ describe('AllowList', () => {
 
       // Attacker creates a valid HMAC but with different key material
       const differentKey = new Uint8Array(32).fill(0xcd);
-      const alEvil = new AllowList(
-        join(tempDir, 'evil_list.json'),
-        differentKey,
-        DEVICE_ID,
-      );
+      const alEvil = new AllowList(join(tempDir, 'evil_list.json'), differentKey, DEVICE_ID);
       const evilData = await alEvil.read();
 
       // Copy evil HMAC to legitimate file

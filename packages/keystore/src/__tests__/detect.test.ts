@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createForBackend } from '../detect.js';
+import { createForBackend, detectAndCreate } from '../detect.js';
 
 let tempDir: string;
 
@@ -31,5 +31,23 @@ describe('createForBackend', () => {
     await expect(createForBackend('encrypted-file', tempDir)).rejects.toThrow(
       /requires a passphrase/,
     );
+  });
+});
+
+describe('detectAndCreate', () => {
+  it('auto-generates passphrase for encrypted-file fallback', async () => {
+    const result = await detectAndCreate(tempDir);
+    expect(result.backend).toBeDefined();
+    expect(result.keyStore).toBeDefined();
+    if (result.backend === 'encrypted-file') {
+      expect(result.passphrase).toMatch(/^[0-9a-f]{64}$/);
+    }
+  });
+
+  it('calls onProgress callback', async () => {
+    const messages: string[] = [];
+    await detectAndCreate(tempDir, (msg) => messages.push(msg));
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages.some((m) => m.includes('selected'))).toBe(true);
   });
 });

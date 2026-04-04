@@ -1,5 +1,10 @@
 import { Command, Flags } from '@oclif/core';
-import { createForBackend, detectAndCreate } from '@authmesh/keystore';
+import {
+  createForBackend,
+  detectAndCreate,
+  BACKEND_LABELS,
+  generatePassphrase,
+} from '@authmesh/keystore';
 import type { StorageBackend } from '@authmesh/keystore';
 import { generateDeviceId, saveIdentity, identityExists } from '../identity.js';
 import { getIdentityPath, getKeysDir } from '../paths.js';
@@ -22,11 +27,6 @@ export default class Init extends Command {
       description: 'Force a specific storage backend',
       options: ['secure-enclave', 'keychain', 'tpm2', 'encrypted-file'],
     }),
-    passphrase: Flags.string({
-      char: 'p',
-      description: 'Passphrase for encrypted-file backend (or set AUTH_MESH_PASSPHRASE)',
-      env: 'AUTH_MESH_PASSPHRASE',
-    }),
     force: Flags.boolean({
       description: 'Overwrite existing identity',
       default: false,
@@ -46,31 +46,34 @@ export default class Init extends Command {
       this.error('Identity already exists. Use --force to overwrite.');
     }
 
-    // Validate passphrase requirement for encrypted-file backend
-    if (flags.backend === 'encrypted-file' && !flags.passphrase) {
-      this.error(
-        'Encrypted-file backend requires a passphrase.\n' +
-          '  Use --passphrase <passphrase> or set AUTH_MESH_PASSPHRASE.',
-      );
-    }
-
     this.log('');
     this.log('Generating P-256 keypair...');
 
     const keysDir = getKeysDir();
     let backend: StorageBackend;
     let keyStore;
+    let resolvedPassphrase: string | undefined;
+    let warning: string | undefined;
 
     if (flags.backend) {
       backend = flags.backend as StorageBackend;
-      keyStore = await createForBackend(backend, keysDir, flags.passphrase);
+      if (backend === 'encrypted-file') {
+        resolvedPassphrase = generatePassphrase();
+        warning =
+          'Using encrypted-file backend — keys are SOFTWARE-PROTECTED only.\n' +
+          '  Private key is encrypted on disk but not bound to hardware.\n' +
+          '  For hardware-backed storage, use macOS (Keychain) or Linux with TPM 2.0, then re-run `amesh init --force`.';
+      }
+      keyStore = await createForBackend(backend, keysDir, resolvedPassphrase);
+      this.log(`  Using backend: ${BACKEND_LABELS[backend]}`);
     } else {
-      const result = await detectAndCreate(keysDir, flags.passphrase);
+      this.log('');
+      this.log('Detecting key storage backend:');
+      const result = await detectAndCreate(keysDir, (msg) => this.log(msg));
       backend = result.backend;
       keyStore = result.keyStore;
-      if (result.warning) {
-        this.warn(result.warning);
-      }
+      resolvedPassphrase = result.passphrase;
+      warning = result.warning;
     }
 
     // Generate key and derive device ID from public key
@@ -99,6 +102,7 @@ export default class Init extends Command {
       friendlyName: flags.name,
       createdAt: new Date().toISOString(),
       storageBackend: backend,
+      ...(resolvedPassphrase ? { passphrase: resolvedPassphrase } : {}),
       ...(flags['max-controllers'] > 1 ? { maxControllers: flags['max-controllers'] } : {}),
     };
 
@@ -109,19 +113,22 @@ export default class Init extends Command {
     const { unlink } = await import('node:fs/promises');
     await unlink(getAllowListPath()).catch(() => {});
 
+    this.log('');
     this.log('Identity created.');
     this.log('');
-    this.log(`  Device ID : ${deviceId}`);
-    this.log(`  Public Key: ${identity.publicKey.slice(0, 20)}...`);
-    this.log(`  Backend   : ${backend}`);
-    if (backend === 'encrypted-file') {
+    this.log(`  Device ID     : ${deviceId}`);
+    this.log(`  Public Key    : ${identity.publicKey.slice(0, 20)}...`);
+    this.log(`  Backend       : ${BACKEND_LABELS[backend]}`);
+    this.log(`  Friendly Name : ${flags.name}`);
+
+    if (warning) {
       this.log('');
-      this.warn(
-        'Using file-based key storage. Keys are protected by filesystem permissions and a passphrase, not hardware.\n' +
-          '  For hardware-backed storage, use macOS or a Linux host with TPM 2.0.',
-      );
+      this.warn(warning);
     }
+
     this.log('');
-    this.log('Run `amesh listen` on this machine, then `amesh invite` from your laptop.');
+    this.log('Next steps:');
+    this.log('  Target:     run `amesh listen`, then `amesh invite` from your controller');
+    this.log('  Controller: run `amesh listen` on a target first, then `amesh invite` here');
   }
 }

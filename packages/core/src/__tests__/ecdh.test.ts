@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import {
-  generateEphemeralKeyPair,
-  computeSharedSecret,
-  deriveSessionKey,
-} from '../ecdh.js';
+import { generateEphemeralKeyPair, computeSharedSecret, deriveSessionKey } from '../ecdh.js';
 
 describe('generateEphemeralKeyPair', () => {
   it('returns private and public keys', () => {

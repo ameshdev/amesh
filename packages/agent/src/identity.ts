@@ -5,11 +5,14 @@ import { dirname } from 'node:path';
 export interface Identity {
   version: '2.0.0';
   deviceId: string;
+  keyAlias?: string; // internal key name in the keystore (may differ from deviceId for keychain/TPM)
   publicKey: string; // base64
   friendlyName: string;
   createdAt: string; // ISO 8601
   storageBackend: string;
   maxControllers?: number; // default 1 — max controllers allowed on this target
+  /** SENSITIVE — auto-generated passphrase for encrypted-file backend. Never log or display. */
+  passphrase?: string;
 }
 
 /**

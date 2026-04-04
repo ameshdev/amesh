@@ -15,14 +15,15 @@ export interface AmeshContext {
 export async function loadContext(): Promise<AmeshContext> {
   const identity = await loadIdentity(getIdentityPath());
 
+  const passphrase = identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE;
+  delete identity.passphrase;
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     getKeysDir(),
-    process.env.AUTH_MESH_PASSPHRASE,
+    passphrase,
   );
 
-  // keyAlias: the name used in the keystore. Defaults to deviceId for backwards compat.
-  const keyAlias = (identity as Identity & { keyAlias?: string }).keyAlias ?? identity.deviceId;
+  const keyAlias = identity.keyAlias ?? identity.deviceId;
 
   const hmacKey = await keyStore.getHmacKeyMaterial(keyAlias);
   const allowList = new AllowList(getAllowListPath(), hmacKey, identity.deviceId);
