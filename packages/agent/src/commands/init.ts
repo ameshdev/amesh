@@ -59,6 +59,10 @@ export default class Init extends Command {
       backend = flags.backend as StorageBackend;
       if (backend === 'encrypted-file') {
         resolvedPassphrase = generatePassphrase();
+        warning =
+          'Using encrypted-file backend — keys are SOFTWARE-PROTECTED only.\n' +
+          '  Private key is encrypted on disk but not bound to hardware.\n' +
+          '  For hardware-backed storage, use macOS (Keychain) or Linux with TPM 2.0, then re-run `amesh init --force`.';
       }
       keyStore = await createForBackend(backend, keysDir, resolvedPassphrase);
       this.log(`  Using backend: ${BACKEND_LABELS[backend]}`);

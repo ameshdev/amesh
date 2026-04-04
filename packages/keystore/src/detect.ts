@@ -89,7 +89,8 @@ export async function detectAndCreate(
     keyStore: new EncryptedFileKeyStore(basePath, passphrase),
     passphrase,
     warning:
-      'Keys are software-protected (no hardware keystore detected).\n' +
+      'Using encrypted-file backend — keys are SOFTWARE-PROTECTED only.\n' +
+      '  Private key is encrypted on disk but not bound to hardware.\n' +
       '  For hardware-backed storage, use macOS (Keychain) or Linux with TPM 2.0, then re-run `amesh init --force`.',
   };
 }

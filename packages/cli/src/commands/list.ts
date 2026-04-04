@@ -29,9 +29,12 @@ export default class List extends Command {
     this.log('  ' + '─'.repeat(55));
     this.log(`  Device ID     : ${identity.deviceId}`);
     this.log(`  Friendly Name : ${identity.friendlyName}`);
-    this.log(
-      `  Backend       : ${BACKEND_LABELS[identity.storageBackend as keyof typeof BACKEND_LABELS] ?? identity.storageBackend}`,
-    );
+    const backendLabel =
+      BACKEND_LABELS[identity.storageBackend as keyof typeof BACKEND_LABELS] ??
+      identity.storageBackend;
+    const backendNote =
+      identity.storageBackend === 'encrypted-file' ? ' (software-only — not hardware-bound)' : '';
+    this.log(`  Backend       : ${backendLabel}${backendNote}`);
     this.log(`  Created       : ${identity.createdAt.split('T')[0]}`);
     this.log('');
 
