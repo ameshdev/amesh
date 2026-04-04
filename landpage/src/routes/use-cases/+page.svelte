@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { Network, Webhook, Clock, Terminal, ChevronRight } from '@lucide/svelte';
+	import { Network, Webhook, Clock, Terminal, Monitor, ChevronRight } from '@lucide/svelte';
 
 	const cases = [
 		{ slug: 'microservices', icon: Network, title: 'Microservices', desc: 'Every service gets its own device-bound identity. No shared API keys. Per-service audit trail.' },
 		{ slug: 'webhooks', icon: Webhook, title: 'Webhooks', desc: 'Prove webhook sender identity cryptographically. No HMAC secrets to share and rotate.' },
 		{ slug: 'cron-jobs', icon: Clock, title: 'Cron Jobs', desc: 'Replace plaintext API keys in scheduled tasks. Per-server audit trail, instant revocation.' },
-		{ slug: 'internal-tools', icon: Terminal, title: 'Internal Tools', desc: 'Each developer\'s laptop IS their identity. Know who ran what. SOC2-ready audit trail.' },
+		{ slug: 'internal-tools', icon: Terminal, title: 'Internal Tools', desc: 'Each developer\'s laptop IS their identity. Know who ran what. Per-device audit trail.' },
+		{ slug: 'remote-shell', icon: Monitor, title: 'Remote Shell', desc: 'SSH-like remote access using device identity. No SSH keys, no authorized_keys, instant revocation.' },
 	];
 </script>
 

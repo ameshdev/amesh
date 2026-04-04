@@ -5,10 +5,10 @@
 
 <svelte:head>
 	<title>Internal Tools & Audit Trail — amesh</title>
-	<meta name="description" content="Replace shared admin API keys with per-developer device identity. Know exactly who ran what. SOC2 compliance without Okta or AWS IAM." />
+	<meta name="description" content="Replace shared admin API keys with per-developer device identity. Know exactly who ran what. Per-device audit trail." />
 	<link rel="canonical" href="https://authmesh.dev/use-cases/internal-tools" />
 	<meta property="og:title" content="Internal Tools & Audit Trail — amesh" />
-	<meta property="og:description" content="Replace shared admin API keys with per-developer device identity. SOC2 compliance without Okta." />
+	<meta property="og:description" content="Replace shared admin API keys with per-developer device identity. Per-device audit trail." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases/internal-tools" />
 </svelte:head>
 
@@ -19,13 +19,13 @@
 	relatedLinks={[
 		{ href: '/docs/integration', title: 'Integration Guide', desc: 'Express setup, remote pairing, Redis nonce store', type: 'doc' },
 	]}
-	headline="Five developers share one admin key. Your SOC2 auditor is not impressed."
+	headline="Five developers share one admin key. You can't tell who did what."
 	subtitle="Admin scripts hit production with a shared API key from 1Password. No way to know who ran what. When someone leaves, nobody rotates the key."
 	painTitle="The problem with shared admin keys"
 	painPoints={[
 		{ lead: 'No individual accountability', detail: 'Multiple developers use the same key to run scripts against production. Your logs show one API key for every admin action. When something breaks, you can\'t tell who did it.' },
 		{ lead: 'Offboarding is a coordination nightmare', detail: 'When a developer leaves, you should rotate the shared key. But that means updating every script, every developer\'s .env, and every pipeline that uses it. So nobody does it.' },
-		{ lead: 'SOC2 auditors ask who accessed what', detail: 'Compliance requires attributing actions to individuals. A shared API key makes this impossible without building a separate logging layer on top.' },
+		{ lead: 'Auditors ask who accessed what', detail: 'Compliance requires attributing actions to individuals. A shared API key makes this impossible without building a separate logging layer on top.' },
 	]}
 	codeTabs={[
 		{ filename: 'admin-script.ts', code: `<span class="text-zinc-500">// Admin script — identity comes from the developer's laptop</span>

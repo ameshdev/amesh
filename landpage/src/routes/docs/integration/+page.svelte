@@ -23,8 +23,8 @@
 	];
 
 	const relatedLinks: RelatedLink[] = [
-		{ href: '/use-cases/microservices', title: 'Microservices', desc: 'Why device identity beats shared API keys', type: 'use-case' },
-		{ href: '/use-cases/webhooks', title: 'Webhooks', desc: 'Prove sender identity without HMAC secrets', type: 'use-case' },
+		{ href: '/use-cases/microservices', title: 'Microservices', desc: 'Service-to-service authentication pattern', type: 'use-case' },
+		{ href: '/use-cases/webhooks', title: 'Webhooks', desc: 'Webhook sender verification pattern', type: 'use-case' },
 	];
 </script>
 
@@ -67,7 +67,7 @@
 	<!-- Recipe 1 -->
 	<section class="py-8 border-t border-zinc-800">
 		<h2 id="recipe-express" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Recipe 1: Protect an Express API</h2>
-		<p class="mt-2 text-zinc-400">Replace Bearer token authentication with device-bound cryptographic identity.</p>
+		<p class="mt-2 text-zinc-400">Add amesh signing and verification to an Express API.</p>
 
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">Server</h3>
 		<div class="mt-3">

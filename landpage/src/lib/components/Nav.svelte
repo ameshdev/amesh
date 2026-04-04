@@ -14,12 +14,15 @@
 		<div class="flex items-center gap-5">
 			<!-- Desktop nav links -->
 			<div class="relative hidden sm:block">
-				<button
-					onclick={() => dropdownOpen = !dropdownOpen}
-					class="flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-50 transition cursor-pointer bg-transparent border-none"
-				>
-					Use Cases <ChevronDown size={14} />
-				</button>
+				<div class="flex items-center gap-0.5">
+					<a href="/use-cases" class="text-sm text-zinc-400 hover:text-zinc-50 transition no-underline">Use Cases</a>
+					<button
+						onclick={() => dropdownOpen = !dropdownOpen}
+						class="flex items-center text-zinc-400 hover:text-zinc-50 transition cursor-pointer bg-transparent border-none p-1"
+					>
+						<ChevronDown size={14} />
+					</button>
+				</div>
 				{#if dropdownOpen}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div

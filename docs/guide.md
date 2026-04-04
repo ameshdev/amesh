@@ -53,7 +53,7 @@ This creates two files:
 - `~/.amesh/identity.json` — your device ID, public key, friendly name
 - `~/.amesh/allow_list.json` — HMAC-sealed trust store (starts empty)
 
-The private key is protected by the OS keychain (macOS) or TPM (Linux) and never written to disk as plaintext.
+The private key is protected by the OS keychain (macOS), TPM (Linux), or encrypted with Argon2id (file backend). Hardware-backed keys never leave the secure element.
 
 To use a custom directory (useful for testing):
 ```bash
@@ -114,11 +114,11 @@ Prompts for confirmation, then removes the device from the allow list and reseal
 
 ## 5. Use the Crypto Primitives Directly
 
-Open a Node.js REPL from the core package:
+Open a REPL from the core package:
 
 ```bash
 cd packages/core
-node --input-type=module
+bun repl
 ```
 
 ### Sign and verify a message
@@ -244,7 +244,7 @@ The server automatically:
 5. Verifies the ECDSA-P256-SHA256 signature
 6. Attaches `req.authMesh` with the verified device identity
 
-**No API key. No Bearer token. No secret to leak.**
+**No API key. No Bearer token. No shared secret.**
 
 ---
 
