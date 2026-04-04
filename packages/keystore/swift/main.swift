@@ -105,6 +105,13 @@ case "check":
 
 case "generate":
     guard let id = cmd.deviceId else { fail("missing_device_id") }
+    // Delete ALL existing keys with this tag to avoid stale key shadowing.
+    // SecItemDelete may only remove one item per call, so loop until clean.
+    let delQuery: [String: Any] = [
+        kSecClass as String: kSecClassKey,
+        kSecAttrApplicationTag as String: tagFor(id),
+    ]
+    while SecItemDelete(delQuery as CFDictionary) == errSecSuccess {}
     // Try Secure Enclave first, fall back to software keychain
     if let key = trySecureEnclaveGenerate(id) {
         guard let pub = exportPubKey(key) else { fail("export_failed") }
@@ -134,10 +141,11 @@ case "get-public-key":
 
 case "delete":
     guard let id = cmd.deviceId else { fail("missing_device_id") }
-    SecItemDelete([
+    let delQ: [String: Any] = [
         kSecClass as String: kSecClassKey,
         kSecAttrApplicationTag as String: tagFor(id),
-    ] as CFDictionary)
+    ]
+    while SecItemDelete(delQ as CFDictionary) == errSecSuccess {}
     ok()
 
 default:

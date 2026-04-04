@@ -157,6 +157,34 @@ describe('EncryptedFileKeyStore', () => {
     });
   });
 
+  describe('key overwrite (re-init)', () => {
+    it('generateAndStore twice with same ID uses the new key', async () => {
+      const store = new EncryptedFileKeyStore(tempDir, PASSPHRASE);
+      const { publicKey: pk1 } = await store.generateAndStore(DEVICE_ID);
+      const { publicKey: pk2 } = await store.generateAndStore(DEVICE_ID);
+
+      // Keys should differ
+      expect(pk1).not.toEqual(pk2);
+
+      // Sign with the store — must use the NEW key
+      const msg = new TextEncoder().encode('test overwrite');
+      const sig = await store.sign(DEVICE_ID, msg);
+
+      // Signature must verify against the NEW public key
+      expect(verifyMessage(sig, msg, pk2)).toBe(true);
+      // Signature must NOT verify against the OLD public key
+      expect(verifyMessage(sig, msg, pk1)).toBe(false);
+    });
+
+    it('getPublicKey returns the new key after overwrite', async () => {
+      const store = new EncryptedFileKeyStore(tempDir, PASSPHRASE);
+      await store.generateAndStore(DEVICE_ID);
+      const { publicKey: pk2 } = await store.generateAndStore(DEVICE_ID);
+
+      expect(await store.getPublicKey(DEVICE_ID)).toEqual(pk2);
+    });
+  });
+
   describe('adversarial: tampered key file', () => {
     it('fails to decrypt if ciphertext is modified', async () => {
       const store = new EncryptedFileKeyStore(tempDir, PASSPHRASE);
