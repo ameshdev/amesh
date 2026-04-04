@@ -1,20 +1,17 @@
 import { Command, Flags } from '@oclif/core';
-import { createForBackend, detectAndCreate } from '@authmesh/keystore';
+import {
+  createForBackend,
+  detectAndCreate,
+  BACKEND_LABELS,
+  generatePassphrase,
+} from '@authmesh/keystore';
 import type { StorageBackend } from '@authmesh/keystore';
-import { randomBytes } from '@noble/ciphers/utils.js';
 import { generateDeviceId, saveIdentity, identityExists } from '../identity.js';
 import { getIdentityPath, getKeysDir } from '../paths.js';
 import { rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const deviceIdPlaceholder = 'am_init';
-
-const BACKEND_LABELS: Record<string, string> = {
-  'secure-enclave': 'Secure Enclave',
-  'keychain': 'macOS Keychain',
-  'tpm2': 'TPM 2.0',
-  'encrypted-file': 'Encrypted file',
-};
 
 export default class Init extends Command {
   static override description = 'Create a cryptographic identity for this device';
@@ -61,7 +58,7 @@ export default class Init extends Command {
     if (flags.backend) {
       backend = flags.backend as StorageBackend;
       if (backend === 'encrypted-file') {
-        resolvedPassphrase = Buffer.from(randomBytes(32)).toString('hex');
+        resolvedPassphrase = generatePassphrase();
       }
       keyStore = await createForBackend(backend, keysDir, resolvedPassphrase);
       this.log(`  Using backend: ${BACKEND_LABELS[backend]}`);
@@ -127,7 +124,7 @@ export default class Init extends Command {
 
     this.log('');
     this.log('Next steps:');
-    this.log('  1. Run `amesh listen` on this machine');
-    this.log('  2. Run `amesh invite` from your controller to pair');
+    this.log('  Target:     run `amesh listen`, then `amesh invite` from your controller');
+    this.log('  Controller: run `amesh listen` on a target first, then `amesh invite` here');
   }
 }

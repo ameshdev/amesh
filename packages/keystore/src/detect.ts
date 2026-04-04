@@ -4,6 +4,19 @@ import type { KeyStore } from './interface.js';
 
 export type StorageBackend = 'secure-enclave' | 'keychain' | 'tpm2' | 'encrypted-file';
 
+/** Human-readable labels for each storage backend. */
+export const BACKEND_LABELS: Record<StorageBackend, string> = {
+  'secure-enclave': 'Secure Enclave',
+  keychain: 'macOS Keychain',
+  tpm2: 'TPM 2.0',
+  'encrypted-file': 'Encrypted file',
+};
+
+/** Generate a 256-bit random passphrase for the encrypted-file backend. */
+export function generatePassphrase(): string {
+  return Buffer.from(randomBytes(32)).toString('hex');
+}
+
 export interface DetectionResult {
   backend: StorageBackend;
   keyStore: KeyStore;
@@ -27,9 +40,8 @@ export async function detectAndCreate(
   // Tier 1: macOS — Swift helper (Secure Enclave → software keychain)
   if (platform() === 'darwin') {
     try {
-      const { isMacOSKeychainAvailable, MacOSKeychainKeyStore } = await import(
-        './drivers/macos-keychain.js'
-      );
+      const { isMacOSKeychainAvailable, MacOSKeychainKeyStore } =
+        await import('./drivers/macos-keychain.js');
       const { available, backend } = await isMacOSKeychainAvailable();
       if (available) {
         const keyStore = new MacOSKeychainKeyStore(basePath);
@@ -69,8 +81,8 @@ export async function detectAndCreate(
   }
 
   // Tier 3: Encrypted file — always available, passphrase auto-generated
-  const passphrase = Buffer.from(randomBytes(32)).toString('hex');
-  onProgress?.('  Encrypted file    selected (auto-generated passphrase)');
+  const passphrase = generatePassphrase();
+  onProgress?.('  Encrypted file    selected (software fallback)');
   const { EncryptedFileKeyStore } = await import('./drivers/encrypted-file.js');
   return {
     backend: 'encrypted-file',
@@ -78,7 +90,7 @@ export async function detectAndCreate(
     passphrase,
     warning:
       'Keys are software-protected (no hardware keystore detected).\n' +
-      '  To upgrade: install amesh-se-helper (macOS) or enable TPM 2.0 (Linux), then re-run `amesh init`.',
+      '  For hardware-backed storage, use macOS (Keychain) or Linux with TPM 2.0, then re-run `amesh init --force`.',
   };
 }
 
@@ -104,7 +116,7 @@ export async function createForBackend(
       if (!passphrase) {
         throw new Error(
           'Encrypted-file backend requires a passphrase. ' +
-            'Set AUTH_MESH_PASSPHRASE or pass --passphrase.',
+            'Set AUTH_MESH_PASSPHRASE or re-run `amesh init` to auto-generate one.',
         );
       }
       const { EncryptedFileKeyStore } = await import('./drivers/encrypted-file.js');

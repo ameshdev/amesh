@@ -221,8 +221,8 @@ app.post(<span class="text-emerald-400">'/webhooks'</span>, amesh.verify(), (req
 		<h3 class="mt-6 text-base font-semibold text-zinc-50">Setup</h3>
 		<div class="mt-3">
 			<CodeBlock code={`<span class="text-zinc-500"># Create local identities (encrypted-file backend for dev)</span>
-AUTH_MESH_DIR=/tmp/amesh-a amesh init --name <span class="text-emerald-400">"local-service-a"</span> --backend encrypted-file --passphrase <span class="text-emerald-400">"dev"</span>
-AUTH_MESH_DIR=/tmp/amesh-b amesh init --name <span class="text-emerald-400">"local-service-b"</span> --backend encrypted-file --passphrase <span class="text-emerald-400">"dev"</span>
+AUTH_MESH_DIR=/tmp/amesh-a amesh init --name <span class="text-emerald-400">"local-service-a"</span> --backend encrypted-file
+AUTH_MESH_DIR=/tmp/amesh-b amesh init --name <span class="text-emerald-400">"local-service-b"</span> --backend encrypted-file
 
 <span class="text-zinc-500"># Pair them (same ceremony as production)</span>
 AUTH_MESH_DIR=/tmp/amesh-b amesh listen          <span class="text-zinc-500"># on service-b (target)</span>
@@ -243,7 +243,7 @@ const res = await amesh.fetch(<span class="text-emerald-400">'http://localhost:4
 		<div class="mt-4 border-l-2 border-emerald-400/60 pl-4 py-1">
 			<p class="text-sm text-zinc-400">
 				<strong class="text-zinc-300">Production:</strong> macOS Keychain, Secure Enclave, or TPM 2.0<br />
-				<strong class="text-zinc-300">Local dev:</strong> <code class="text-emerald-400">--backend encrypted-file --passphrase "dev"</code>
+				<strong class="text-zinc-300">Local dev:</strong> <code class="text-emerald-400">--backend encrypted-file</code> (passphrase auto-generated)
 			</p>
 		</div>
 	</section>
@@ -254,7 +254,7 @@ const res = await amesh.fetch(<span class="text-emerald-400">'http://localhost:4
 		<div class="mt-4 rounded-lg border border-zinc-800 divide-y divide-zinc-800">
 			{#each [
 				{ name: 'AUTH_MESH_DIR', desc: 'Directory for identity and keys', def: '~/.amesh/' },
-				{ name: 'AUTH_MESH_PASSPHRASE', desc: 'Passphrase for encrypted-file backend', def: 'optional' },
+				{ name: 'AUTH_MESH_PASSPHRASE', desc: 'Override auto-generated passphrase (rarely needed)', def: 'optional' },
 				{ name: 'AMESH_BOOTSTRAP_TOKEN', desc: 'Bootstrap token for automated pairing', def: 'optional' },
 				{ name: 'AMESH_RELAY_URL', desc: 'WebSocket relay URL', def: 'wss://relay.authmesh.dev/ws' },
 				{ name: 'REDIS_URL', desc: 'Redis URL for nonce store', def: 'optional' },

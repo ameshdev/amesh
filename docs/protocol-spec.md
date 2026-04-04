@@ -70,7 +70,7 @@ Every choice below is made for a reason. Do not substitute without understanding
 | **Crypto — Ciphers** | `@noble/ciphers` (ChaCha20-Poly1305) | Handshake tunnel encryption. Same ecosystem. |
 | **Hardware — macOS** | Swift helper subprocess → Apple Security.framework | Direct Secure Enclave access via `SecKeyCreateRandomKey` with `kSecAttrTokenIDSecureEnclave`. Generates P-256 keys in hardware. `node-keytar` is deprecated (archived Dec 2022) and cannot access Secure Enclave — it is only a password store. |
 | **Hardware — Linux** | `tpm2-tools` (subprocess via `execFile`) | Industry standard TPM 2.0 interface. P-256 universally supported. |
-| **Hardware — Fallback** | Encrypted file (AES-256-GCM + Argon2id) | Explicit opt-in via `--backend file --passphrase`. For cloud VMs without hardware key storage. |
+| **Hardware — Fallback** | Encrypted file (AES-256-GCM + Argon2id) | Automatic fallback. Passphrase auto-generated and stored in identity.json. For cloud VMs without hardware key storage. |
 | **Relay Server** | Bun.serve() native | Zero deps — no Fastify, no ws. |
 | **Allow List Storage** | JSON file + HMAC integrity seal | See Section 9 — the plaintext JSON without integrity protection is a critical vulnerability |
 | **Package Manager** | Bun workspaces | Monorepo-friendly, fast installs, native test runner |
@@ -179,19 +179,23 @@ The prefix `am_` makes amesh IDs visually identifiable in logs.
 
 ### CLI output
 ```
-$ amesh init
+$ amesh init --name "prod-api-us-east-1"
 
-? What is this device's friendly name? prod-api-us-east-1
+Generating P-256 keypair...
 
-✔ Generating P-256 keypair...
-✔ Storing private key in Secure Enclave (macOS)
-✔ Identity created.
+Detecting key storage backend:
+  Secure Enclave    selected
 
-  Device ID : am_8f3a9b2c1d4e5f6a
-  Public Key: 8f3a9b2c...
-  Backend   : secure-enclave
+Identity created.
 
-Run `amesh listen` on this machine, then `amesh invite` from your laptop.
+  Device ID     : am_8f3a9b2c1d4e5f6a
+  Public Key    : A+B9pwI1/CGINmyozdPj...
+  Backend       : Secure Enclave
+  Friendly Name : prod-api-us-east-1
+
+Next steps:
+  Target:     run `amesh listen`, then `amesh invite` from your controller
+  Controller: run `amesh listen` on a target first, then `amesh invite` here
 ```
 
 ---
@@ -648,11 +652,11 @@ Every device goes through this decision tree at `amesh init`. The selected backe
                    │ NO
                    ▼
 ┌──────────────────────────────────────────────────────┐
-│  Tier 3 — Encrypted file (explicit opt-in only)      │
-│  Requires: --backend file --passphrase <passphrase>  │
+│  Tier 3 — Encrypted file (automatic fallback)        │
+│  Passphrase auto-generated, stored in identity.json  │
 │  → AES-256-GCM + Argon2id, filesystem permissions    │
 │  → Private key encrypted at rest, decrypted per-sign │
-│  → WARNING printed: "file-based, not hardware"       │
+│  → WARNING printed: "software-protected"             │
 └─────────────────────────────��────────────────────────┘
 ```
 
@@ -714,13 +718,18 @@ Document this limitation clearly in the CLI output and README.
 ```
 $ amesh list
 
+  This device
+  ───────────────────────────────────────────────────────
+  Device ID     : am_8f3a9b2c1d4e5f6a
+  Friendly Name : prod-api-us-east-1
+  Backend       : Secure Enclave
+  Created       : 2026-03-28
+
   Trusted Devices (2)
-  ───────────────────────────────────────────────
-  am_1a2b3c4d5e6f7a8b  MacBook Pro — dev     added 2026-03-28
-  am_9f8e7d6c5b4a3210  prod-api-us-east   added 2026-03-29
-  ───────────────────────────────────────────────
-  
-  Your identity: am_8f3a9b2c1d4e5f6a (prod-api-us-east-1)
+  ───────────────────────────────────────────────────────
+  am_1a2b3c4d5e6f7a8b  MacBook Pro — dev     [controller]   added 2026-03-28
+  am_9f8e7d6c5b4a3210  prod-api-us-east      [target]       added 2026-03-29
+  ───────────────────────────────────────────────────────
 ```
 
 ---

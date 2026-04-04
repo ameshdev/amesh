@@ -46,7 +46,7 @@ Key decisions made during spec review and project bootstrap (March 2026). Each e
 | 2 | macOS Keychain | Swift helper → software keychain (unsigned binary fallback) |
 | 3 | Linux TPM 2.0 | `tpm2-tools` subprocess via `execFile` (not `exec`) |
 
-Note: The encrypted-file fallback (Tier 3) is available as an explicit opt-in (`--backend encrypted-file --passphrase`) for cloud VMs and containers without hardware key storage. Hardware backends are always preferred when available.
+Note: The encrypted-file fallback (Tier 3) is always available as an automatic fallback for cloud VMs and containers without hardware key storage. The passphrase is auto-generated (256-bit random) and stored in `identity.json`. Hardware backends are always preferred when available.
 
 ---
 
@@ -192,3 +192,23 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 - Auto-granting shell on pairing — violates principle of least privilege
 - Reusing pairing handshake's random-nonce encryption — birthday-bound risk over long sessions
 - Session resumption — complexity and nonce-reuse risk outweigh the latency benefit
+
+---
+
+## ADR-010: Auto-generated passphrase stored in identity.json
+
+**Decision:** The encrypted-file backend auto-generates a 256-bit random passphrase and stores it in `identity.json` alongside the device identity. The `--passphrase` CLI flag has been removed.
+
+**Why:** The previous model required users to provide and manage a passphrase (via `--passphrase` flag or `AUTH_MESH_PASSPHRASE` env var). This was the #1 onboarding friction point: users forgot passphrases, used weak ones, or had to manage env vars across machines. In practice, the passphrase was often stored in a `.env` file or systemd unit alongside the identity — offering no real second-factor benefit.
+
+**Security model change:** The encrypted-file backend's security now depends on Unix file permissions (`identity.json` is mode `0o600` in a `0o700` directory) rather than encryption + separate passphrase. The Argon2id + AES-256-GCM encryption layer is retained as defense-in-depth (protects against partial file reads, memory forensics of swap/core dumps, and accidental backups of the key file without the identity file).
+
+**Threat analysis:**
+- **Same-user access:** Unchanged — the user who owns `~/.amesh/` can always access their own keys
+- **Root compromise:** Unchanged — root can read everything regardless
+- **Backup leak of `~/.amesh/`:** Slightly weaker — backup now contains both passphrase and encrypted key. Previously, the passphrase might have been stored separately. Mitigation: users should exclude `~/.amesh/` from backups, same as SSH keys.
+- **Key file leak without identity file:** Still protected — the encryption is meaningful if only `keys/*.key.json` leaks without `identity.json`
+
+**Backwards compatibility:** Existing identities created before this change (without a `passphrase` field in `identity.json`) still work via the `AUTH_MESH_PASSPHRASE` env var fallback.
+
+**Memory hygiene:** The passphrase is stripped from the in-memory `Identity` object immediately after the `KeyStore` is created (`delete identity.passphrase`). JavaScript strings are immutable so a copy may remain in the V8/JSC heap, but this reduces the reference window.

@@ -292,12 +292,12 @@ Use the same `amesh.fetch()` and `amesh.verify()` code paths in local developmen
 
 ### Setup
 
-Use the `encrypted-file` backend with a simple passphrase for local services:
+Use the `encrypted-file` backend for local services (passphrase auto-generated):
 
 ```bash
 # Create identities for local services
-AUTH_MESH_DIR=/tmp/amesh-a amesh init --name "local-service-a" --backend encrypted-file --passphrase "dev"
-AUTH_MESH_DIR=/tmp/amesh-b amesh init --name "local-service-b" --backend encrypted-file --passphrase "dev"
+AUTH_MESH_DIR=/tmp/amesh-a amesh init --name "local-service-a" --backend encrypted-file
+AUTH_MESH_DIR=/tmp/amesh-b amesh init --name "local-service-b" --backend encrypted-file
 
 # Start the relay (needed only for pairing)
 bunx @authmesh/relay
@@ -323,13 +323,12 @@ const res = await amesh.fetch('http://localhost:4000/api/data', {
 
 The only difference is the key storage backend:
 - **Production:** macOS Keychain, Secure Enclave, or TPM 2.0
-- **Local dev:** `--backend encrypted-file --passphrase "dev"`
+- **Local dev:** `--backend encrypted-file` (passphrase auto-generated)
 
 ### Tips
 
-- Use a shared passphrase like `"dev"` for all local identities. Security is not the goal — dev/prod parity is.
 - Use `AUTH_MESH_DIR` to isolate each service's identity directory.
-- For Docker Compose, set `AUTH_MESH_PASSPHRASE=dev` and mount `AUTH_MESH_DIR` as a volume so identities persist across restarts.
+- For Docker Compose, mount `AUTH_MESH_DIR` as a volume so identities (and their auto-generated passphrases) persist across restarts.
 - The relay is only needed during initial pairing. Once devices are paired, stop it.
 
 ---
@@ -339,7 +338,7 @@ The only difference is the key storage backend:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `AUTH_MESH_DIR` | Directory for identity and keys | `~/.amesh/` |
-| `AUTH_MESH_PASSPHRASE` | Passphrase for encrypted-file backend | (optional) |
+| `AUTH_MESH_PASSPHRASE` | Override auto-generated passphrase for encrypted-file backend (rarely needed) | (optional) |
 | `AMESH_BOOTSTRAP_TOKEN` | Bootstrap token for automated pairing | (optional) |
 | `AMESH_RELAY_URL` | WebSocket relay URL | `wss://relay.authmesh.dev/ws` |
 | `REDIS_URL` | Redis URL for nonce store | (optional) |
@@ -382,13 +381,12 @@ The allow list file (`~/.amesh/allow_list.json`) was modified outside of amesh. 
 
 You're running in production without a Redis nonce store. Replay attacks could succeed by hitting different instances. See Recipe 3 above.
 
-### "No supported key storage backend detected"
+### "Keys are software-protected (no hardware keystore detected)"
 
-amesh prefers hardware-backed storage (Secure Enclave, macOS Keychain, TPM 2.0) but also supports an encrypted-file backend for cloud VMs:
+amesh prefers hardware-backed storage (Secure Enclave, macOS Keychain, TPM 2.0). When none is available, it falls back to the encrypted-file backend automatically with an auto-generated passphrase.
 
-```bash
-amesh init --name "my-server" --backend encrypted-file --passphrase "your-passphrase"
-# Or set AUTH_MESH_PASSPHRASE environment variable
-```
+To upgrade to hardware-backed storage:
+- **macOS:** Ensure the Swift helper binary is installed alongside the `amesh` binary for Keychain/Secure Enclave support.
+- **Linux:** Install `tpm2-tools` for TPM 2.0 support.
 
-On macOS, ensure the Swift helper binary (`amesh-se-helper`) is installed alongside the `amesh` binary for Keychain/Secure Enclave support.
+Then re-run `amesh init --force` to regenerate with the hardware backend.

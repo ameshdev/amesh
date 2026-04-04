@@ -26,17 +26,27 @@ amesh init --name "My Laptop"
 Output (macOS):
 ```
 Generating P-256 keypair...
+
+Detecting key storage backend:
+  Secure Enclave    not available (binary not signed)
+  macOS Keychain    selected
+
 Identity created.
 
-  Device ID : am_cOixWcOdI8-pLh4P
-  Public Key: A+B9pwI1/CGINmyozdPj...
-  Backend   : keychain
+  Device ID     : am_cOixWcOdI8-pLh4P
+  Public Key    : A+B9pwI1/CGINmyozdPj...
+  Backend       : macOS Keychain
+  Friendly Name : My Laptop
+
+Next steps:
+  Target:     run `amesh listen`, then `amesh invite` from your controller
+  Controller: run `amesh listen` on a target first, then `amesh invite` here
 ```
 
-amesh uses hardware-backed key storage when available (Secure Enclave, macOS Keychain, or TPM 2.0). On machines without hardware key storage (cloud VMs, containers), use the encrypted-file backend:
+amesh uses hardware-backed key storage when available (Secure Enclave, macOS Keychain, or TPM 2.0). On machines without hardware key storage (cloud VMs, containers), the encrypted-file backend is selected automatically. You can also force it:
 
 ```bash
-amesh init --name "prod-api" --backend encrypted-file --passphrase "$AUTH_MESH_PASSPHRASE"
+amesh init --name "prod-api" --backend encrypted-file
 ```
 
 This creates two files:
@@ -60,21 +70,31 @@ amesh list
 
 Output (empty initially):
 ```
-  No trusted devices yet.
-  Run `amesh listen` to start pairing.
+  This device
+  ───────────────────────────────────────────────────────
+  Device ID     : am_cOixWcOdI8-pLh4P
+  Friendly Name : My Laptop
+  Backend       : macOS Keychain
+  Created       : 2026-03-30
 
-  Your identity: am_cOixWcOdI8-pLh4P (My Laptop)
+  No trusted devices yet.
+  Pair with another device using `amesh listen` + `amesh invite`.
 ```
 
 After devices are paired, it shows each device's role (`[controller]` or `[target]`):
 ```
+  This device
+  ───────────────────────────────────────────────────────
+  Device ID     : am_cOixWcOdI8-pLh4P
+  Friendly Name : My Laptop
+  Backend       : macOS Keychain
+  Created       : 2026-03-30
+
   Trusted Devices (2)
-  ──────────────────────────────────────────────────────────
+  ───────────────────────────────────────────────────────
   am_1a2b3c4d5e6f7a8b  MacBook Pro — dev     [controller]   added 2026-03-28
   am_9f8e7d6c5b4a3210  staging-api           [target]       added 2026-03-29
-  ──────────────────────────────────────────────────────────
-
-  Your identity: am_cOixWcOdI8-pLh4P (My Laptop)
+  ───────────────────────────────────────────────────────
 ```
 
 - **[controller]** — this device can authenticate TO you

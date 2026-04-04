@@ -15,10 +15,12 @@ export interface AmeshContext {
 export async function loadContext(): Promise<AmeshContext> {
   const identity = await loadIdentity(getIdentityPath());
 
+  const passphrase = identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE;
+  delete identity.passphrase;
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     getKeysDir(),
-    identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE,
+    passphrase,
   );
 
   const keyAlias = identity.keyAlias ?? identity.deviceId;

@@ -212,8 +212,8 @@ This is the best point in the feedback. Dev/prod parity is a real pain point we 
 
 ```bash
 # Dev machine
-amesh init --name "local-service-a" --backend encrypted-file --passphrase "dev"
-amesh init --name "local-service-b" --backend encrypted-file --passphrase "dev"
+amesh init --name "local-service-a" --backend encrypted-file
+amesh init --name "local-service-b" --backend encrypted-file
 # Pair them, then use the exact same amesh.fetch() / amesh.verify() code as production
 ```
 

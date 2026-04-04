@@ -29,7 +29,11 @@ interface BootstrapPayload {
   single_use: boolean;
 }
 
-function decodeToken(token: string): { payload: BootstrapPayload; signatureInput: string; signature: Uint8Array } {
+function decodeToken(token: string): {
+  payload: BootstrapPayload;
+  signatureInput: string;
+  signature: Uint8Array;
+} {
   const parts = token.replace(/^amesh-bt-v1\./, '').split('.');
   if (parts.length !== 3) throw new Error('invalid_token_format');
   const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString()) as BootstrapPayload;
@@ -54,13 +58,15 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
 
   if (!token && hasIdentity) return; // ready
   if (token && hasIdentity) {
-    console.warn('[amesh] AMESH_BOOTSTRAP_TOKEN is set but identity already exists. Ignoring token.');
+    console.warn(
+      '[amesh] AMESH_BOOTSTRAP_TOKEN is set but identity already exists. Ignoring token.',
+    );
     return;
   }
   if (!token && !hasIdentity) {
     throw new Error(
       'No amesh identity found and no AMESH_BOOTSTRAP_TOKEN set.\n' +
-      'Run `amesh init` on this machine or set AMESH_BOOTSTRAP_TOKEN.',
+        'Run `amesh init` on this machine or set AMESH_BOOTSTRAP_TOKEN.',
     );
   }
 
@@ -83,18 +89,23 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
 
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(
-      () => { ws.close(); reject(new Error('bootstrap_timeout')); },
+      () => {
+        ws.close();
+        reject(new Error('bootstrap_timeout'));
+      },
       (opts?.timeoutSeconds ?? 30) * 1000,
     );
 
     ws.on('open', () => {
       // Send bootstrap init
-      ws.send(JSON.stringify({
-        type: 'bootstrap_init',
-        jti: payload.jti,
-        token: token,
-        targetPubKey: Buffer.from(publicKey).toString('base64'),
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'bootstrap_init',
+          jti: payload.jti,
+          token: token,
+          targetPubKey: Buffer.from(publicKey).toString('base64'),
+        }),
+      );
     });
 
     ws.on('message', async (raw: Buffer) => {
@@ -129,7 +140,10 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
           // Verify relay-provided key matches the token-embedded key
           if (msg.controllerPubKey) {
             const relayPubKey = new Uint8Array(Buffer.from(msg.controllerPubKey, 'base64'));
-            if (Buffer.from(controllerPubKey).toString('base64') !== Buffer.from(relayPubKey).toString('base64')) {
+            if (
+              Buffer.from(controllerPubKey).toString('base64') !==
+              Buffer.from(relayPubKey).toString('base64')
+            ) {
               ws.close();
               reject(new Error('controller_pubkey_mismatch'));
               return;
@@ -154,10 +168,11 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
           // Hardware keystores can't rename keys. Store a keyAlias mapping
           // so the real deviceId maps to the 'am_pending' key in hardware.
 
-          // Write identity.json
-          const { writeFile, mkdir } = await import('node:fs/promises');
+          // Write identity.json (atomic: tmp + rename)
+          const { writeFile, mkdir, rename: renameFile } = await import('node:fs/promises');
           const { dirname } = await import('node:path');
           const identityPath = join(ameshDir, 'identity.json');
+          const tmpPath = `${identityPath}.tmp`;
           await mkdir(dirname(identityPath), { recursive: true, mode: 0o700 });
           const identityData = {
             version: '2.0.0',
@@ -169,7 +184,11 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
             storageBackend: backend,
             ...(autoPassphrase ? { passphrase: autoPassphrase } : {}),
           };
-          await writeFile(identityPath, JSON.stringify(identityData, null, 2), { mode: 0o600 });
+          await writeFile(tmpPath, JSON.stringify(identityData, null, 2), {
+            encoding: 'utf-8',
+            mode: 0o600,
+          });
+          await renameFile(tmpPath, identityPath);
 
           // Write allow list with controller
           const hmacKey = await keyStore.getHmacKeyMaterial('am_pending');
@@ -195,6 +214,9 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
       }
     });
 
-    ws.on('error', (err: Error) => { clearTimeout(timeout); reject(err); });
+    ws.on('error', (err: Error) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
   });
 }

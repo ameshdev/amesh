@@ -1,12 +1,6 @@
 import { Command } from '@oclif/core';
+import { BACKEND_LABELS } from '@authmesh/keystore';
 import { loadContext } from '../context.js';
-
-const BACKEND_LABELS: Record<string, string> = {
-  'secure-enclave': 'Secure Enclave',
-  'keychain': 'macOS Keychain',
-  'tpm2': 'TPM 2.0',
-  'encrypted-file': 'Encrypted file',
-};
 
 export default class List extends Command {
   static override description = 'Show this device and trusted devices in the allow list';
@@ -35,20 +29,24 @@ export default class List extends Command {
     this.log('  ' + '─'.repeat(55));
     this.log(`  Device ID     : ${identity.deviceId}`);
     this.log(`  Friendly Name : ${identity.friendlyName}`);
-    this.log(`  Backend       : ${BACKEND_LABELS[identity.storageBackend] ?? identity.storageBackend}`);
+    this.log(
+      `  Backend       : ${BACKEND_LABELS[identity.storageBackend as keyof typeof BACKEND_LABELS] ?? identity.storageBackend}`,
+    );
     this.log(`  Created       : ${identity.createdAt.split('T')[0]}`);
     this.log('');
 
     if (data.devices.length === 0) {
       this.log('  No trusted devices yet.');
-      this.log('  Run `amesh listen` to start pairing.');
+      this.log('  Pair with another device using `amesh listen` + `amesh invite`.');
     } else {
       this.log(`  Trusted Devices (${data.devices.length})`);
       this.log('  ' + '─'.repeat(55));
       for (const device of data.devices) {
         const date = device.addedAt.split('T')[0];
         const roleTag = device.role === 'controller' ? '[controller]' : '[target]';
-        this.log(`  ${device.deviceId}  ${device.friendlyName.padEnd(25)} ${roleTag.padEnd(14)} added ${date}`);
+        this.log(
+          `  ${device.deviceId}  ${device.friendlyName.padEnd(25)} ${roleTag.padEnd(14)} added ${date}`,
+        );
       }
       this.log('  ' + '─'.repeat(55));
     }

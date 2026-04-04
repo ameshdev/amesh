@@ -147,7 +147,7 @@ Filesystem      Size  Used Avail Use% Mounted on
 		<div class="mt-4 rounded-lg border border-zinc-800 divide-y divide-zinc-800">
 			{#each [
 				{ name: 'AUTH_MESH_DIR', desc: 'Directory for identity and keys', def: '~/.amesh/' },
-				{ name: 'AUTH_MESH_PASSPHRASE', desc: 'Passphrase for encrypted-file backend', def: 'optional' },
+				{ name: 'AUTH_MESH_PASSPHRASE', desc: 'Override auto-generated passphrase (rarely needed)', def: 'optional' },
 				{ name: 'AMESH_RELAY_URL', desc: 'WebSocket relay URL', def: 'wss://relay.authmesh.dev/ws' },
 			] as env}
 				<div class="px-4 py-3">

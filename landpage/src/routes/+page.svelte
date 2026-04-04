@@ -36,7 +36,7 @@
 		{
 			n: '1', title: 'Create a device identity',
 			desc: 'Each machine gets a unique keypair. The private key never leaves the device.',
-			code: `<span class="text-zinc-500">$</span> amesh init --name "prod-api"\n\nIdentity created.\n  Device ID : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend   : <span class="text-emerald-400">secure-enclave</span>`
+			code: `<span class="text-zinc-500">$</span> amesh init --name "prod-api"\n\nIdentity created.\n  Device ID     : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend       : <span class="text-emerald-400">Secure Enclave</span>\n  Friendly Name : <span class="text-emerald-400">prod-api</span>`
 		},
 		{
 			n: '2', title: 'Pair two machines',
@@ -80,7 +80,7 @@
 	const cliTabs = [
 		{
 			label: 'Device Management',
-			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh list</span>\n\n  Trusted Devices (2)\n  <span class="text-zinc-600">──────────────────────────────────────────────────────</span>\n  <span class="text-emerald-400">am_1a2b3c4d</span>  Dev Laptop     <span class="text-zinc-500">[controller]</span>   added 2026-03-28\n  <span class="text-emerald-400">am_9f8e7d6c</span>  staging-api    <span class="text-zinc-500">[target]</span>       added 2026-03-29\n  <span class="text-zinc-600">──────────────────────────────────────────────────────</span>\n\n<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh revoke am_1a2b3c4d</span>\n\n  Are you sure? (y/N): <span class="text-zinc-50">y</span>\n<span class="text-emerald-400">✔</span> Removed. Access revoked immediately.`
+			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh list</span>\n\n  This device\n  <span class="text-zinc-600">───────────────────────────────────────────────────────</span>\n  Device ID     : <span class="text-emerald-400">am_cOixWcOd</span>\n  Friendly Name : prod-api\n  Backend       : Secure Enclave\n\n  Trusted Devices (2)\n  <span class="text-zinc-600">───────────────────────────────────────────────────────</span>\n  <span class="text-emerald-400">am_1a2b3c4d</span>  Dev Laptop     <span class="text-zinc-500">[controller]</span>   added 2026-03-28\n  <span class="text-emerald-400">am_9f8e7d6c</span>  staging-api    <span class="text-zinc-500">[target]</span>       added 2026-03-29\n  <span class="text-zinc-600">───────────────────────────────────────────────────────</span>\n\n<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh revoke am_1a2b3c4d</span>\n\n  Are you sure? (y/N): <span class="text-zinc-50">y</span>\n<span class="text-emerald-400">✔</span> Removed. Access revoked immediately.`
 		},
 		{
 			label: 'Pairing',
@@ -88,7 +88,7 @@
 		},
 		{
 			label: 'Init',
-			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh init --name "prod-api"</span>\n\n  Identity created.\n  Device ID : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend   : <span class="text-emerald-400">secure-enclave</span>\n  Public key: <span class="text-zinc-500">04a1b2c3...(65 bytes)</span>\n\n<span class="text-emerald-400">✔</span> Ready. Run <span class="text-zinc-50">amesh invite</span> to pair with another device.`
+			code: `<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh init --name "prod-api"</span>\n\n  Identity created.\n  Device ID     : <span class="text-emerald-400">am_cOixWcOdI8-pLh4P</span>\n  Backend       : <span class="text-emerald-400">Secure Enclave</span>\n  Friendly Name : <span class="text-emerald-400">prod-api</span>\n\n  Next steps:\n    Target:     run amesh listen, then amesh invite from your controller\n    Controller: run amesh listen on a target first, then amesh invite here`
 		},
 	];
 	let activeCliTab = $state(0);
