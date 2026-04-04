@@ -17,6 +17,7 @@ interface Identity {
   publicKey: string;
   friendlyName: string;
   storageBackend: string;
+  passphrase?: string;
 }
 
 function getAmeshDir(): string {
@@ -44,7 +45,7 @@ async function ameshFetch(url: string | URL, init?: RequestInit): Promise<Respon
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     join(getAmeshDir(), 'keys'),
-    process.env.AUTH_MESH_PASSPHRASE,
+    identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE,
   );
 
   const keyAlias = identity.keyAlias ?? identity.deviceId;
@@ -100,7 +101,7 @@ function ameshVerify(opts?: { clockSkewSeconds?: number; nonceWindowSeconds?: nu
     const keyStore = await createForBackend(
       identity.storageBackend as StorageBackend,
       join(getAmeshDir(), 'keys'),
-      process.env.AUTH_MESH_PASSPHRASE,
+      identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE,
     );
     const keyAlias = identity.keyAlias ?? identity.deviceId;
     const hmacKey = await keyStore.getHmacKeyMaterial(keyAlias);

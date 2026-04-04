@@ -73,7 +73,7 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
   // Generate our identity
   const ameshDir = getAmeshDir();
   const keysDir = join(ameshDir, 'keys');
-  const { backend, keyStore } = await detectAndCreate(keysDir);
+  const { backend, keyStore, passphrase: autoPassphrase } = await detectAndCreate(keysDir);
 
   const { publicKey } = await keyStore.generateAndStore('am_pending');
 
@@ -167,6 +167,7 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
             friendlyName: payload.name,
             createdAt: new Date().toISOString(),
             storageBackend: backend,
+            ...(autoPassphrase ? { passphrase: autoPassphrase } : {}),
           };
           await writeFile(identityPath, JSON.stringify(identityData, null, 2), { mode: 0o600 });
 

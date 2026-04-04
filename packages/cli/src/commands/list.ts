@@ -1,8 +1,15 @@
 import { Command } from '@oclif/core';
 import { loadContext } from '../context.js';
 
+const BACKEND_LABELS: Record<string, string> = {
+  'secure-enclave': 'Secure Enclave',
+  'keychain': 'macOS Keychain',
+  'tpm2': 'TPM 2.0',
+  'encrypted-file': 'Encrypted file',
+};
+
 export default class List extends Command {
-  static override description = 'Show trusted devices in the allow list';
+  static override description = 'Show this device and trusted devices in the allow list';
 
   async run(): Promise<void> {
     await this.parse(List);
@@ -24,6 +31,14 @@ export default class List extends Command {
     }
 
     this.log('');
+    this.log('  This device');
+    this.log('  ' + '─'.repeat(55));
+    this.log(`  Device ID     : ${identity.deviceId}`);
+    this.log(`  Friendly Name : ${identity.friendlyName}`);
+    this.log(`  Backend       : ${BACKEND_LABELS[identity.storageBackend] ?? identity.storageBackend}`);
+    this.log(`  Created       : ${identity.createdAt.split('T')[0]}`);
+    this.log('');
+
     if (data.devices.length === 0) {
       this.log('  No trusted devices yet.');
       this.log('  Run `amesh listen` to start pairing.');
@@ -38,8 +53,6 @@ export default class List extends Command {
       this.log('  ' + '─'.repeat(55));
     }
 
-    this.log('');
-    this.log(`  Your identity: ${identity.deviceId} (${identity.friendlyName})`);
     this.log('');
   }
 }

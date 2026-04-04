@@ -1,4 +1,5 @@
 import { platform } from 'node:os';
+import { randomBytes } from '@noble/ciphers/utils.js';
 import type { KeyStore } from './interface.js';
 
 export type StorageBackend = 'secure-enclave' | 'keychain' | 'tpm2' | 'encrypted-file';
@@ -7,6 +8,8 @@ export interface DetectionResult {
   backend: StorageBackend;
   keyStore: KeyStore;
   warning?: string;
+  /** SENSITIVE — auto-generated passphrase for encrypted-file backend. Never log or display. */
+  passphrase?: string;
 }
 
 /**
@@ -15,13 +18,11 @@ export interface DetectionResult {
  * Detection chain:
  *   Tier 1: macOS Keychain (tries Secure Enclave first, falls back to software keychain)
  *   Tier 2: TPM 2.0 (Linux)
- *   Tier 3: Encrypted file (only if passphrase is provided — explicit opt-in)
- *
- * If no backend is available, throws with guidance.
+ *   Tier 3: Encrypted file (always available — passphrase auto-generated)
  */
 export async function detectAndCreate(
   basePath: string,
-  passphrase?: string,
+  onProgress?: (msg: string) => void,
 ): Promise<DetectionResult> {
   // Tier 1: macOS — Swift helper (Secure Enclave → software keychain)
   if (platform() === 'darwin') {
@@ -33,6 +34,8 @@ export async function detectAndCreate(
       if (available) {
         const keyStore = new MacOSKeychainKeyStore(basePath);
         if (backend === 'keychain') {
+          onProgress?.('  Secure Enclave    not available (binary not signed)');
+          onProgress?.('  macOS Keychain    selected');
           return {
             backend: 'keychain',
             keyStore,
@@ -40,10 +43,14 @@ export async function detectAndCreate(
               'Secure Enclave not available (binary not signed). Using macOS Keychain (software-protected).',
           };
         }
+        onProgress?.('  Secure Enclave    selected');
         return { backend: 'secure-enclave', keyStore };
       }
+      onProgress?.('  Secure Enclave    not available');
+      onProgress?.('  macOS Keychain    not available');
     } catch {
-      // Swift helper not found or not compiled — fall through
+      onProgress?.('  Secure Enclave    not available (helper not found)');
+      onProgress?.('  macOS Keychain    not available');
     }
   }
 
@@ -52,31 +59,27 @@ export async function detectAndCreate(
     try {
       const { isTPM2Available, TPMKeyStore } = await import('./drivers/tpm.js');
       if (await isTPM2Available()) {
+        onProgress?.('  TPM 2.0           selected');
         return { backend: 'tpm2', keyStore: new TPMKeyStore(basePath) };
       }
+      onProgress?.('  TPM 2.0           not available (tpm2-tools not found)');
     } catch {
-      // tpm2-tools not installed — fall through
+      onProgress?.('  TPM 2.0           not available (tpm2-tools not found)');
     }
   }
 
-  // Tier 3: Encrypted file — only if passphrase was explicitly provided
-  if (passphrase) {
-    const { EncryptedFileKeyStore } = await import('./drivers/encrypted-file.js');
-    return {
-      backend: 'encrypted-file',
-      keyStore: new EncryptedFileKeyStore(basePath, passphrase),
-      warning:
-        'Using file-based key storage. Keys are protected by filesystem permissions and a passphrase, not hardware. ' +
-        'For hardware-backed storage, use macOS or a Linux host with TPM 2.0.',
-    };
-  }
-
-  throw new Error(
-    'No supported key storage backend detected.\n' +
-      '  • macOS: Secure Enclave or Keychain (requires amesh-se-helper)\n' +
-      '  • Linux: TPM 2.0 (requires tpm2-tools)\n' +
-      '  • Any platform: --backend file --passphrase <passphrase> (file-based, explicit opt-in)',
-  );
+  // Tier 3: Encrypted file — always available, passphrase auto-generated
+  const passphrase = Buffer.from(randomBytes(32)).toString('hex');
+  onProgress?.('  Encrypted file    selected (auto-generated passphrase)');
+  const { EncryptedFileKeyStore } = await import('./drivers/encrypted-file.js');
+  return {
+    backend: 'encrypted-file',
+    keyStore: new EncryptedFileKeyStore(basePath, passphrase),
+    passphrase,
+    warning:
+      'Keys are software-protected (no hardware keystore detected).\n' +
+      '  To upgrade: install amesh-se-helper (macOS) or enable TPM 2.0 (Linux), then re-run `amesh init`.',
+  };
 }
 
 /**

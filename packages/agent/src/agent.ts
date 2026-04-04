@@ -26,6 +26,7 @@ interface Identity {
   publicKey: string;
   friendlyName: string;
   storageBackend: string;
+  passphrase?: string;
 }
 
 function getAmeshDir(): string {
@@ -53,7 +54,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     join(ameshDir, 'keys'),
-    process.env.AUTH_MESH_PASSPHRASE,
+    identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE,
   );
 
   const keyAlias = identity.keyAlias ?? identity.deviceId;
