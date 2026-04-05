@@ -316,4 +316,88 @@ describe('AllowList', () => {
       await expect(al2.read()).rejects.toThrow(/integrity check failed/);
     });
   });
+
+  describe('canonical JSON — L5', () => {
+    it('HMAC is independent of key insertion order', async () => {
+      // Write a device via the AllowList API, which builds objects in one
+      // order. Then re-write the same file with keys in a different order —
+      // the HMAC from the first write must still verify because the
+      // canonicalizer sorts keys.
+      const al = new AllowList(filePath(), PRIVATE_KEY_MATERIAL, DEVICE_ID);
+      await al.addDevice(makeDevice('am_reorder', 'Reorder Test'));
+
+      const content = JSON.parse(await readFile(filePath(), 'utf-8'));
+      // Rebuild the object with keys in reverse alphabetical order
+      const reordered = {
+        version: content.version,
+        devices: content.devices.map((d: Record<string, unknown>) => {
+          // Reverse-sort the device keys
+          const keys = Object.keys(d).sort().reverse();
+          const out: Record<string, unknown> = {};
+          for (const k of keys) out[k] = d[k];
+          return out;
+        }),
+        updatedAt: content.updatedAt,
+        hmac: content.hmac, // same HMAC from the original write
+      };
+      await writeFile(filePath(), JSON.stringify(reordered, null, 2));
+
+      // Read must still succeed — the canonicalizer sorts keys before HMAC.
+      const al2 = new AllowList(filePath(), PRIVATE_KEY_MATERIAL, DEVICE_ID);
+      const data = await al2.read();
+      expect(data.devices[0].deviceId).toBe('am_reorder');
+    });
+
+    it('re-seals legacy (pre-L5) HMACs on first read', async () => {
+      // Write a file sealed with the legacy JSON.stringify canonical,
+      // verify it loads, then confirm the file on disk has been re-sealed
+      // with the new deterministic canonical (the HMAC value changes).
+      const { computeHmac, deriveKey } = await import('@authmesh/core');
+      const hmacKey = deriveKey(
+        PRIVATE_KEY_MATERIAL,
+        'amesh-allow-list-integrity-v1',
+        DEVICE_ID,
+        32,
+      );
+      const legacyData = {
+        version: '2.0.0',
+        devices: [
+          {
+            deviceId: 'am_legacy_l5',
+            publicKey: 'AAAA',
+            friendlyName: 'Legacy L5',
+            addedAt: '2026-01-01T00:00:00.000Z',
+            addedBy: 'handshake',
+            role: 'controller',
+          },
+        ],
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      };
+      // Legacy canonical: plain JSON.stringify of the specific-keyed object
+      const legacyCanonical = JSON.stringify({
+        version: legacyData.version,
+        devices: legacyData.devices,
+        updatedAt: legacyData.updatedAt,
+      });
+      const legacyHmac = computeHmac(hmacKey, new TextEncoder().encode(legacyCanonical));
+      await writeFile(
+        filePath(),
+        JSON.stringify({ ...legacyData, hmac: Buffer.from(legacyHmac).toString('base64') }, null, 2),
+      );
+
+      // Read must accept the legacy HMAC
+      const al = new AllowList(filePath(), PRIVATE_KEY_MATERIAL, DEVICE_ID);
+      const data = await al.read();
+      expect(data.devices[0].deviceId).toBe('am_legacy_l5');
+
+      // File on disk should now have a fresh HMAC (new canonical)
+      const afterRead = JSON.parse(await readFile(filePath(), 'utf-8'));
+      expect(afterRead.hmac).not.toBe(Buffer.from(legacyHmac).toString('base64'));
+
+      // And subsequent reads should verify using the new canonical only
+      const al2 = new AllowList(filePath(), PRIVATE_KEY_MATERIAL, DEVICE_ID);
+      const reread = await al2.read();
+      expect(reread.devices[0].deviceId).toBe('am_legacy_l5');
+    });
+  });
 });
