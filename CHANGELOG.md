@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — security audit 2026-04
+## [0.5.0] - 2026-04-05
 
-Full external-pen-tester-style audit. All findings (2 critical, 4 high, 7 medium, 5 low) are fixed on branch `security/audit-fixes-2026-04`. 99 new regression tests, 206 pass / 0 fail in the source test suite. Full writeup in `docs/security-audit-2026-04.md`.
+Full external-pen-tester-style security audit. All findings (2 critical, 4 high, 7 medium, 5 low) are fixed in this release. ~140 new regression tests, 301 pass / 0 regressions in the source test suite. Full writeup in `docs/security-audit-2026-04.md`.
 
 ### Security
 
