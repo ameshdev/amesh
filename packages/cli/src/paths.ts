@@ -80,7 +80,6 @@ export async function resolvePassphrase(
     await savePassphrase(identity.passphrase);
     const migrated = identity.passphrase;
     delete identity.passphrase;
-    // eslint-disable-next-line no-console
     console.warn(
       '[amesh] migrated legacy passphrase from identity.json to dedicated file. ' +
         'The identity.json file should be re-saved to clear the deprecated field.',

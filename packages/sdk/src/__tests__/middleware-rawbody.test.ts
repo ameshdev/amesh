@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'bun:test';
-import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createServer, type Server, type IncomingMessage } from 'node:http';
 import { p256 } from '@noble/curves/nist.js';
 import { randomBytes } from '@noble/ciphers/utils.js';
 import { buildCanonicalString, signMessage } from '@authmesh/core';
@@ -35,7 +35,7 @@ let noParserUrl: string;
 let parsedObjectUrl: string;
 let rawBodyUrl: string;
 let tinyLimitUrl: string;
-let servers: Server[] = [];
+const servers: Server[] = [];
 
 beforeAll(async () => {
   tempDir = await mkdtemp(join(tmpdir(), 'amesh-m5-'));

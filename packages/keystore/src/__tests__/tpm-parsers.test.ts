@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'bun:test';
+import { generateKeyPairSync } from 'node:crypto';
 import { p256 } from '@noble/curves/nist.js';
 import { extractSec1PointFromSpki, parseTpmtSignature, pemToRaw } from '../drivers/tpm.js';
 
@@ -22,7 +23,7 @@ import { extractSec1PointFromSpki, parseTpmtSignature, pemToRaw } from '../drive
 describe('extractSec1PointFromSpki (M7)', () => {
   it('extracts a 65-byte uncompressed SEC1 point from a real SPKI', () => {
     // Generate a real P-256 key and encode it as SPKI using Node's crypto.
-    const { publicKey } = require('node:crypto').generateKeyPairSync('ec', {
+    const { publicKey } = generateKeyPairSync('ec', {
       namedCurve: 'prime256v1',
     });
     const spkiDer = publicKey.export({ type: 'spki', format: 'der' }) as Buffer;
@@ -40,7 +41,7 @@ describe('extractSec1PointFromSpki (M7)', () => {
   });
 
   it('throws on a P-384 SPKI (point length mismatch)', () => {
-    const { publicKey } = require('node:crypto').generateKeyPairSync('ec', {
+    const { publicKey } = generateKeyPairSync('ec', {
       namedCurve: 'secp384r1',
     });
     const spkiDer = publicKey.export({ type: 'spki', format: 'der' }) as Buffer;
@@ -51,7 +52,7 @@ describe('extractSec1PointFromSpki (M7)', () => {
 
 describe('pemToRaw (M7)', () => {
   it('round-trips a real P-256 public key through PEM to 33-byte compressed', () => {
-    const { publicKey, privateKey } = require('node:crypto').generateKeyPairSync('ec', {
+    const { publicKey } = generateKeyPairSync('ec', {
       namedCurve: 'prime256v1',
     });
     const pem = publicKey.export({ type: 'spki', format: 'pem' }) as string;
@@ -60,13 +61,10 @@ describe('pemToRaw (M7)', () => {
     // First byte must be 0x02 or 0x03 (compressed SEC1 marker)
     expect(compressed[0] === 0x02 || compressed[0] === 0x03).toBe(true);
 
-    // Sanity: sign a message with the matching private key and verify with
-    // the compressed pub we just extracted. If the extraction is wrong this
-    // will fail.
-    const privDer = privateKey.export({ type: 'pkcs8', format: 'der' }) as Buffer;
-    // PKCS8 is not directly consumable by @noble — skip the sign check here
-    // and only verify that the compressed point is a valid curve point.
-    // (Noble's Point.fromHex throws on invalid points.)
+    // Sanity: verify the compressed point is a valid P-256 curve point.
+    // (Noble's Point.fromHex throws on invalid points.) We don't do a full
+    // sign/verify round-trip here because PKCS8 isn't directly consumable
+    // by @noble — the SEC1 point identity alone is what matters.
     expect(() => p256.Point.fromHex(Buffer.from(compressed).toString('hex'))).not.toThrow();
 
     // Belt and suspenders: strip the PEM and re-extract manually via

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'bun:test';
+import { createSign, generateKeyPairSync } from 'node:crypto';
 import { p256 } from '@noble/curves/nist.js';
 import { derToRaw } from '../drivers/macos-keychain.js';
 
@@ -12,7 +13,6 @@ describe('derToRaw DER signature parser (L4)', () => {
   // Generate a real ECDSA-P256 DER signature by signing a message with
   // Node's crypto (which emits DER) and feeding the output to derToRaw.
   function realDerSig(): Uint8Array {
-    const { createSign, generateKeyPairSync } = require('node:crypto');
     const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
     const signer = createSign('SHA256');
     signer.update('hello');
@@ -34,7 +34,6 @@ describe('derToRaw DER signature parser (L4)', () => {
   });
 
   it('round-trips: output verifies against the signing pub key', () => {
-    const { createSign, generateKeyPairSync } = require('node:crypto');
     const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
     const signer = createSign('SHA256');
     signer.update('integration');
