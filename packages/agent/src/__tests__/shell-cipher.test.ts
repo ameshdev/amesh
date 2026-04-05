@@ -88,6 +88,42 @@ describe('ShellCipher', () => {
     );
   });
 
+  it('survives an injected garbage frame without desyncing the session', () => {
+    // Adversarial test for H3: a relay forwarding a junk frame must not
+    // permanently break the session. The receiver must still decrypt the
+    // next legitimate frame after dropping the bad one.
+    const controller = new ShellCipher(sessionKey, 'controller');
+    const target = new ShellCipher(sessionKey, 'target');
+
+    const legitFrame = controller.encrypt(new TextEncoder().encode('hello'));
+
+    // Forge a frame with a plausible-shaped nonce but garbage contents.
+    // 12 byte nonce + 16 byte Poly1305 tag minimum = 28 bytes of junk.
+    const garbage = new Uint8Array(32);
+    // Use a nonce that doesn't match the expected next receive nonce so the
+    // peek-compare rejects it before hitting AEAD.
+    garbage[0] = 0xff;
+    expect(() => target.decrypt(garbage)).toThrow('Nonce mismatch');
+
+    // The legitimate frame must still decrypt — the counter must not have
+    // advanced on the failed attempt above.
+    const decrypted = target.decrypt(legitFrame);
+    expect(new TextDecoder().decode(decrypted)).toBe('hello');
+
+    // And a second legitimate frame after a Poly1305-failing forgery must also
+    // still work (counter only advances on successful authentication).
+    const next = controller.encrypt(new TextEncoder().encode('world'));
+    const tamperedNonceMatch = new Uint8Array(next.length);
+    tamperedNonceMatch.set(next);
+    // Flip a ciphertext byte so Poly1305 rejects it; nonce matches expected.
+    tamperedNonceMatch[tamperedNonceMatch.length - 1] ^= 0x01;
+    expect(() => target.decrypt(tamperedNonceMatch)).toThrow();
+    expect(new TextDecoder().decode(target.decrypt(next))).toBe('world');
+
+    controller.close();
+    target.close();
+  });
+
   it('controller and target nonces do not overlap', () => {
     const controller = new ShellCipher(sessionKey, 'controller');
     const target = new ShellCipher(sessionKey, 'target');

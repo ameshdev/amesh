@@ -64,14 +64,19 @@ export class ShellCipher {
     const nonce = data.subarray(0, NONCE_LEN);
     const ciphertext = data.subarray(NONCE_LEN);
 
-    // Verify nonce matches expected receive counter
-    const expected = this.nextRecvNonce();
+    // Peek at expected nonce WITHOUT advancing the counter. Advancing before
+    // authentication succeeds lets any injected/malformed frame permanently
+    // desync the session — a one-packet DoS from an untrusted relay.
+    const expected = this.peekRecvNonce();
     if (!constantTimeEqual(nonce, expected)) {
       throw new Error('Nonce mismatch — possible replay or out-of-order frame');
     }
 
     const cipher = chacha20poly1305(this.sessionKey, nonce);
-    return cipher.decrypt(ciphertext);
+    const plaintext = cipher.decrypt(ciphertext); // throws on Poly1305 auth failure
+    // Only advance the receive counter after the frame is fully authenticated.
+    this.recvCounter++;
+    return plaintext;
   }
 
   close(): void {
@@ -91,11 +96,14 @@ export class ShellCipher {
     return nonce;
   }
 
-  private nextRecvNonce(): Uint8Array {
+  /**
+   * Compute the currently-expected receive nonce without mutating the counter.
+   * The counter is advanced by decrypt() only after successful AEAD verification.
+   */
+  private peekRecvNonce(): Uint8Array {
     if (this.recvCounter >= ShellCipher.MAX_COUNTER) throw new Error('Nonce space exhausted');
     const nonce = new Uint8Array(this.recvNonceStart);
     this.incrementCounter(nonce, this.recvCounter);
-    this.recvCounter++;
     return nonce;
   }
 
