@@ -10,6 +10,13 @@ export interface VerifyOptions {
   clockSkewSeconds?: number;
   nonceWindowSeconds?: number;
   nonceStore?: NonceStore;
+  /**
+   * Maximum body size the middleware will buffer from the request stream
+   * when no upstream parser has provided it. Defaults to 1 MiB. Requests
+   * larger than this receive a 413. Set explicitly if your API accepts
+   * large uploads and you've disabled upstream parsers.
+   */
+  maxBodyBytes?: number;
 }
 
 /**
@@ -28,9 +35,14 @@ export interface VerifyOptions {
 export function authMeshVerify(opts: VerifyOptions) {
   const clockSkew = opts.clockSkewSeconds ?? 30;
   const nonceStore = opts.nonceStore ?? new InMemoryNonceStore();
+  const maxBodyBytes = opts.maxBodyBytes ?? 1_048_576;
 
   return async (
-    req: IncomingMessage & { body?: string | Buffer; authMesh?: AuthMeshIdentity },
+    req: IncomingMessage & {
+      body?: string | Buffer | object;
+      rawBody?: Buffer | Uint8Array;
+      authMesh?: AuthMeshIdentity;
+    },
     res: ServerResponse,
     next: (err?: Error) => void,
   ) => {
@@ -89,7 +101,32 @@ export function authMeshVerify(opts: VerifyOptions) {
       const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
       const method = req.method ?? 'GET';
       const path = url.pathname + url.search;
-      const body = await getBody(req);
+
+      // Hash the RAW request bytes. If an upstream parser has already run and
+      // only left a parsed object behind (no rawBody), we refuse rather than
+      // re-serialize — re-serialization is non-deterministic across parsers
+      // and creates a latent signature-bypass / compatibility footgun (M5).
+      let body: Uint8Array;
+      try {
+        body = await getRawBody(req, maxBodyBytes);
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (msg === 'body_parser_ordering_error') {
+          console.error(
+            '[amesh] CRITICAL: authMeshVerify saw a parsed req.body object with no req.rawBody. ' +
+              'A body parser (e.g. express.json()) ran before authMeshVerify and consumed the ' +
+              'raw bytes. Either mount authMeshVerify BEFORE body parsers, or configure your ' +
+              'parser to expose rawBody (e.g. express.json({ verify: (req, _res, buf) => { (req as any).rawBody = buf; } })).',
+          );
+          sendError(res, 500, 'internal_error');
+          return;
+        }
+        if (msg === 'payload_too_large') {
+          sendError(res, 413, 'payload_too_large');
+          return;
+        }
+        throw err;
+      }
 
       const canonical = buildCanonicalString(method, path, parsed.ts, parsed.nonce, body);
       const message = new TextEncoder().encode(canonical);
@@ -125,39 +162,102 @@ export function authMeshVerify(opts: VerifyOptions) {
   };
 }
 
-function sendError(res: ServerResponse, status: number, _code: string): void {
-  // Per spec: 401 responses always return generic "unauthorized" to prevent oracle attacks
-  // Exceptions: 400 errors return specific codes to aid debugging
-  const body = status === 400 ? { error: _code } : { error: 'unauthorized' };
+function sendError(res: ServerResponse, status: number, code: string): void {
+  // Per spec: 401 responses always return generic "unauthorized" to prevent
+  // oracle attacks against the verification pipeline. 4xx errors outside
+  // 401 and 5xx errors use the specific code — they describe client/server
+  // misconfiguration, not verification state, so there's no oracle to leak.
+  const body = status === 401 ? { error: 'unauthorized' } : { error: code };
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(body));
 }
 
 /**
- * Extract the request body as a string for signature verification.
+ * Extract the RAW request body bytes for signature verification (M5).
  *
- * Handles all common body parser configurations:
- *   - express.text() → req.body is a string
- *   - express.raw() → req.body is a Buffer
- *   - express.json() → req.body is an object (re-serialized deterministically)
- *   - No body parser → buffer from the request stream
+ * The protocol spec defines `BodyHash = SHA-256(request_body_bytes)` — the
+ * exact bytes the client put on the wire. This middleware must hash those
+ * same bytes, not a re-serialized projection.
+ *
+ * Supported sources, in priority order:
+ *
+ *   1. `req.rawBody` — if an upstream parser has saved the raw bytes via a
+ *      `verify` hook (e.g. `express.json({ verify: (req, _res, buf) => { req.rawBody = buf } })`).
+ *      This is the recommended pattern when a parser runs before us.
+ *
+ *   2. `req.body` as Buffer (e.g. `express.raw()`) — bytes are already raw.
+ *
+ *   3. `req.body` as string (e.g. `express.text()`) — encode as UTF-8.
+ *      Note: this is only safe when the body truly is text. Operators using
+ *      `express.text()` on non-text bodies will experience silent corruption.
+ *
+ *   4. No body parser has run — buffer the stream ourselves, then cache both
+ *      `req.rawBody` and `req.body` so downstream middleware can read them.
+ *
+ * Throws `body_parser_ordering_error` when `req.body` is a parsed object
+ * (e.g. `express.json()` without a `verify` hook) and no rawBody is present.
+ * Previously this branch silently re-serialized with `JSON.stringify`, which
+ * created compatibility and security footguns — two byte sequences that
+ * parse to the same object would verify against the same signature.
  */
-async function getBody(
-  req: IncomingMessage & { body?: string | Buffer | object },
-): Promise<string> {
-  if (typeof req.body === 'string') return req.body;
-  if (Buffer.isBuffer(req.body)) return req.body.toString('utf-8');
-  // express.json() or similar parsed body into an object — re-serialize deterministically
-  if (req.body !== null && req.body !== undefined && typeof req.body === 'object') {
-    return JSON.stringify(req.body);
+async function getRawBody(
+  req: IncomingMessage & { body?: string | Buffer | object; rawBody?: Buffer | Uint8Array },
+  maxBytes: number,
+): Promise<Uint8Array> {
+  // 1. rawBody set by upstream parser verify hook
+  if (req.rawBody !== undefined) {
+    if (Buffer.isBuffer(req.rawBody)) {
+      return new Uint8Array(req.rawBody.buffer, req.rawBody.byteOffset, req.rawBody.byteLength);
+    }
+    return req.rawBody;
   }
-  // No body parser ran — buffer from the stream
+
+  // 2. req.body as Buffer (express.raw())
+  if (Buffer.isBuffer(req.body)) {
+    return new Uint8Array(req.body.buffer, req.body.byteOffset, req.body.byteLength);
+  }
+
+  // 3. req.body as string (express.text())
+  if (typeof req.body === 'string') {
+    return new TextEncoder().encode(req.body);
+  }
+
+  // 4. req.body as parsed object with NO rawBody — refuse. A body parser ran
+  //    before us and consumed the raw bytes; re-serializing the parsed object
+  //    would hash something different from what the client signed.
+  if (req.body !== null && req.body !== undefined && typeof req.body === 'object') {
+    throw new Error('body_parser_ordering_error');
+  }
+
+  // 5. Nothing parsed yet — buffer the stream ourselves with a size cap.
+  // If a Content-Length header is present and already exceeds maxBytes, we
+  // reject before reading a single byte — avoids allocating a giant buffer
+  // just to throw it away.
+  const contentLength = req.headers['content-length'];
+  if (contentLength !== undefined) {
+    const declared = Number(contentLength);
+    if (Number.isFinite(declared) && declared > maxBytes) {
+      throw new Error('payload_too_large');
+    }
+  }
   const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(chunk as Buffer);
-  const raw = Buffer.concat(chunks).toString('utf-8');
-  // Store for downstream middleware
-  (req as IncomingMessage & { body: string }).body = raw;
-  return raw;
+  let total = 0;
+  for await (const chunk of req) {
+    const buf = chunk as Buffer;
+    total += buf.length;
+    if (total > maxBytes) {
+      throw new Error('payload_too_large');
+    }
+    chunks.push(buf);
+  }
+  const raw = Buffer.concat(chunks);
+  const rawBytes = new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+
+  // Cache both shapes for downstream middleware/handlers.
+  (req as IncomingMessage & { body: string; rawBody: Buffer }).body = raw.toString('utf-8');
+  (req as IncomingMessage & { rawBody: Buffer }).rawBody = raw;
+
+  return rawBytes;
 }
 
 function logServerSide(code: string, deviceId: string, serverNow: number, requestTs: number): void {
