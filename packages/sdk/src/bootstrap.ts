@@ -186,9 +186,17 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
             }
           }
 
-          // Verify controller's ack signature
+          // Verify controller's ack signature.
+          // L6 — delimit with "\n" and a domain prefix so the two concatenated
+          // fields cannot collide with another message shape the controller
+          // also signs. Base64 pubkeys are 44 chars and jtis are `bt_<hex>`,
+          // so collision was already unreachable in practice, but explicit
+          // delimiters + domain separation remove the theoretical footgun.
           const ackMsg = new TextEncoder().encode(
-            Buffer.from(publicKey).toString('base64') + payload.jti,
+            'amesh-bootstrap-ack-v1\n' +
+              Buffer.from(publicKey).toString('base64') +
+              '\n' +
+              payload.jti,
           );
           const ackSig = new Uint8Array(Buffer.from(msg.controllerSig, 'base64'));
           if (!verifyMessage(ackSig, ackMsg, controllerPubKey)) {
