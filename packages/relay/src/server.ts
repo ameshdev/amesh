@@ -107,6 +107,12 @@ export function createRelayServer(opts?: {
   port?: number;
   maxConnections?: number;
   /**
+   * Cap on concurrent pairing sessions. See SessionStore — defaults to
+   * 50_000 which is enough for typical production and bounds memory at
+   * ~50 MB under listen-flood DoS.
+   */
+  maxSessions?: number;
+  /**
    * When true, extract the client IP from the left-most entry of the
    * `X-Forwarded-For` header instead of the TCP socket peer. Enable this when
    * the relay runs behind a trusted reverse proxy / load balancer (Cloud Run,
@@ -128,10 +134,15 @@ export function createRelayServer(opts?: {
       const envVal = process.env.AMESH_TRUST_PROXY?.toLowerCase();
       return envVal === '1' || envVal === 'true' || envVal === 'yes';
     })();
-  const sessions = new SessionStore();
+  const sessions = new SessionStore(opts?.maxSessions);
   const agentStore = new AgentStore();
   const rateLimiter = new RateLimiter(5, 60_000);
   const shellRateLimiter = new RateLimiter(5, 60_000);
+  // Dedicated limiter for bootstrap_watch (M3). 10 per minute per IP is
+  // generous for legitimate fleet provisioning and tight enough to stop an
+  // attacker from brute-forcing jti claims. Kept separate from the OTC
+  // limiter so heavy bootstrap traffic doesn't starve pairing flows.
+  const bootstrapWatchRateLimiter = new RateLimiter(10, 60_000);
   const otcAttempts = new OTCAttemptTracker(5);
   // Bootstrap watchers: jti → { socket, createdAt }
   const bootstrapWatchers = new Map<
@@ -187,8 +198,14 @@ export function createRelayServer(opts?: {
       sessions.create(otc, ws);
       ws.send(JSON.stringify({ type: 'ack', message: 'session_open' }));
       ws.data.otc = otc;
-    } catch {
-      ws.send(JSON.stringify({ type: 'error', code: 'otc_in_use' }));
+    } catch (err) {
+      // Distinguish the two failure modes: "collision with another listener"
+      // is actionable (retry with new OTC), "relay at capacity" is not
+      // (client should back off). M2 — previously both were flattened into
+      // otc_in_use.
+      const msg = (err as Error).message;
+      const code = msg === 'session_store_full' ? 'relay_capacity' : 'otc_in_use';
+      ws.send(JSON.stringify({ type: 'error', code }));
     }
   }
 
@@ -261,11 +278,41 @@ export function createRelayServer(opts?: {
   }
 
   // Bootstrap: controller registers to watch for a specific jti
+  //
+  // M3 — previously this was last-write-wins with no auth and no rate
+  // limiting, so an attacker could continuously overwrite legitimate watchers
+  // and DoS pairing. We now:
+  //   1. Reject registration if a healthy watcher is already claimed for the
+  //      jti by a DIFFERENT socket. Same socket re-registering (reconnect
+  //      edge case) still works.
+  //   2. Rate limit bootstrap_watch per IP using the existing per-IP limiter,
+  //      so an attacker can't brute-force through jti guesses.
+  //   3. Cap the number of concurrent watchers a single socket can hold,
+  //      preventing one client from starving the watcher map.
   function handleBootstrapWatch(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
     if (!msg.jti) {
       ws.send(JSON.stringify({ type: 'error', code: 'missing_jti' }));
       return;
     }
+    if (typeof msg.jti !== 'string' || msg.jti.length > 128) {
+      ws.send(JSON.stringify({ type: 'error', code: 'invalid_jti' }));
+      return;
+    }
+
+    if (!bootstrapWatchRateLimiter.check(ws.data.ip)) {
+      ws.send(JSON.stringify({ type: 'error', code: 'rate_limited' }));
+      return;
+    }
+
+    const existing = bootstrapWatchers.get(msg.jti);
+    if (existing && existing.socket !== ws && existing.socket.readyState === WebSocket.OPEN) {
+      // Another live client already owns this jti. Refuse rather than
+      // overwrite — last-write-wins allowed attackers to race legitimate
+      // controllers off the slot.
+      ws.send(JSON.stringify({ type: 'error', code: 'jti_already_watched' }));
+      return;
+    }
+
     bootstrapWatchers.set(msg.jti, { socket: ws, createdAt: Date.now() });
     ws.send(JSON.stringify({ type: 'bootstrap_watching', jti: msg.jti }));
   }
@@ -580,6 +627,7 @@ export function createRelayServer(opts?: {
       agentStore.destroy();
       rateLimiter.destroy();
       shellRateLimiter.destroy();
+      bootstrapWatchRateLimiter.destroy();
       otcAttempts.destroy();
       server?.stop();
     },

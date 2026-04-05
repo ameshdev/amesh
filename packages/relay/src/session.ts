@@ -10,14 +10,25 @@ export interface PairingSession {
 }
 
 /**
+ * Default cap on concurrent sessions. Chosen to bound memory under
+ * adversarial listen-flood scenarios: each session holds references to
+ * 2 WebSockets + metadata (~1 KB steady state), so 50k sessions ≈ 50 MB
+ * of heap pressure. Tunable via createRelayServer options for tests and
+ * large deployments.
+ */
+const DEFAULT_MAX_SESSIONS = 50_000;
+
+/**
  * In-memory session store for active pairing sessions.
  * Sessions are ephemeral — max 60 seconds lifetime for pairing.
  */
 export class SessionStore {
   private sessions = new Map<string, PairingSession>();
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly maxSessions: number;
 
-  constructor() {
+  constructor(maxSessions: number = DEFAULT_MAX_SESSIONS) {
+    this.maxSessions = maxSessions;
     // Purge expired sessions every 10 seconds
     this.cleanupTimer = setInterval(() => this.purge(), 10_000);
   }
@@ -25,6 +36,17 @@ export class SessionStore {
   create(otc: string, target: ServerWebSocket<WebSocketData>, ttlSeconds = 60): PairingSession {
     if (this.sessions.has(otc)) {
       throw new Error('OTC already in use');
+    }
+
+    // M2 — bound memory under listen-flood DoS. When the store is at capacity,
+    // make one last-ditch cleanup pass and then refuse new sessions. Distinct
+    // error code from OTC-in-use so the relay can surface a specific reason
+    // to legitimate clients hitting a saturated relay.
+    if (this.sessions.size >= this.maxSessions) {
+      this.purge();
+      if (this.sessions.size >= this.maxSessions) {
+        throw new Error('session_store_full');
+      }
     }
 
     const now = Date.now();

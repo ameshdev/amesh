@@ -9,6 +9,24 @@ interface AgentEntry {
 }
 
 /**
+ * Constant-time string comparison for the agent registry (L3).
+ *
+ * Public keys are not secret, but the relay's shell routing pipeline uses
+ * the `(deviceId, publicKey)` tuple as the only gate between an enumerating
+ * attacker and "this pair is currently registered" side-channel info. A
+ * timing-safe compare removes one axis of the oracle; the uniform response
+ * from handleShell (C3) removes the other.
+ */
+function constantTimeStringEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+/**
  * Tracks connected agent daemons by device ID.
  * Agents register with their public key; controllers must provide
  * the matching public key to route a shell request.
@@ -28,7 +46,7 @@ export class AgentStore {
     const existing = this.agents.get(deviceId);
     if (existing) {
       // Same public key = reconnect (allow), different = squatting attempt (reject)
-      if (existing.publicKey !== publicKey) return false;
+      if (!constantTimeStringEqual(existing.publicKey, publicKey)) return false;
       // Close old connection if still open
       if (existing.socket.readyState === WebSocket.OPEN) {
         existing.socket.close(1000, 'replaced');
@@ -53,7 +71,7 @@ export class AgentStore {
   ): ServerWebSocket<WebSocketData> | undefined {
     const entry = this.agents.get(deviceId);
     if (!entry) return undefined;
-    if (entry.publicKey !== expectedPublicKey) return undefined;
+    if (!constantTimeStringEqual(entry.publicKey, expectedPublicKey)) return undefined;
     if (entry.socket.readyState !== WebSocket.OPEN) {
       this.agents.delete(deviceId);
       return undefined;
