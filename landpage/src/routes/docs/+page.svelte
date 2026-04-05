@@ -1,175 +1,215 @@
 <script lang="ts">
-	import { BookOpen, Shield, Rocket, FileText, GitBranch, Server, Terminal, KeyRound } from '@lucide/svelte';
+	import { Rocket, Zap, BookOpen, KeyRound, Server, Terminal, HelpCircle, Wrench, History, FileText, GitBranch, Package, Lightbulb } from '@lucide/svelte';
+	import { jsonLdScript, breadcrumbList } from '$lib/seo.js';
 
 	const REPO = 'https://github.com/ameshdev/amesh';
 
-	const gettingStarted = [
+	const sections = [
 		{
-			icon: Rocket,
-			title: 'Integration Guide',
-			desc: 'Step-by-step recipes for Express, microservices, webhooks, and remote pairing.',
-			href: '/docs/integration',
+			label: 'Start here',
+			cards: [
+				{
+					icon: Lightbulb,
+					title: 'Introduction',
+					desc: 'What amesh is, the problem it solves, and its design philosophy.',
+					href: '/docs/introduction',
+				},
+				{
+					icon: Zap,
+					title: 'Quickstart',
+					desc: 'Install, pair two machines, and sign your first request — in under 5 minutes.',
+					href: '/docs/quickstart',
+					featured: true,
+				},
+				{
+					icon: Rocket,
+					title: 'Integration Guide',
+					desc: 'Step-by-step recipes for Express, microservices, webhooks, and remote pairing.',
+					href: '/docs/integration',
+				},
+			],
 		},
 		{
-			icon: KeyRound,
-			title: 'Key Storage',
-			desc: 'How amesh protects private keys: Secure Enclave, Keychain, TPM 2.0, and encrypted file fallback.',
-			href: '/docs/key-storage',
+			label: 'Guides',
+			cards: [
+				{
+					icon: KeyRound,
+					title: 'Key Storage',
+					desc: 'How private keys are protected: Secure Enclave, Keychain, TPM 2.0, and encrypted file.',
+					href: '/docs/key-storage',
+				},
+				{
+					icon: Server,
+					title: 'Self-Hosting',
+					desc: 'Run your own relay with Docker, Cloud Run, Fly.io, Kubernetes, or plain Bun.',
+					href: '/docs/self-hosting',
+				},
+				{
+					icon: Terminal,
+					title: 'Remote Shell',
+					desc: 'SSH-like remote access using device identity. Agent setup, permissions, security model.',
+					href: '/docs/remote-shell',
+				},
+			],
 		},
 		{
-			icon: Server,
-			title: 'Self-Hosting Guide',
-			desc: 'Run your own relay with Docker, Cloud Run, Fly.io, Kubernetes, or plain Bun.',
-			href: '/docs/self-hosting',
-		},
-		{
-			icon: Terminal,
-			title: 'Remote Shell Guide',
-			desc: 'Secure remote shell access with device-bound identity. Agent setup, permissions, security model.',
-			href: '/docs/remote-shell',
-		},
-		{
-			icon: BookOpen,
-			title: 'Usage Guide',
-			desc: 'Full walkthrough of CLI commands, SDK usage, crypto primitives, and the pairing handshake.',
-			href: `${REPO}/blob/main/docs/guide.md`,
-			external: true,
+			label: 'Reference',
+			cards: [
+				{
+					icon: HelpCircle,
+					title: 'FAQ',
+					desc: 'Common questions about device identity, comparisons to mTLS, OAuth, and secrets managers, and compliance.',
+					href: '/docs/faq',
+				},
+				{
+					icon: Wrench,
+					title: 'Troubleshooting',
+					desc: 'Common errors and how to fix them — signing, pairing, key storage, shell, relay.',
+					href: '/docs/troubleshooting',
+				},
+				{
+					icon: History,
+					title: 'Changelog',
+					desc: 'Release notes and version history. Security fixes, new features, breaking changes.',
+					href: '/docs/changelog',
+				},
+			],
 		},
 	];
 
-	const reference = [
+	const externalRefs = [
 		{
 			icon: FileText,
 			title: 'Protocol Specification',
-			desc: 'v2.0.0 — wire format, crypto details, security model, threat analysis.',
+			desc: 'v2.0.0 — full wire format, crypto details, and threat model',
 			href: `${REPO}/blob/main/docs/protocol-spec.md`,
-			external: true,
 		},
 		{
 			icon: GitBranch,
 			title: 'Architecture Decisions',
-			desc: '10 ADRs: P-256 over Ed25519, no keytar, SAS verification, Bun.serve(), and more.',
+			desc: '10 ADRs: P-256 over Ed25519, SAS verification, Bun.serve(), and more',
 			href: `${REPO}/blob/main/docs/architecture-decisions.md`,
-			external: true,
 		},
 		{
-			icon: Shield,
-			title: 'Why amesh',
-			desc: 'The problem with static API keys and how device-bound identity solves it.',
-			href: `${REPO}/blob/main/docs/why-amesh.md`,
-			external: true,
+			icon: BookOpen,
+			title: 'Usage Guide',
+			desc: 'Full CLI reference with every command and flag',
+			href: `${REPO}/blob/main/docs/guide.md`,
 		},
 	];
 
-
 	const packages = [
-		{ name: '@authmesh/sdk', desc: 'Signing client + Express middleware', href: `${REPO}/tree/main/packages/sdk` },
-		{ name: '@authmesh/cli', desc: 'Device management CLI', href: `${REPO}/tree/main/packages/cli` },
-		{ name: '@authmesh/core', desc: 'Crypto primitives', href: `${REPO}/tree/main/packages/core` },
-		{ name: '@authmesh/keystore', desc: 'Device key storage', href: `${REPO}/tree/main/packages/keystore` },
-		{ name: '@authmesh/relay', desc: 'Pairing relay server', href: `${REPO}/tree/main/packages/relay` },
+		{ name: '@authmesh/sdk', desc: 'Signing client + Express middleware' },
+		{ name: '@authmesh/cli', desc: 'Device management CLI' },
+		{ name: '@authmesh/core', desc: 'Crypto primitives' },
+		{ name: '@authmesh/keystore', desc: 'Device key storage' },
+		{ name: '@authmesh/relay', desc: 'Pairing relay server' },
 	];
 </script>
 
 <svelte:head>
 	<title>Documentation — amesh</title>
-	<meta name="description" content="Guides, API reference, protocol specification, and architecture decisions for amesh device-bound M2M authentication." />
+	<meta name="description" content="Guides, quickstart, API reference, FAQ, troubleshooting, and changelog for amesh — device-bound M2M authentication." />
 	<link rel="canonical" href="https://authmesh.dev/docs" />
 	<meta property="og:title" content="Documentation — amesh" />
-	<meta property="og:description" content="Guides, API reference, protocol specification, and architecture decisions for amesh." />
+	<meta property="og:description" content="Guides, reference, and packages for amesh device-bound M2M authentication." />
 	<meta property="og:url" content="https://authmesh.dev/docs" />
+	{@html jsonLdScript(breadcrumbList([
+		{ name: 'Home', url: '/' },
+		{ name: 'Docs', url: '/docs' }
+	]))}
 </svelte:head>
 
-<div class="mx-auto max-w-2xl px-6 pb-20">
+<div class="mx-auto max-w-3xl px-6 pb-20">
 
+	<!-- Hero -->
 	<section class="pt-16 pb-10">
-		<h1 class="text-3xl font-bold text-zinc-50">Documentation</h1>
-		<p class="mt-3 text-lg text-zinc-400">Guides, reference, and packages.</p>
+		<h1 class="text-4xl font-bold tracking-tight text-zinc-50">Documentation</h1>
+		<p class="mt-4 max-w-xl text-lg text-zinc-400">
+			Everything you need to replace static API keys with device-bound identity — from your first
+			<a href="/docs/quickstart" class="text-emerald-400 no-underline hover:underline">5-minute setup</a>
+			to self-hosting the relay.
+		</p>
 	</section>
 
-	<!-- Quick install -->
-	<section class="pb-10">
-		<div class="rounded-lg border border-zinc-800 p-5" style="background:#0C0C0E">
-			<div class="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Quick start</div>
-			<pre class="font-mono text-[13px] leading-relaxed text-zinc-300 overflow-x-auto"><span class="text-zinc-500">$</span> npm install <span class="text-emerald-400">@authmesh/sdk</span>
-<span class="text-zinc-500">$</span> npm install -g <span class="text-emerald-400">@authmesh/cli</span></pre>
-			<div class="mt-3 flex flex-col gap-1 text-xs text-zinc-500">
-				<span><span class="text-emerald-400/60">@authmesh/sdk</span> — signing client + verification middleware</span>
-				<span><span class="text-emerald-400/60">@authmesh/cli</span> — CLI for device management</span>
+	<!-- Section card grids -->
+	{#each sections as section}
+		<section class="pb-12">
+			<h2 class="mb-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">{section.label}</h2>
+			<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+				{#each section.cards as card}
+					{@const Icon = card.icon}
+					<a
+						href={card.href}
+						class="group relative flex flex-col rounded-xl border p-5 no-underline transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-950/20
+							{card.featured ? 'border-emerald-400/30 bg-emerald-400/[0.03] hover:border-emerald-400/50' : 'border-zinc-800 bg-zinc-900/30 hover:border-emerald-400/30 hover:bg-zinc-900'}"
+					>
+						<div class="inline-flex w-fit rounded-lg bg-emerald-400/10 p-2 transition-transform duration-200 group-hover:scale-110">
+							<Icon size={18} class="text-emerald-400" />
+						</div>
+						<h3 class="mt-4 text-base font-semibold text-zinc-50">{card.title}</h3>
+						<p class="mt-1.5 text-sm leading-relaxed text-zinc-400">{card.desc}</p>
+						{#if card.featured}
+							<span class="absolute right-4 top-4 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-400">Start here</span>
+						{/if}
+					</a>
+				{/each}
 			</div>
-		</div>
-	</section>
+		</section>
+	{/each}
 
-	<!-- Getting started -->
-	<section class="pb-10">
-		<h2 class="text-xl font-semibold text-zinc-50 mb-5">Getting Started</h2>
-		<div class="space-y-3">
-			{#each gettingStarted as doc}
+	<!-- External reference -->
+	<section class="pb-12">
+		<h2 class="mb-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Deep reference</h2>
+		<div class="rounded-xl border border-zinc-800 divide-y divide-zinc-800">
+			{#each externalRefs as ref}
+				{@const Icon = ref.icon}
 				<a
-					href={doc.href}
-					target={doc.external ? '_blank' : undefined}
-					rel={doc.external ? 'noopener' : undefined}
-					class="flex items-start gap-4 rounded-lg border border-zinc-800 p-4 no-underline transition hover:border-zinc-700 hover:bg-zinc-900/50"
-				>
-					<div class="mt-0.5 rounded-md bg-emerald-400/10 p-2">
-						{#if doc.icon}<doc.icon size={18} class="text-emerald-400" />{/if}
-					</div>
-					<div>
-						<div class="text-sm font-semibold text-zinc-50">{doc.title}</div>
-						<div class="mt-1 text-sm text-zinc-400">{doc.desc}</div>
-					</div>
-				</a>
-			{/each}
-		</div>
-	</section>
-
-	<!-- Reference -->
-	<section class="pb-10">
-		<h2 class="text-xl font-semibold text-zinc-50 mb-5">Reference</h2>
-		<div class="space-y-3">
-			{#each reference as doc}
-				<a
-					href={doc.href}
+					href={ref.href}
 					target="_blank"
 					rel="noopener"
-					class="flex items-start gap-4 rounded-lg border border-zinc-800 p-4 no-underline transition hover:border-zinc-700 hover:bg-zinc-900/50"
+					class="flex items-start gap-4 px-5 py-4 no-underline transition hover:bg-zinc-900/50"
 				>
-					<div class="mt-0.5 rounded-md bg-emerald-400/10 p-2">
-						{#if doc.icon}<doc.icon size={18} class="text-emerald-400" />{/if}
+					<div class="mt-0.5 shrink-0 rounded-md bg-zinc-800/50 p-2">
+						<Icon size={16} class="text-zinc-400" />
 					</div>
-					<div>
-						<div class="text-sm font-semibold text-zinc-50">{doc.title}</div>
-						<div class="mt-1 text-sm text-zinc-400">{doc.desc}</div>
+					<div class="min-w-0 flex-1">
+						<div class="text-sm font-semibold text-zinc-50">{ref.title}<span class="ml-1.5 text-zinc-600">↗</span></div>
+						<div class="mt-0.5 text-sm text-zinc-500">{ref.desc}</div>
 					</div>
 				</a>
 			{/each}
 		</div>
 	</section>
-
 
 	<!-- Packages -->
-	<section class="pb-10">
-		<h2 class="text-xl font-semibold text-zinc-50 mb-5">Packages</h2>
-		<div class="rounded-lg border border-zinc-800 divide-y divide-zinc-800">
+	<section class="pb-12">
+		<h2 class="mb-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Packages</h2>
+		<div class="rounded-xl border border-zinc-800 divide-y divide-zinc-800">
 			{#each packages as pkg}
 				<a
-					href={pkg.href}
+					href="https://www.npmjs.com/package/{pkg.name}"
 					target="_blank"
 					rel="noopener"
-					class="flex items-center justify-between px-4 py-3 no-underline transition hover:bg-zinc-900/50"
+					class="flex items-center justify-between px-5 py-3 no-underline transition hover:bg-zinc-900/50"
 				>
-					<div>
+					<div class="flex items-center gap-3">
+						<Package size={14} class="text-zinc-600" />
 						<span class="font-mono text-sm text-emerald-400">{pkg.name}</span>
-						<span class="ml-3 text-sm text-zinc-500">{pkg.desc}</span>
 					</div>
+					<span class="text-xs text-zinc-500">{pkg.desc}</span>
 				</a>
 			{/each}
 		</div>
 	</section>
 
 	<!-- Use Cases cross-link -->
-	<section class="pt-10 pb-4 border-t border-zinc-800">
-		<p class="text-sm text-zinc-400">See also: <a href="/use-cases" class="text-emerald-400 no-underline hover:underline">Use Cases</a> — microservices, webhooks, cron jobs, internal tools, remote shell.</p>
+	<section class="pt-6 pb-4 border-t border-zinc-800">
+		<p class="text-sm text-zinc-400">
+			See also:
+			<a href="/use-cases" class="text-emerald-400 no-underline hover:underline">Use Cases</a>
+			— real-world patterns for microservices, webhooks, cron jobs, internal tools, and remote shell.
+		</p>
 	</section>
 
 </div>

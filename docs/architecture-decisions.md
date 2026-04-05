@@ -167,7 +167,13 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 
 ## ADR-011: Remote shell in the CLI with explicit shell permission
 
-**Decision:** The remote shell feature is part of `@authmesh/cli` — one package, one binary. `amesh shell` connects to a remote target. `amesh agent start` runs the daemon. Shell access requires explicit `amesh grant --shell` after pairing.
+> **Status: Partially superseded (2026-04-05).** The single-package design was reversed: the agent daemon now ships in a separate `@authmesh/agent` package exposing an `amesh-agent` binary, while `@authmesh/cli` (`amesh`) keeps the controller-side commands (`init`, `list`, `invite`, `shell`, etc.) without the daemon.
+>
+> **Why the split:** the daemon uses `Bun.spawn({ terminal })` for PTY support, a Bun-only API. Bundling it with `@authmesh/cli` forced the entire controller install to depend on Bun even for users who only wanted `amesh init` + `amesh.fetch()`. Splitting lets `@authmesh/cli` ship a Node-compatible CLI and `@authmesh/agent` ship a Bun-dependent (or prebuilt-binary-only) daemon. The per-architecture prebuilt binaries are produced by the same release pipeline, so end users `brew install ameshdev/tap/amesh` to get both.
+>
+> **The security argument below is unchanged:** `amesh grant --shell` is still the real boundary, not the package boundary. The split is purely a runtime-dependency concern.
+
+**Original decision (superseded):** The remote shell feature is part of `@authmesh/cli` — one package, one binary. `amesh shell` connects to a remote target. `amesh agent start` runs the daemon. Shell access requires explicit `amesh grant --shell` after pairing.
 
 **Why:**
 
@@ -175,7 +181,7 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 
 2. **Explicit consent:** Pairing for API authentication (`amesh invite`) does not grant shell access. A `permissions.shell` flag in the allow list defaults to `false`. The target admin must explicitly run `amesh grant <device-id> --shell`. This is the security boundary, not the package boundary.
 
-3. **The daemon is opt-in by invocation:** `amesh agent start` must be explicitly run. It doesn't auto-start, doesn't install as a service, and refuses to run as root without `--allow-root`.
+3. **The daemon is opt-in by invocation:** `amesh-agent agent start` must be explicitly run. It doesn't auto-start, doesn't install as a service, and refuses to run as root without `--allow-root`.
 
 **Security design choices:**
 
@@ -187,8 +193,8 @@ The controller CLI displays this code; the target CLI prompts the operator to en
 - **Root guard** — agent refuses `root` without `--allow-root`
 - **Per-controller session limits** — prevents DoS by authorized-but-misbehaving peers
 
-**Rejected alternatives:**
-- Separate `@authmesh/agent` package — adds install confusion without meaningful security benefit; the permission gate (`amesh grant --shell`) is the real security boundary, not the package boundary
+**Rejected alternatives (at the time of the original decision):**
+- ~~Separate `@authmesh/agent` package — adds install confusion without meaningful security benefit; the permission gate (`amesh grant --shell`) is the real security boundary, not the package boundary~~ *This was later reversed — see the Status note above. The runtime-dependency concern (Bun for PTY) outweighed the install-confusion concern once prebuilt binaries were shipped via the release pipeline.*
 - Auto-granting shell on pairing — violates principle of least privilege
 - Reusing pairing handshake's random-nonce encryption — birthday-bound risk over long sessions
 - Session resumption — complexity and nonce-reuse risk outweigh the latency benefit

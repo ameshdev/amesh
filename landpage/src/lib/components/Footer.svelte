@@ -18,8 +18,8 @@
 				<h4 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Product</h4>
 				<div class="mt-3 flex flex-col gap-2">
 					<a href="/docs" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Docs</a>
+					<a href="/docs/quickstart" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Quickstart</a>
 					<a href="/docs/integration" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Integration Guide</a>
-					<a href="/docs/self-hosting" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Self-Hosting</a>
 					<a href="/use-cases" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Use Cases</a>
 				</div>
 			</div>
@@ -28,13 +28,15 @@
 			<div>
 				<h4 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Resources</h4>
 				<div class="mt-3 flex flex-col gap-2">
+					<a href="/blog" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Blog</a>
+					<a href="/docs/faq" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">FAQ</a>
+					<a href="/docs/troubleshooting" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Troubleshooting</a>
+					<a href="/docs/changelog" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Changelog</a>
+					<a href={REPO + '/blob/main/docs/protocol-spec.md'} target="_blank" rel="noopener" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Protocol Spec ↗</a>
 					<a href={REPO} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">
 						<img src="/github-mark-white.svg" alt="" class="h-3.5 w-3.5 opacity-50" />
 						GitHub
 					</a>
-					<a href={REPO + '/blob/main/docs/protocol-spec.md'} target="_blank" rel="noopener" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Protocol Spec</a>
-					<a href={REPO + '/blob/main/docs/architecture-decisions.md'} target="_blank" rel="noopener" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Architecture</a>
-					<a href={REPO + '/releases'} target="_blank" rel="noopener" class="text-sm text-zinc-500 hover:text-zinc-300 no-underline transition">Changelog</a>
 				</div>
 			</div>
 

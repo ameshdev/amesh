@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Clock } from '@lucide/svelte';
 	import UseCasePage from '$lib/components/UseCasePage.svelte';
+	import { jsonLdScript, graph, breadcrumbList, techArticle } from '$lib/seo.js';
 </script>
 
 <svelte:head>
@@ -10,6 +11,19 @@
 	<meta property="og:title" content="Cron Job Authentication Without API Keys — amesh" />
 	<meta property="og:description" content="Replace plaintext API keys in cron jobs with device-bound identity. Instant revocation, nothing to leak." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases/cron-jobs" />
+	{@html jsonLdScript(graph(
+		breadcrumbList([
+			{ name: 'Home', url: '/' },
+			{ name: 'Use Cases', url: '/use-cases' },
+			{ name: 'Cron Jobs', url: '/use-cases/cron-jobs' }
+		]),
+		techArticle({
+			title: 'Cron Job Authentication Without API Keys',
+			description: 'Replace plaintext API keys in cron jobs with device-bound identity. Per-server audit trail, instant revocation.',
+			url: '/use-cases/cron-jobs',
+			section: 'Use Cases'
+		})
+	))}
 </svelte:head>
 
 <UseCasePage

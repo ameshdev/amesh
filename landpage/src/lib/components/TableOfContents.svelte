@@ -38,9 +38,12 @@
 	});
 </script>
 
-<!-- Desktop: sticky right rail -->
-<div class="hidden lg:block">
-	<div class="fixed top-20 w-48" style="margin-left: 44rem;">
+<!-- Desktop (2xl+): sticky right rail, positioned to the right of the content column -->
+<div class="hidden 2xl:block">
+	<div
+		class="fixed top-20 w-48"
+		style="left: min(calc(50vw + 30rem), calc(100vw - 13.5rem));"
+	>
 		<div class="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3">On this page</div>
 		<div class="space-y-0.5 border-l border-zinc-800">
 			{#each items as item}
@@ -56,8 +59,8 @@
 	</div>
 </div>
 
-<!-- Mobile: collapsible section -->
-<div class="lg:hidden mb-6">
+<!-- Below 2xl: collapsible section inline with content -->
+<div class="2xl:hidden mb-6">
 	<button
 		onclick={() => mobileOpen = !mobileOpen}
 		class="flex w-full items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-400 cursor-pointer bg-transparent transition hover:border-zinc-700"

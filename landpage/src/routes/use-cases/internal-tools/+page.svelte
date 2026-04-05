@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Terminal } from '@lucide/svelte';
 	import UseCasePage from '$lib/components/UseCasePage.svelte';
+	import { jsonLdScript, graph, breadcrumbList, techArticle } from '$lib/seo.js';
 </script>
 
 <svelte:head>
@@ -10,6 +11,19 @@
 	<meta property="og:title" content="Internal Tools & Audit Trail — amesh" />
 	<meta property="og:description" content="Replace shared admin API keys with per-developer device identity. Per-device audit trail." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases/internal-tools" />
+	{@html jsonLdScript(graph(
+		breadcrumbList([
+			{ name: 'Home', url: '/' },
+			{ name: 'Use Cases', url: '/use-cases' },
+			{ name: 'Internal Tools', url: '/use-cases/internal-tools' }
+		]),
+		techArticle({
+			title: 'Internal Tools: Per-Developer Audit Trail',
+			description: 'Replace shared admin API keys with per-developer device identity. Know exactly who ran what.',
+			url: '/use-cases/internal-tools',
+			section: 'Use Cases'
+		})
+	))}
 </svelte:head>
 
 <UseCasePage

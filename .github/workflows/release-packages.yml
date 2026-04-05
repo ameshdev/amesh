@@ -21,6 +21,12 @@ jobs:
             platform: linux
             arch: x64
             bun-target: bun-linux-x64
+          # Linux arm64: cross-compile from ubuntu-latest via Bun's --target flag.
+          # No Swift helper on Linux, so cross-compilation is straightforward.
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
+            bun-target: bun-linux-arm64
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -150,6 +156,11 @@ jobs:
             end
 
             on_linux do
+              on_arm do
+                url "https://github.com/ameshdev/amesh/releases/download/v${VERSION}/amesh-${VERSION}-linux-arm64.tar.gz"
+                sha256 "${{ steps.hashes.outputs.linux_arm64 }}"
+              end
+
               on_intel do
                 url "https://github.com/ameshdev/amesh/releases/download/v${VERSION}/amesh-${VERSION}-linux-x64.tar.gz"
                 sha256 "${{ steps.hashes.outputs.linux_x64 }}"
@@ -158,6 +169,7 @@ jobs:
 
             def install
               bin.install "amesh"
+              bin.install "amesh-agent" if File.exist?("amesh-agent")
               bin.install "amesh-se-helper" if File.exist?("amesh-se-helper")
             end
 

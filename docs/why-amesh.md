@@ -16,7 +16,7 @@ This model has a fundamental flaw: **the secret IS the identity.** Anyone who ha
 
 ### 1. Secrets leak constantly
 
-GitHub's secret scanning detected over **1 million leaked secrets in public repos in 2024 alone.** This includes API keys, database credentials, and cloud provider tokens. These aren't just mistakes by juniors — Uber, Samsung, Toyota, and Twitch have all had major secret leaks.
+GitHub's secret scanning detected over **1 million leaked secrets in public repos in 2024 alone.** This includes API keys, database credentials, and cloud provider tokens. These aren't hypothetical — real keys committed to real public repositories by real engineers at companies of every size. Every year, major breaches trace back to leaked credentials. These aren't junior mistakes; they're what happens when the design makes leaks easy.
 
 Common leak vectors:
 - `.env` committed to git (`.gitignore` missed or not set up)
@@ -55,16 +55,18 @@ A Bearer token doesn't tell you *who* is calling. If three servers and a develop
 
 **amesh gives every machine a unique, verifiable identity.** When a request arrives, the server knows exactly which device sent it (`req.authMesh.deviceId`), its friendly name, and when it was verified. If one machine is compromised, you revoke it by device ID — the others are unaffected.
 
-### 4. Secrets managers add complexity, not security
+### 4. Secrets managers don't change the shape of the problem
 
-Services like AWS Secrets Manager, HashiCorp Vault, and Doppler improve *management* of secrets but don't solve the fundamental problem: the secret still exists as a copyable string that must be fetched, held in memory, and sent over the wire.
+Secrets managers improve the *management* of secrets, but they don't change the fundamental shape of the problem: the secret still exists as a copyable string that must be fetched, held in memory, and sent over the wire.
 
 A secrets manager:
-- Adds a dependency (if Vault is down, your service can't authenticate)
+- Adds a runtime dependency — if the manager is unreachable, your service can't authenticate
 - Still delivers the secret as a string to your application
-- Requires its own authentication (how does your server authenticate to Secrets Manager? With... another secret)
+- Requires its own authentication (how does your server authenticate to the secrets manager? With *another secret*, which has the same problem)
 - Adds latency on every cold start
-- Costs money at scale
+- Costs real money at scale
+
+Secrets managers are a genuine improvement over loose `.env` files and they solve a real problem. But the secret is still a string, and a string is still copyable.
 
 **amesh removes the secret entirely.** There is no string to manage, fetch, cache, or protect. The signing happens on the device. The only thing that crosses the wire is a cryptographic signature that is useless to an attacker — it's bound to a specific request, timestamp, and nonce.
 
@@ -92,7 +94,7 @@ This matters for:
 | **Revocation** | Breaks everything using that key | Revokes one device. Others unaffected |
 | **Audit trail** | "Someone with this key called the API" | "Device am_8f3a (prod-api-east) called the API at 10:05:32" |
 | **Replay protection** | None (same token works forever) | Every request has a unique nonce + 30-second timestamp window |
-| **What to protect** | .env files, CI variables, Vault access, Slack threads | Access to the device (same as SSH keys, passkeys) |
+| **What to protect** | .env files, CI variables, secrets manager access, Slack threads | Access to the device (same as SSH keys, passkeys) |
 | **What you store in git** | Nothing (and hope you never accidentally do) | Everything. There are no secrets in the codebase |
 
 ---

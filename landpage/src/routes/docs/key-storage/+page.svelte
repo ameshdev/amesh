@@ -6,6 +6,7 @@
 	import CodeBlock from '$lib/components/CodeBlock.svelte';
 	import { getDocNav } from '$lib/navigation.js';
 	import type { RelatedLink } from '$lib/navigation.js';
+	import { jsonLdScript, graph, breadcrumbList, techArticle } from '$lib/seo.js';
 
 	const { prev, next } = getDocNav('key-storage');
 
@@ -29,6 +30,19 @@
 	<meta property="og:title" content="Key Storage — amesh" />
 	<meta property="og:description" content="Tiered key storage: Secure Enclave, Keychain, TPM, encrypted file. Auto-detected per device." />
 	<meta property="og:url" content="https://authmesh.dev/docs/key-storage" />
+	{@html jsonLdScript(graph(
+		breadcrumbList([
+			{ name: 'Home', url: '/' },
+			{ name: 'Docs', url: '/docs' },
+			{ name: 'Key Storage', url: '/docs/key-storage' }
+		]),
+		techArticle({
+			title: 'Key Storage: Secure Enclave, TPM, Encrypted File',
+			description: 'How amesh protects private keys with tiered storage: Secure Enclave, macOS Keychain, TPM 2.0, and encrypted file fallback.',
+			url: '/docs/key-storage',
+			section: 'Guides'
+		})
+	))}
 </svelte:head>
 
 <div class="mx-auto max-w-2xl px-6 pb-20">
