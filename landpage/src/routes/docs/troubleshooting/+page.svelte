@@ -129,18 +129,17 @@
 				<p class="mt-1 text-sm text-zinc-400">The controller is paired but doesn't have shell permission. Run <code class="font-mono text-emerald-400">amesh grant &lt;device-id&gt; --shell</code> on the target. Pairing alone doesn't grant shell access — it's a separate explicit permission.</p>
 			</div>
 			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
-				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"The agent daemon requires Bun runtime for PTY support"</code></div>
-				<p class="mt-1 text-sm text-zinc-400">You ran <code class="font-mono text-emerald-400">amesh-agent agent start</code> under Node.js after <code class="font-mono text-emerald-400">npm install -g @authmesh/agent</code>. The agent uses <code class="font-mono">Bun.spawn</code> with terminal mode for PTY — a Bun-only API with no Node equivalent. Until prebuilt binaries ship, install Bun on the target and run through it:</p>
-				<pre class="mt-2 overflow-x-auto font-mono text-[12px] text-zinc-300"><span class="text-zinc-500"># Install Bun (once)</span>
-curl -fsSL https://bun.sh/install | bash
-
-<span class="text-zinc-500"># Start the agent through Bun</span>
-bun $(which amesh-agent) agent start</pre>
-				<p class="mt-2 text-xs text-zinc-500">Raspberry Pi 3 and earlier (armv7, 32-bit Pi OS) is not supported because Bun does not ship for that architecture. Use Pi 4 or Pi 5 on 64-bit Pi OS, or a different ARM host.</p>
+				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"The agent daemon requires Bun runtime for PTY support"</code> (unsupported architectures only)</div>
+				<p class="mt-1 text-sm text-zinc-400">
+					You should never see this on macOS (arm64/x64) or Linux (x64/arm64) — the npm postinstall downloads a prebuilt binary that bundles Bun, and <code class="font-mono text-emerald-400">amesh-agent agent start</code> runs directly. If you do see it on a supported platform, the postinstall probably couldn't reach GitHub releases — check the install log for download errors and re-run <code class="font-mono text-emerald-400">npm rebuild @authmesh/agent</code> with network access.
+				</p>
+				<p class="mt-2 text-sm text-zinc-400">
+					On unsupported architectures (Raspberry Pi 3 and earlier, armv7 32-bit Pi OS), the postinstall falls back to the JS entry and the agent needs Bun for PTY. Bun does not ship for armv7, so you'd need a third-party Bun build. Most users should move to Pi 4/5 on 64-bit Pi OS or a different ARM host.
+				</p>
 			</div>
 			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
 				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"Handshake failed"</code> / connection timeout</div>
-				<p class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="font-mono text-emerald-400">bun $(which amesh-agent) agent start</code> (see the runtime requirement above). Also verify the relay is reachable from both sides (port 443 or whatever your self-hosted relay uses).</p>
+				<p class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="font-mono text-emerald-400">amesh-agent agent start</code>, and verify the relay is reachable from both sides (port 443 or whatever your self-hosted relay uses).</p>
 			</div>
 			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
 				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"Refusing to run as root"</code></div>
