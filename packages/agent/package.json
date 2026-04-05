@@ -28,7 +28,8 @@
   },
   "oclif": {
     "commands": "./dist/commands",
-    "bin": "amesh-agent"
+    "bin": "amesh-agent",
+    "topicSeparator": " "
   },
   "files": [
     "dist",
