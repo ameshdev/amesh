@@ -40,7 +40,7 @@ amesh already solves these problems for HTTP APIs. The remote shell extends the 
 ```
 Controller (laptop)                    Relay                    Target (server)
 ─────────────────                    ─────                    ───────────────
-amesh shell am_7f2e                                           amesh agent (daemon)
+amesh shell am_7f2e                                           amesh-agent agent (daemon)
      │                                  │                           │
      │──── { type: 'shell', otc } ─────►│                           │
      │                                  │◄── { type: 'listen' } ────│  (agent is always connected)
@@ -85,7 +85,7 @@ No new pairing ceremony is needed. If `amesh list` on the target shows the contr
 
 ## 5. Components
 
-### 5.1 `amesh agent` (target-side daemon)
+### 5.1 `amesh-agent agent` (target-side daemon)
 
 A long-running process on the target machine that:
 
@@ -97,11 +97,13 @@ A long-running process on the target machine that:
 6. Streams encrypted I/O between the PTY and the relay tunnel
 
 ```bash
-amesh agent start                # start daemon (foreground)
-amesh agent start --daemon       # start as background process
-amesh agent stop                 # stop the daemon
-amesh agent status               # show running state + connected controllers
+amesh-agent agent start                # start daemon (foreground)
+amesh-agent agent start --daemon       # start as background process
+amesh-agent agent stop                 # stop the daemon
+amesh-agent agent status               # show running state + connected controllers
 ```
+
+> **Note:** The daemon ships in a separate npm package (`@authmesh/agent`), installed on the target. The controller-side `amesh` command from `@authmesh/cli` does not include `agent start`. See [ADR: remote shell packaging](./architecture-decisions.md) for the rationale.
 
 **Daemon lifecycle:**
 - Reconnects to relay on disconnect (exponential backoff: 1s, 2s, 4s, ..., max 30s)
@@ -243,8 +245,8 @@ With a 12-byte incrementing nonce and the high-bit split, each side can send 2^9
 ### Starting the agent (target)
 
 ```
-$ amesh agent start
-  amesh agent listening on relay.authmesh.dev
+$ amesh-agent agent start
+  amesh-agent listening on relay.authmesh.dev
   Device: am_7f2e8a1b (prod-api)
   Authorized controllers: 2
 
@@ -280,7 +282,7 @@ $ echo $?
 ```
 $ amesh shell prod-api
   Error: agent not connected for prod-api (am_7f2e8a1b).
-  Start the agent on the target: amesh agent start
+  Start the agent on the target: amesh-agent agent start
 ```
 
 ---
@@ -300,7 +302,7 @@ $ amesh shell prod-api
 - Tests: handshake succeeds for paired devices, fails for unknown devices
 
 ### Phase 3 — Target agent daemon
-- `amesh agent start` command (oclif)
+- `amesh-agent agent start` command (oclif, shipped via `@authmesh/agent`)
 - Persistent relay connection with reconnect
 - PTY spawning via `Bun.spawn({ terminal: ... })`
 - Encrypted I/O streaming (frame protocol)
