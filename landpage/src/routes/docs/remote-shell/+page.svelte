@@ -11,15 +11,16 @@
 
 	const { prev, next } = getDocNav('remote-shell');
 
-	// Install method tabs. Until prebuilt binaries ship (see Runtime requirement
-	// callout below), npm is the only target-side install path. Homebrew and the
-	// binary tarball will be re-added once packages/agent ships compiled binaries
-	// through the release pipeline.
+	// Install method tabs. The Homebrew formula installs both `amesh` and
+	// `amesh-agent` from a single tap, and the release tarballs contain both
+	// binaries, so the controller and server sides just extract different
+	// binaries from the same archive. The npm tab shows two separate packages
+	// because @authmesh/cli and @authmesh/agent are published independently.
 	const installMethods = [
 		{
 			label: 'Homebrew',
 			controller: 'brew install ameshdev/tap/amesh',
-			server: '# Not yet available for the agent — see the npm tab or the\n# "Runtime requirement" note below.',
+			server: 'brew install ameshdev/tap/amesh',
 		},
 		{
 			label: 'npm',
@@ -29,7 +30,7 @@
 		{
 			label: 'Binary',
 			controller: 'curl -sLO https://github.com/ameshdev/amesh/releases/latest/download/amesh-darwin-arm64.tar.gz\ntar xzf amesh-darwin-arm64.tar.gz && sudo mv amesh /usr/local/bin/',
-			server: '# Not yet available — use npm install -g @authmesh/agent for now.',
+			server: 'curl -sLO https://github.com/ameshdev/amesh/releases/latest/download/amesh-linux-x64.tar.gz\ntar xzf amesh-linux-x64.tar.gz && sudo mv amesh-agent /usr/local/bin/',
 		},
 	];
 	let activeInstallMethod = $state(0);
@@ -44,6 +45,7 @@
 	const tocItems = [
 		{ id: 'install', label: 'Install' },
 		{ id: 'setup', label: 'Setup' },
+		{ id: 'platforms', label: 'Platform Support' },
 		{ id: 'usage', label: 'Usage' },
 		{ id: 'security', label: 'Security Model' },
 		{ id: 'env-vars', label: 'Environment Variables' },
@@ -165,26 +167,7 @@ amesh list
 		<p class="mt-3 text-sm text-zinc-500">Shell access is opt-in. Pairing for HTTP API auth does not automatically grant shell access.</p>
 
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">3. Start the agent</h3>
-
-		<!-- Runtime requirement callout — remove once prebuilt agent binaries ship -->
-		<div class="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/[0.04] p-4">
-			<div class="text-xs font-semibold uppercase tracking-wide text-amber-400">Runtime requirement</div>
-			<p class="mt-2 text-sm text-zinc-300">
-				The <code class="rounded bg-amber-400/10 px-1.5 py-0.5 font-mono text-xs text-amber-400">amesh-agent</code> daemon currently requires <a href="https://bun.com/docs/installation" target="_blank" rel="noopener" class="text-emerald-400 no-underline hover:underline">Bun</a> installed on the target because it uses <code class="font-mono text-xs">Bun.spawn</code> for PTY support. Until prebuilt binaries ship, start the agent through Bun:
-			</p>
-			<div class="mt-3">
-				<CodeBlock code={`<span class="text-zinc-500"># Install Bun on the target (once)</span>
-curl -fsSL https://bun.sh/install | bash
-
-<span class="text-zinc-500"># Then start the agent through Bun</span>
-bun $(which amesh-agent) agent start`} />
-			</div>
-			<p class="mt-3 text-xs text-zinc-500">
-				<strong class="text-zinc-400">Platform support:</strong> macOS (arm64, x64) and Linux (x64, arm64 — including Raspberry Pi 4/5 on 64-bit Pi OS). Linux armv7 (Raspberry Pi 3 and earlier, 32-bit Pi OS) is not supported because Bun does not ship for that architecture.
-			</p>
-		</div>
-
-		<div class="mt-4">
+		<div class="mt-3">
 			<CodeBlock code={`<span class="text-zinc-500"># On the target (server) — start the agent daemon</span>
 amesh-agent agent start
 
@@ -192,7 +175,54 @@ amesh-agent agent start
 amesh-agent agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
 		</div>
 		<p class="mt-3 text-xs text-zinc-500">
-			Note the binary name: controller commands run through <code class="font-mono text-emerald-400">amesh</code>; the agent daemon runs through <code class="font-mono text-emerald-400">amesh-agent</code>. They are separate packages (<code class="font-mono">@authmesh/cli</code> and <code class="font-mono">@authmesh/agent</code>).
+			Note the binary name: controller commands run through <code class="font-mono text-emerald-400">amesh</code>; the agent daemon runs through <code class="font-mono text-emerald-400">amesh-agent</code>. They are separate packages (<code class="font-mono">@authmesh/cli</code> and <code class="font-mono">@authmesh/agent</code>), but <code class="font-mono text-emerald-400">brew install ameshdev/tap/amesh</code> installs both.
+		</p>
+	</section>
+
+	<!-- Platform support -->
+	<section class="py-8 border-t border-zinc-800">
+		<h2 id="platforms" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Platform Support</h2>
+		<p class="mt-2 text-zinc-400">The <code class="text-emerald-400">amesh-agent</code> daemon ships as a prebuilt binary on all supported platforms — no runtime install needed.</p>
+		<div class="mt-4 overflow-x-auto rounded-lg border border-zinc-800">
+			<table class="w-full text-sm">
+				<thead>
+					<tr class="border-b border-zinc-800 bg-zinc-900/40">
+						<th class="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Platform</th>
+						<th class="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Install via</th>
+						<th class="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Notes</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-zinc-800/60">
+					<tr>
+						<td class="px-4 py-2.5 font-mono text-xs text-zinc-300">macOS (arm64)</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-400">Homebrew · npm · tarball</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-500">Apple Silicon; uses Secure Enclave when signed</td>
+					</tr>
+					<tr>
+						<td class="px-4 py-2.5 font-mono text-xs text-zinc-300">macOS (x64)</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-400">Homebrew · npm · tarball</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-500">Intel macs; falls back to Keychain</td>
+					</tr>
+					<tr>
+						<td class="px-4 py-2.5 font-mono text-xs text-zinc-300">Linux (x64)</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-400">Homebrew · npm · tarball · .deb</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-500">Most cloud VMs; uses TPM 2.0 when available</td>
+					</tr>
+					<tr>
+						<td class="px-4 py-2.5 font-mono text-xs text-zinc-300">Linux (arm64)</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-400">Homebrew · npm · tarball</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-500">Raspberry Pi 4/5 on 64-bit Pi OS, Ampere, Graviton</td>
+					</tr>
+					<tr>
+						<td class="px-4 py-2.5 font-mono text-xs text-zinc-500">Linux (armv7, 32-bit)</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-500">Bun wrapper only</td>
+						<td class="px-4 py-2.5 text-xs text-zinc-500">Raspberry Pi 3 and earlier — see note below</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<p class="mt-3 text-xs text-zinc-500">
+			<strong class="text-zinc-400">Linux armv7 (Raspberry Pi 3 and earlier):</strong> Bun does not ship for 32-bit ARM. If you must run the agent on these devices, install <a href="https://bun.com/docs/installation" target="_blank" rel="noopener" class="text-emerald-400 no-underline hover:underline">Bun</a> manually (if a third-party build is available for your arch) and run as <code class="font-mono text-emerald-400">bun $(which amesh-agent) agent start</code>. Everything else (Pi 4/5 on 64-bit Pi OS, all modern ARM servers) is supported out of the box.
 		</p>
 	</section>
 
@@ -274,11 +304,11 @@ Filesystem      Size  Used Avail Use% Mounted on
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"Handshake failed" / connection timeout</div>
-				<div class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="text-emerald-400">bun $(which amesh-agent) agent start</code> (see the runtime requirement note above).</div>
+				<div class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="text-emerald-400">amesh-agent agent start</code> and verify the relay is reachable from both sides.</div>
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
-				<div class="text-sm font-semibold text-zinc-50">"The agent daemon requires Bun runtime for PTY support"</div>
-				<div class="mt-1 text-sm text-zinc-400">You ran <code class="text-emerald-400">amesh-agent agent start</code> under Node.js. The agent uses <code class="font-mono">Bun.spawn</code> for PTY, which doesn't exist in Node. Install Bun (<code class="text-emerald-400">curl -fsSL https://bun.sh/install | bash</code>) and run as <code class="text-emerald-400">bun $(which amesh-agent) agent start</code>.</div>
+				<div class="text-sm font-semibold text-zinc-50">"The agent daemon requires Bun runtime for PTY support" (armv7 only)</div>
+				<div class="mt-1 text-sm text-zinc-400">You're on an unsupported architecture (typically Raspberry Pi 3 or earlier, 32-bit Pi OS). The postinstall couldn't find a prebuilt binary for your arch and fell back to the JS entry, which needs Bun for PTY. If a Bun build exists for your arch, install it and run as <code class="text-emerald-400">bun $(which amesh-agent) agent start</code>. On supported architectures (macOS arm64/x64, Linux x64/arm64) this error should not appear — if it does, see the Troubleshooting page for the full diagnostic flow.</div>
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"Refusing to run as root"</div>
