@@ -1,8 +1,8 @@
 import { ShellCipher } from './shell-cipher.js';
 import { AllowList, createForBackend } from '@authmesh/keystore';
 import type { StorageBackend } from '@authmesh/keystore';
-import { loadIdentity } from './identity.js';
-import { getIdentityPath, getKeysDir, getAllowListPath } from './paths.js';
+import { loadIdentity, saveIdentity } from './identity.js';
+import { getIdentityPath, getKeysDir, getAllowListPath, resolvePassphrase } from './paths.js';
 import { runControllerShellHandshake, createMessageReader, send } from './shell-handshake.js';
 import {
   FrameType,
@@ -23,8 +23,11 @@ interface ShellOptions {
 export async function connectShell(opts: ShellOptions): Promise<number> {
   const identity = await loadIdentity(getIdentityPath());
 
-  const passphrase = identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE;
-  delete identity.passphrase;
+  // H2 — passphrase lives in a dedicated file, not identity.json.
+  const { passphrase, migratedFromIdentity } = await resolvePassphrase(identity);
+  if (migratedFromIdentity) {
+    await saveIdentity(getIdentityPath(), identity);
+  }
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     getKeysDir(),
@@ -67,6 +70,7 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
   const peerFound = await reader.read(30_000);
   if (peerFound.type === 'error') {
     console.error(`Relay error: ${peerFound.code}`);
+    reader.dispose();
     ws.close();
     return 1;
   }
@@ -86,9 +90,15 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
   } catch (err) {
     console.error(`Handshake failed: ${(err as Error).message}`);
     console.error('Is the agent running on the target? Start it with: amesh agent start');
+    reader.dispose();
     ws.close();
     return 1;
   }
+
+  // M4 — drop the handshake reader. The encrypted frame loop below installs
+  // its own listener; without dispose() the reader's queue would grow on
+  // every frame for the lifetime of the shell session.
+  reader.dispose();
 
   console.error(`Connected. Shell session started.\n`);
 

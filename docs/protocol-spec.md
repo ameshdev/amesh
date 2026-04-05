@@ -70,7 +70,7 @@ Every choice below is made for a reason. Do not substitute without understanding
 | **Crypto — Ciphers** | `@noble/ciphers` (ChaCha20-Poly1305) | Handshake tunnel encryption. Same ecosystem. |
 | **Hardware — macOS** | Swift helper subprocess → Apple Security.framework | Direct Secure Enclave access via `SecKeyCreateRandomKey` with `kSecAttrTokenIDSecureEnclave`. Generates P-256 keys in hardware. `node-keytar` is deprecated (archived Dec 2022) and cannot access Secure Enclave — it is only a password store. |
 | **Hardware — Linux** | `tpm2-tools` (subprocess via `execFile`) | Industry standard TPM 2.0 interface. P-256 universally supported. |
-| **Hardware — Fallback** | Encrypted file (AES-256-GCM + Argon2id) | Automatic fallback. Passphrase auto-generated and stored in identity.json. For cloud VMs without hardware key storage. |
+| **Hardware — Fallback** | Encrypted file (AES-256-GCM + Argon2id) | Automatic fallback. Passphrase auto-generated and stored in a **dedicated file** (`~/.amesh/.passphrase`, mode 0o400) separate from `identity.json`. Operators can relocate via `AMESH_PASSPHRASE_FILE` or supply via `AUTH_MESH_PASSPHRASE` env var. Legacy installs with the passphrase in `identity.json` are auto-migrated. For cloud VMs without hardware key storage. |
 | **Relay Server** | Bun.serve() native | Zero deps — no Fastify, no ws. |
 | **Allow List Storage** | JSON file + HMAC integrity seal | See Section 9 — the plaintext JSON without integrity protection is a critical vulnerability |
 | **Package Manager** | Bun workspaces | Monorepo-friendly, fast installs, native test runner |
@@ -386,6 +386,14 @@ Authorization: AuthMesh v="1",id="<Base64URL_CompressedP256PubKey>",ts="<UnixTim
 Authorization: AuthMesh v="1",id="8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c",ts="1743160800",nonce="dGVzdG5vbmNlMTIz",sig="BASE64URL_SIGNATURE_HERE"
 ```
 
+**Parser invariants (L2).** A conforming parser MUST:
+- Reject headers longer than 1024 characters.
+- Reject duplicate keys (e.g. `v="1",v="2"`) — the whole header is invalid, not last-wins.
+- Reject unknown keys — forward-compat is done via the `v=` field, not via adding arbitrary keys.
+- Enforce per-field length caps: `v` ≤ 8, `ts` ≤ 16, `nonce` ≤ 64, `id` ≤ 128, `sig` ≤ 256.
+
+The reference implementation lives in `packages/sdk/src/header.ts`.
+
 ### SDK — Client Usage
 
 ```typescript
@@ -417,8 +425,28 @@ app.use('/api', authMeshVerify({
   allowListPath: '~/.amesh/allow_list.json',  // default
   clockSkewSeconds: 30,                            // default
   nonceWindowSeconds: 60,                          // default
+  maxBodyBytes: 1_048_576,                         // default (1 MiB)
 }));
 ```
+
+### Middleware ordering contract (M5)
+
+`authMeshVerify` MUST hash the **raw bytes** of the request body, not a re-serialized projection of a parsed object. Any re-serialization would allow multiple byte sequences that parse to the same object to verify against the same signature (compatibility footgun + latent signature-relaxation bug).
+
+Supported body sources, in priority order:
+
+1. **`req.rawBody`** (Buffer or Uint8Array) — recommended when an upstream parser runs before `authMeshVerify`. Parsers like `express.json` expose a `verify` hook for exactly this purpose:
+   ```typescript
+   app.use(express.json({
+     verify: (req, _res, buf) => { (req as any).rawBody = buf; }
+   }));
+   app.use('/api', authMeshVerify({ allowList }));
+   ```
+2. **`req.body` as Buffer** — e.g. `express.raw()`.
+3. **`req.body` as string** — e.g. `express.text()`. Only safe for text bodies; non-UTF-8 bytes will be corrupted.
+4. **No upstream parser** — `authMeshVerify` buffers the stream itself, enforcing `maxBodyBytes` (default 1 MiB), and caches both `req.rawBody` and `req.body` for downstream handlers.
+
+If `req.body` is a parsed object with NO `req.rawBody`, the middleware returns **500 `body_parser_ordering_error`** rather than silently re-serializing. Mount `authMeshVerify` before body parsers, or configure your parser with a `verify` hook. A Content-Length header exceeding `maxBodyBytes` short-circuits to **413 `payload_too_large`**.
 
 ### Verification Algorithm (Sequential — fail fast)
 
@@ -523,9 +551,13 @@ The allow list is **sealed** with an HMAC derived from the device's key material
     }
   ],
   "updatedAt": "2026-03-28T10:05:00Z",
-  "hmac": "HMAC-SHA256 over canonical JSON of {version, devices, updatedAt}"
+  "hmac": "HMAC-SHA256 over DETERMINISTIC canonical JSON of {version, devices, updatedAt}"
 }
 ```
+
+**Canonical JSON for HMAC (L5).** The canonical serializer used for HMAC input MUST sort object keys lexicographically at every level, recurse into arrays in order, drop `undefined` fields (JSON semantics), and emit no whitespace. This makes the HMAC bind to the content, not the JavaScript insertion order. The reference implementation is `stableStringify` in `packages/keystore/src/allow-list.ts`.
+
+Pre-L5 files sealed with `JSON.stringify` (insertion-order dependent) are accepted on read via a legacy-canonical fallback and automatically re-sealed with the deterministic form on next write.
 
 The `role` field enforces trust directionality:
 - `"controller"` — this peer may authenticate to me (accepted by verification middleware)
@@ -615,15 +647,37 @@ Termination:
 
 ### Relay Rate Limiting (mandatory)
 The relay MUST enforce:
-- Max 5 failed OTC attempts per IP per minute
+- Max 5 failed OTC `listen`/`connect` attempts per client IP per minute
+- Max 10 `bootstrap_watch` registrations per client IP per minute (separate bucket)
 - Max 5 failed attempts per OTC (then OTC is burned)
 - Max 1 active connection per OTC
+- Max 50,000 concurrent pairing sessions per relay instance (`session_store_full` → `relay_capacity`)
+- Max 10,000 concurrent WebSocket connections per relay instance
 - OTC session expires after 60 seconds
 
+### Client IP extraction behind a reverse proxy (H1)
+
+`srv.requestIP()` returns the **load balancer peer** on Cloud Run, nginx, Cloudflare, Istio, etc. — identical for every client — which collapses per-IP rate limiting into a global bucket. The relay MUST extract the real client IP from the left-most `X-Forwarded-For` entry when running behind a trusted proxy, and MUST NOT honour XFF on directly-exposed deployments (where clients could spoof the header to pick a rate-limit bucket).
+
+The reference implementation reads `AMESH_TRUST_PROXY=1|true|yes` at startup. Operators deploying behind Cloud Run / nginx / any LB MUST set this env var; operators on directly-exposed relays MUST leave it unset.
+
+### Bootstrap-token single-use enforcement (H4)
+
+Bootstrap tokens declare `single_use: true` in their payload. The relay MUST track consumed `jti` values in an in-memory set with TTL ≥ `MAX_TTL + clock_skew` (25h in the reference implementation) and reject replayed `bootstrap_init` messages with `bootstrap_reject { error: "token_already_used" }`. The jti is burned on first `bootstrap_init` regardless of whether the downstream handshake completes (fail-safe). Persistence across relay restarts is a best-effort property, not a guarantee — operators deploying multi-instance or restart-prone relays should pin bootstrap issuance to a short TTL so replay windows stay tight.
+
+### Bootstrap-watcher claim protection (M3)
+
+`bootstrap_watch` is last-write-wins per jti, which used to let any client race-claim any jti and DoS pairing. The relay MUST:
+- Reject `bootstrap_watch` when a healthy (readyState OPEN) watcher from a DIFFERENT socket already owns the jti (error `jti_already_watched`)
+- Allow the same socket to re-register its own jti (reconnect idempotency)
+- Rate-limit `bootstrap_watch` per IP
+- Validate `jti` is a string of at most 128 characters
+
 ### Relay Deployment
-- Deploy as a Docker container on Fly.io for MVP (~$2/month, standard Node.js, easy deploy)
-- The relay is stateless — horizontal scaling is trivial
-- Log only: connection timestamps and OTC collision metrics (not OTC values themselves)
+- Deploy as a Docker container on Fly.io or Cloud Run (~$2/month, standard Bun.serve(), easy deploy)
+- Set `AMESH_TRUST_PROXY=1` when running behind a load balancer or reverse proxy (see H1 above)
+- The relay is stateless across process lifetime but keeps some in-memory state (sessions, consumed jtis) per instance — horizontal scaling needs either sticky sessions or a shared store (e.g. Redis) for consumed jtis; MVP is single-instance
+- Log only: connection timestamps, OTC collision metrics, and rate-limit hits (not OTC values, not token payloads)
 - Consider Cloudflare Durable Objects for cost optimization at scale (future)
 
 ---
@@ -766,6 +820,33 @@ By default, a target allows only **one controller** (`maxControllers: 1`). This 
 ### Query String Canonicalization
 Sort query parameters alphabetically before including in canonical string `M`. This prevents the same request from having two valid signatures depending on parameter ordering. Use: `new URLSearchParams(url.search).sort().toString()`.
 
+### Security audit — April 2026
+
+A full external-pen-tester-style audit was performed on 2026-04-05 covering the crypto primitives, keystore, SDK middleware, relay, and agent/cli shell flows. All critical and high-severity findings have been fixed; the mediums and informational items have also landed in the same branch. Summary:
+
+| Severity | Finding | Fix |
+|---|---|---|
+| Critical | **C1** — Shell handshake MITM via unbound `selfSig` | Transcript-bound signature: `selfSig` now covers `"amesh-shell-v1"` domain prefix + peer identity fields + `sha256(signerEph \|\| verifierEph)`. A MITM relay forwarding an encrypted identity envelope across two ECDH legs no longer produces a signature that verifies on the receiving leg. See Remote Shell Spec §7.1. |
+| Critical | **C2** — Encrypted-file passphrase stored next to the key | Passphrase moved to a dedicated file (`~/.amesh/.passphrase`, mode 0o400) with legacy auto-migration. Preferred source is `AUTH_MESH_PASSPHRASE` env var so secrets can stay off disk. Operators can relocate via `AMESH_PASSPHRASE_FILE`. |
+| High | **H1** — Rate limiter used LB peer IP | Relay extracts client IP from left-most `X-Forwarded-For` entry when `AMESH_TRUST_PROXY=1`, with bounded-format validation. |
+| High | **H2** — Passphrase colocation (see C2) | — |
+| High | **H3** — ShellCipher DoS via counter desync on injected frame | `recvCounter` now only advances after successful Poly1305 verification. |
+| High | **H4** — Bootstrap token `single_use` not enforced | Relay keeps a 25h consumed-jti set; duplicate `bootstrap_init` is rejected with `token_already_used`. Payload `scope`/`single_use`/`alg`/`iat` are now enforced at decode time. |
+| Medium | **M1** — Relay connection counter double-decrement | Rejected sockets marked via `ws.data.rejected`; `close()` handles the single decrement. |
+| Medium | **M2** — SessionStore unbounded | 50,000-session cap with distinct `relay_capacity` error code. |
+| Medium | **M3** — Bootstrap watcher race | `jti_already_watched` rejection + dedicated rate limiter + jti length cap. |
+| Medium | **M4** — Agent listener leak + orphan bash on reconnect | `createMessageReader().dispose()` + outer-scope `activeSession` torn down on relay disconnect. |
+| Medium | **M5** — Middleware re-serialized parsed bodies | Middleware now hashes raw bytes only (`rawBody` → Buffer → string → stream). Parsed-object bodies without `rawBody` return `500 body_parser_ordering_error`. |
+| Medium | **M6** — Bootstrap token `iat`/`alg`/`scope`/`single_use` unchecked | `validateBootstrapToken` enforces all four invariants with distinct error codes. |
+| Medium | **M7** — TPM driver returned wrong formats | `tpm2_sign --format=plain` with TPMT_SIGNATURE fallback parser; `pemToRaw` now properly decodes P-256 SubjectPublicKeyInfo into a 33-byte compressed point. |
+| Low | **L2** — Auth header parser laxity | Reject duplicate keys, unknown keys, oversized headers, per-field length caps. |
+| Low | **L3** — AgentStore pubkey compare not constant-time | Replaced with `constantTimeStringEqual`. |
+| Low | **L4** — macOS DER parser had no bounds checks | Bounds-checked every field, rejected long-form lengths, enforced r/s ≤ 32 bytes. |
+| Low | **L5** — Allow-list canonical JSON was insertion-order dependent | Deterministic `stableStringify` with recursive key sorting; legacy canonical accepted on read with auto re-seal. |
+| Low | **L6** — Bootstrap ack message had no delimiter | Ack message now `"amesh-bootstrap-ack-v1\n" + pubB64 + "\n" + jti`. |
+
+Regression tests for every fix ship in the same PR. The full audit report lives at `docs/security-audit-2026-04.md`.
+
 ---
 
 ## 14. Error Reference
@@ -773,19 +854,34 @@ Sort query parameters alphabetically before including in canonical string `M`. T
 | HTTP Status | Error Code | Meaning |
 |---|---|---|
 | `400` | `missing_header` | `Authorization` header absent |
-| `400` | `malformed_header` | Header present but cannot be parsed |
+| `400` | `malformed_header` | Header present but cannot be parsed (includes duplicate keys, unknown keys, oversized fields — see L2 in §13) |
 | `400` | `unsupported_version` | `v` field is not `"1"` |
 | `401` | `unauthorized` | `id` not in allow list |
 | `401` | `timestamp_out_of_range` | Clock skew exceeds 30 seconds |
 | `401` | `replay_detected` | Nonce was used previously |
 | `401` | `invalid_signature` | Signature does not verify |
+| `413` | `payload_too_large` | Request body exceeds `maxBodyBytes` (default 1 MiB) — M5 |
+| `500` | `body_parser_ordering_error` | A body parser ran before `authMeshVerify` without preserving raw bytes — see M5 middleware ordering contract in §8 |
 | `500` | `allow_list_integrity_failure` | HMAC check failed — possible tampering |
+| `500` | `internal_error` | Catch-all for unexpected server-side failures |
+
+Bootstrap token validation errors (returned from `validateBootstrapToken`, surfaced to bootstrap clients and logs):
+| Error Code | Meaning |
+|---|---|
+| `invalid_token_format` / `invalid_token_type` / `unsupported_token_version` | Structural parse failure |
+| `unsupported_token_alg` | Header `alg` is not `ES256` |
+| `unsupported_token_scope` | Payload `scope` is not `peer:add` |
+| `token_must_be_single_use` | Payload `single_use` is not `true` |
+| `token_not_yet_valid` | Payload `iat` is in the future beyond 60s skew |
+| `token_expired` | Payload `exp` is in the past |
+| `invalid_signature` | Signature verification failed against the embedded controller pub |
+| `token_already_used` | Returned by the relay when a `bootstrap_init` reuses a consumed `jti` (H4) |
 
 All `401` responses return the same body to prevent oracle attacks:
 ```json
 { "error": "unauthorized" }
 ```
-The specific error code is logged server-side but never returned to the client (exception: `timestamp_out_of_range` and `unsupported_version` may be returned to aid debugging).
+The specific error code is logged server-side but never returned to the client (exception: `timestamp_out_of_range` and `unsupported_version` may be returned to aid debugging). 400, 413, and 5xx responses DO include the specific code — these describe client/server misconfiguration, not verification state, so there's no oracle to leak.
 
 ---
 

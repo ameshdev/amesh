@@ -17,6 +17,12 @@ async function identityExists(): Promise<boolean> {
   }
 }
 
+interface BootstrapHeader {
+  typ: string;
+  ver: string;
+  alg: string;
+}
+
 interface BootstrapPayload {
   iss: string;
   pub?: string; // controller public key (base64, compressed P-256) — added in security hardening
@@ -29,16 +35,44 @@ interface BootstrapPayload {
   single_use: boolean;
 }
 
+/**
+ * Allowed clock skew between token issuer and consumer, in seconds.
+ */
+const IAT_CLOCK_SKEW_SECONDS = 60;
+
 function decodeToken(token: string): {
+  header: BootstrapHeader;
   payload: BootstrapPayload;
   signatureInput: string;
   signature: Uint8Array;
 } {
   const parts = token.replace(/^amesh-bt-v1\./, '').split('.');
   if (parts.length !== 3) throw new Error('invalid_token_format');
+  const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString()) as BootstrapHeader;
   const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString()) as BootstrapPayload;
   const signature = new Uint8Array(Buffer.from(parts[2], 'base64url'));
-  return { payload, signatureInput: `${parts[0]}.${parts[1]}`, signature };
+  return { header, payload, signatureInput: `${parts[0]}.${parts[1]}`, signature };
+}
+
+/**
+ * Enforce the structural / temporal invariants that the token claims to have.
+ * Does NOT verify the signature — caller must do that separately, because we
+ * want to fail fast on malformed/expired tokens before any ECDSA work.
+ */
+function validateTokenInvariants(header: BootstrapHeader, payload: BootstrapPayload): void {
+  if (header.typ !== 'amesh-bootstrap') throw new Error('invalid_token_type');
+  if (header.ver !== '1') throw new Error('unsupported_token_version');
+  if (header.alg !== 'ES256') throw new Error('unsupported_token_alg');
+  if (payload.scope !== 'peer:add') throw new Error('unsupported_token_scope');
+  if (payload.single_use !== true) throw new Error('token_must_be_single_use');
+
+  const now = Math.floor(Date.now() / 1000);
+  if (typeof payload.iat !== 'number' || payload.iat > now + IAT_CLOCK_SKEW_SECONDS) {
+    throw new Error('token_not_yet_valid');
+  }
+  if (typeof payload.exp !== 'number' || payload.exp <= now) {
+    throw new Error('token_expired');
+  }
 }
 
 export interface BootstrapOptions {
@@ -71,10 +105,12 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
   }
 
   // Token present, no identity — run bootstrap
-  const { payload, signatureInput, signature } = decodeToken(token!);
+  const { header, payload, signatureInput, signature } = decodeToken(token!);
 
-  const now = Math.floor(Date.now() / 1000);
-  if (payload.exp <= now) throw new Error('token_expired');
+  // Enforce structural, alg, scope, iat (not-before), and exp checks up-front.
+  // Signature is verified later against the controller pub key embedded in
+  // the token payload — see the bootstrap_ack handler below.
+  validateTokenInvariants(header, payload);
 
   // Generate our identity
   const ameshDir = getAmeshDir();
@@ -150,9 +186,17 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
             }
           }
 
-          // Verify controller's ack signature
+          // Verify controller's ack signature.
+          // L6 — delimit with "\n" and a domain prefix so the two concatenated
+          // fields cannot collide with another message shape the controller
+          // also signs. Base64 pubkeys are 44 chars and jtis are `bt_<hex>`,
+          // so collision was already unreachable in practice, but explicit
+          // delimiters + domain separation remove the theoretical footgun.
           const ackMsg = new TextEncoder().encode(
-            Buffer.from(publicKey).toString('base64') + payload.jti,
+            'amesh-bootstrap-ack-v1\n' +
+              Buffer.from(publicKey).toString('base64') +
+              '\n' +
+              payload.jti,
           );
           const ackSig = new Uint8Array(Buffer.from(msg.controllerSig, 'base64'));
           if (!verifyMessage(ackSig, ackMsg, controllerPubKey)) {
@@ -168,8 +212,12 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
           // Hardware keystores can't rename keys. Store a keyAlias mapping
           // so the real deviceId maps to the 'am_pending' key in hardware.
 
-          // Write identity.json (atomic: tmp + rename)
-          const { writeFile, mkdir, rename: renameFile } = await import('node:fs/promises');
+          // Write identity.json (atomic: tmp + rename).
+          // H2 — do NOT embed `passphrase` in identity.json. The encrypted-file
+          // backend's passphrase goes into a dedicated file (getPassphrasePath
+          // on the agent/cli side), and bootstrap mirrors that by writing to
+          // the same location.
+          const { writeFile, mkdir, rename: renameFile, chmod } = await import('node:fs/promises');
           const { dirname } = await import('node:path');
           const identityPath = join(ameshDir, 'identity.json');
           const tmpPath = `${identityPath}.tmp`;
@@ -182,13 +230,24 @@ export async function bootstrapIfNeeded(opts?: BootstrapOptions): Promise<void> 
             friendlyName: payload.name,
             createdAt: new Date().toISOString(),
             storageBackend: backend,
-            ...(autoPassphrase ? { passphrase: autoPassphrase } : {}),
           };
           await writeFile(tmpPath, JSON.stringify(identityData, null, 2), {
             encoding: 'utf-8',
             mode: 0o600,
           });
           await renameFile(tmpPath, identityPath);
+
+          if (autoPassphrase) {
+            const passphrasePath =
+              process.env.AMESH_PASSPHRASE_FILE ?? join(ameshDir, '.passphrase');
+            const passphraseTmp = `${passphrasePath}.tmp`;
+            await writeFile(passphraseTmp, autoPassphrase, {
+              encoding: 'utf-8',
+              mode: 0o600,
+            });
+            await renameFile(passphraseTmp, passphrasePath);
+            await chmod(passphrasePath, 0o400);
+          }
 
           // Write allow list with controller
           const hmacKey = await keyStore.getHmacKeyMaterial('am_pending');

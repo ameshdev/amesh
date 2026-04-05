@@ -34,10 +34,60 @@ function deriveHmacKey(privateKeyMaterial: Uint8Array, deviceId: string): Uint8A
 }
 
 /**
+ * Deterministic JSON serializer used as the HMAC input for the allow list.
+ *
+ * L5 — the previous version used `JSON.stringify` on the raw object, which
+ * is deterministic WITHIN a single V8 run that preserves insertion order,
+ * but brittle across:
+ *   - Different object construction orders (future refactors)
+ *   - Manual edits to the file
+ *   - Cross-runtime interop (a future port to a different parser)
+ *
+ * This canonicalizer emits object keys in sorted (lexicographic) order at
+ * every level, giving the same output regardless of how the input object
+ * was built. The recursion depth is bounded to protect against pathological
+ * inputs, though in practice the allow list is shallow.
+ */
+function stableStringify(value: unknown, depth = 0): string {
+  if (depth > 32) throw new Error('stableStringify: max depth exceeded');
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return '[' + value.map((v) => stableStringify(v, depth + 1)).join(',') + ']';
+  }
+  const keys = Object.keys(value as object).sort();
+  const parts: string[] = [];
+  for (const key of keys) {
+    const v = (value as Record<string, unknown>)[key];
+    if (v === undefined) continue; // JSON.stringify drops undefined — match that behaviour
+    parts.push(`${JSON.stringify(key)}:${stableStringify(v, depth + 1)}`);
+  }
+  return '{' + parts.join(',') + '}';
+}
+
+/**
  * Compute the canonical JSON representation for HMAC computation.
  * Only includes {version, devices, updatedAt} — the hmac field itself is excluded.
+ * Uses `stableStringify` so the HMAC is tied to the CONTENT, not the key
+ * insertion order of the JavaScript object.
  */
 function canonicalPayload(data: Omit<AllowListData, 'hmac'>): Uint8Array {
+  const canonical = stableStringify({
+    version: data.version,
+    devices: data.devices,
+    updatedAt: data.updatedAt,
+  });
+  return new TextEncoder().encode(canonical);
+}
+
+/**
+ * Legacy canonicalization (pre-L5) — plain `JSON.stringify` that relied on
+ * insertion order. Kept only so the read path can validate existing sealed
+ * files written by older versions and automatically re-seal them with the
+ * deterministic canonicalizer above.
+ */
+function legacyCanonicalPayload(data: Omit<AllowListData, 'hmac'>): Uint8Array {
   const canonical = JSON.stringify({
     version: data.version,
     devices: data.devices,
@@ -76,10 +126,23 @@ export class AllowList {
     }
 
     const data = JSON.parse(content) as AllowListData;
-    this.verifyIntegrity(data);
+    // L5 — try the deterministic canonical first; if that fails, fall back
+    // to the legacy (insertion-order JSON.stringify) canonical that pre-L5
+    // files were sealed with. If the legacy canonical matches, accept the
+    // file and re-seal it with the deterministic form on the way out.
+    let needsCanonicalMigration = false;
+    if (!this.verifyIntegrityWithCanonical(data, canonicalPayload)) {
+      if (!this.verifyIntegrityWithCanonical(data, legacyCanonicalPayload)) {
+        throw new Error(
+          'CRITICAL: allow_list integrity check failed — possible tampering. ' +
+            'The HMAC seal does not match. Refusing to process.',
+        );
+      }
+      needsCanonicalMigration = true;
+    }
 
     // Migrate legacy entries without role field (default to 'controller' — permissive)
-    let needsReseal = false;
+    let needsReseal = needsCanonicalMigration;
     for (const device of data.devices) {
       if (!device.role) {
         (device as AllowListDevice).role = 'controller';
@@ -180,18 +243,18 @@ export class AllowList {
   }
 
   /**
-   * Verify HMAC integrity. Throws on failure — never silently continue.
+   * Verify HMAC integrity using a specific canonicalization function.
+   * Returns true on match, false on mismatch. Used by `read()` to try the
+   * deterministic canonical first and fall back to the legacy form for
+   * pre-L5 sealed files.
    */
-  private verifyIntegrity(data: AllowListData): void {
-    const payload = canonicalPayload(data);
+  private verifyIntegrityWithCanonical(
+    data: AllowListData,
+    canonicalize: (d: Omit<AllowListData, 'hmac'>) => Uint8Array,
+  ): boolean {
+    const payload = canonicalize(data);
     const expectedHmac = Buffer.from(data.hmac, 'base64');
-
-    if (!verifyHmac(this.hmacKey, payload, expectedHmac)) {
-      throw new Error(
-        'CRITICAL: allow_list integrity check failed — possible tampering. ' +
-          'The HMAC seal does not match. Refusing to process.',
-      );
-    }
+    return verifyHmac(this.hmacKey, payload, expectedHmac);
   }
 
   /**

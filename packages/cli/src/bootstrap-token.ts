@@ -101,16 +101,38 @@ export function decodeBootstrapToken(token: string): {
 }
 
 /**
- * Validate a bootstrap token: check expiry and verify signature.
+ * Allowed clock skew between token issuer and consumer, in seconds.
+ */
+const IAT_CLOCK_SKEW_SECONDS = 60;
+
+/**
+ * Validate a bootstrap token: structural checks, expiry, not-before, and
+ * signature. Does NOT enforce single-use — callers must layer that on top via
+ * a consumed-jti registry.
  */
 export function validateBootstrapToken(
   token: string,
   controllerPublicKey: Uint8Array,
 ): BootstrapTokenPayload {
-  const { payload, signatureInput, signature } = decodeBootstrapToken(token);
+  const { header, payload, signatureInput, signature } = decodeBootstrapToken(token);
+
+  if (header.alg !== 'ES256') {
+    throw new Error('unsupported_token_alg');
+  }
+  if (payload.scope !== 'peer:add') {
+    throw new Error('unsupported_token_scope');
+  }
+  if (payload.single_use !== true) {
+    throw new Error('token_must_be_single_use');
+  }
 
   const now = Math.floor(Date.now() / 1000);
-  if (payload.exp <= now) throw new Error('token_expired');
+  if (typeof payload.iat !== 'number' || payload.iat > now + IAT_CLOCK_SKEW_SECONDS) {
+    throw new Error('token_not_yet_valid');
+  }
+  if (typeof payload.exp !== 'number' || payload.exp <= now) {
+    throw new Error('token_expired');
+  }
 
   const message = new TextEncoder().encode(signatureInput);
   if (!verifyMessage(signature, message, controllerPublicKey)) {

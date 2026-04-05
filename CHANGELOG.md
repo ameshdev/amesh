@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — security audit 2026-04
+
+Full external-pen-tester-style audit. All findings (2 critical, 4 high, 7 medium, 5 low) are fixed on branch `security/audit-fixes-2026-04`. 99 new regression tests, 206 pass / 0 fail in the source test suite. Full writeup in `docs/security-audit-2026-04.md`.
+
+### Security
+
+- **C1 — Shell handshake MITM via unbound `selfSig` (CRITICAL).** The shell handshake's `selfSig` covered only `pub + name + timestamp`, not the ECDH ephemeral keys. A compromised relay (explicitly in-threat-model) could decrypt one leg's encrypted identity envelope and re-encrypt it onto the other leg, producing a signature that verified on both sides while the relay held the session key. `selfSig` is now bound to a `sha256(signerEphPub || verifierEphPub)` transcript under the `amesh-shell-v1` domain prefix. See `docs/remote-shell-spec.md §7.1`.
+- **C2 / H2 — Encrypted-file passphrase stored next to the encrypted key (CRITICAL).** The auto-generated passphrase was written into `~/.amesh/identity.json` in the same directory as `~/.amesh/keys/<deviceId>.key.json`, making the Argon2id layer cosmetic against any filesystem-read adversary. Passphrase now lives in a dedicated `~/.amesh/.passphrase` file (mode `0o400`) with `AMESH_PASSPHRASE_FILE` override and `AUTH_MESH_PASSPHRASE` env-var override. Legacy installs auto-migrate on first read with a one-time warning log.
+- **H1 — Relay rate limiter used load-balancer IP (HIGH).** `Bun.serve().requestIP()` returns the LB peer on Cloud Run / nginx / Cloudflare, collapsing all clients into a global 5/min bucket. Relay now extracts the left-most `X-Forwarded-For` entry when `AMESH_TRUST_PROXY=1|true|yes`, with strict IP format validation. **Operator action required:** set `AMESH_TRUST_PROXY=1` in your Cloud Run service config.
+- **H3 — ShellCipher DoS via counter desync on injected frame (HIGH).** `ShellCipher.decrypt()` advanced `recvCounter` before Poly1305 verification, so a single junk frame from an untrusted relay permanently killed every shell session. Counter now only advances after successful AEAD verification.
+- **H4 — Bootstrap token `single_use` not enforced (HIGH).** Payload claimed `single_use: true` but no code path tracked consumed `jti`s. Relay now keeps a 25h consumed-jti set and rejects replayed `bootstrap_init` with `bootstrap_reject { error: "token_already_used" }`. Fail-safe: jti is burned on first init even if downstream bootstrap fails.
+- **M1 — Relay connection counter double-decrement (Medium).** Overflow rejection decremented both in `open()` AND the subsequent `close()`, letting `connectionCount` drift negative and silently bypass `MAX_CONNECTIONS`. Rejected sockets now set `ws.data.rejected` and leave decrementing to `close()`.
+- **M2 — SessionStore unbounded (Medium).** 50,000-session cap with distinct `relay_capacity` error code (separate from `otc_in_use`). Configurable via `createRelayServer({maxSessions})`.
+- **M3 — Bootstrap watcher race / DoS (Medium).** `bootstrap_watch` was last-write-wins; an attacker could continuously hijack legitimate watchers. Now rejects claims from different sockets while a healthy watcher holds the jti (`jti_already_watched`), has its own 10/min/IP rate limiter, and validates jti length.
+- **M4 — Agent listener leak + orphan bash on reconnect (Medium).** `createMessageReader` now exposes `dispose()`; agent daemon tracks an `ActiveSession` in outer scope and tears down (kill proc, clear timer, close cipher) on relay disconnect. Previously the bash process orphaned and `sessionActive` stayed true until idle timeout.
+- **M5 — Middleware body re-serialization (Medium).** `authMeshVerify` previously called `JSON.stringify(req.body)` when `express.json()` had already parsed the body, hashing something different from the client's signed bytes. Middleware now hashes raw bytes only: `req.rawBody` → `Buffer` → string → stream buffer. A parsed-object `req.body` with no `rawBody` is now a hard `500 body_parser_ordering_error` — mount `authMeshVerify` before parsers or use a `verify` hook. See `docs/protocol-spec.md §8` for the new ordering contract.
+- **M6 — Bootstrap token missing `iat`/`alg`/`scope`/`single_use` checks (Medium).** `validateBootstrapToken` now enforces all four with distinct error codes.
+- **M7 — TPM driver returned wrong formats (Medium).** `tpm2_sign` now passes `--format=plain` (with a TPMT_SIGNATURE fallback parser for tpm2-tools 4.x); `pemToRaw` properly decodes SubjectPublicKeyInfo into a 33-byte compressed P-256 point via a bounded DER walker.
+- **L2 — Auth header parser laxity (Low).** Reject duplicate keys, unknown keys, oversized headers (>1024 chars), per-field length caps.
+- **L3 — `AgentStore` pubkey compare (Low).** Replaced `!==` with `constantTimeStringEqual` in `register()` and `matchAndGet()`.
+- **L4 — macOS DER parser bounds checks (Low).** Every field access now bounds-checked, long-form lengths rejected, r/s length ceilings enforced.
+- **L5 — Allow-list canonical JSON (Low).** HMAC input now computed via `stableStringify` (recursive key sort) instead of `JSON.stringify`. Pre-L5 files accepted via legacy-canonical fallback with auto re-seal on next write.
+- **L6 — Bootstrap ack delimiter (Low).** Ack message now `"amesh-bootstrap-ack-v1\n" + pubB64 + "\n" + jti` with explicit delimiters and domain prefix.
+
+### Operator actions required when deploying this release
+
+1. **Set `AMESH_TRUST_PROXY=1`** on relays running behind a reverse proxy / load balancer. Without this, H1 is inert and per-IP rate limiting remains broken.
+2. **Audit middleware ordering.** If you run `authMeshVerify` alongside a body parser like `express.json()`, either put `authMeshVerify` first or add a `verify` hook that populates `req.rawBody`. Otherwise requests will start returning `500 body_parser_ordering_error`. See `docs/protocol-spec.md §8`.
+3. **Watch for one-time passphrase migration log.** Existing encrypted-file installs will print `[amesh] migrated legacy passphrase from identity.json to dedicated file` once on next load. Verify the `passphrase` field is gone from `identity.json` afterwards.
+
 ## [0.4.0] - 2026-04-05
 
 ### Added

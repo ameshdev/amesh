@@ -11,7 +11,12 @@ export interface Identity {
   createdAt: string; // ISO 8601
   storageBackend: string;
   maxControllers?: number; // default 1 — max controllers allowed on this target
-  /** SENSITIVE — auto-generated passphrase for encrypted-file backend. Never log or display. */
+  /**
+   * DEPRECATED (H2) — passphrase lives in a dedicated file (`getPassphrasePath`)
+   * with mode 0o400, not in identity.json. This field only exists for legacy
+   * pre-H2 installs; `resolvePassphrase()` auto-migrates it to the new file
+   * and strips it from identity.json on next load.
+   */
   passphrase?: string;
 }
 

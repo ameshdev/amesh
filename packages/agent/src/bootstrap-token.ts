@@ -101,16 +101,50 @@ export function decodeBootstrapToken(token: string): {
 }
 
 /**
- * Validate a bootstrap token: check expiry and verify signature.
+ * Allowed clock skew between token issuer and consumer, in seconds.
+ * Used when validating `iat` (not-before): a token whose `iat` is further
+ * than this in the future is rejected as clock-skewed or backdated.
+ */
+const IAT_CLOCK_SKEW_SECONDS = 60;
+
+/**
+ * Validate a bootstrap token: structural checks, expiry, not-before, and
+ * signature. Does NOT enforce single-use — callers must layer that on top via
+ * a consumed-jti registry.
  */
 export function validateBootstrapToken(
   token: string,
   controllerPublicKey: Uint8Array,
 ): BootstrapTokenPayload {
-  const { payload, signatureInput, signature } = decodeBootstrapToken(token);
+  const { header, payload, signatureInput, signature } = decodeBootstrapToken(token);
+
+  // Pin `alg` so a future crypto swap cannot accept a token with an
+  // unexpected signing algorithm (and so "alg: none"-style attacks are
+  // impossible even in theory).
+  if (header.alg !== 'ES256') {
+    throw new Error('unsupported_token_alg');
+  }
+
+  // Enforce the structural invariants of the payload so consumers can trust
+  // that `single_use` and `scope` mean what they claim.
+  if (payload.scope !== 'peer:add') {
+    throw new Error('unsupported_token_scope');
+  }
+  if (payload.single_use !== true) {
+    throw new Error('token_must_be_single_use');
+  }
 
   const now = Math.floor(Date.now() / 1000);
-  if (payload.exp <= now) throw new Error('token_expired');
+  // Not-before check: reject tokens issued in the future beyond the allowed
+  // skew. Guards against a backdated-clock issuer silently extending the
+  // effective lifetime, or payload tampering if signature verification is
+  // ever relaxed.
+  if (typeof payload.iat !== 'number' || payload.iat > now + IAT_CLOCK_SKEW_SECONDS) {
+    throw new Error('token_not_yet_valid');
+  }
+  if (typeof payload.exp !== 'number' || payload.exp <= now) {
+    throw new Error('token_expired');
+  }
 
   const message = new TextEncoder().encode(signatureInput);
   if (!verifyMessage(signature, message, controllerPublicKey)) {

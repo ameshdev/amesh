@@ -7,7 +7,13 @@ import {
 } from '@authmesh/keystore';
 import type { StorageBackend } from '@authmesh/keystore';
 import { generateDeviceId, saveIdentity, identityExists } from '../identity.js';
-import { getIdentityPath, getKeysDir } from '../paths.js';
+import {
+  getIdentityPath,
+  getKeysDir,
+  getPassphrasePath,
+  savePassphrase,
+  deletePassphraseFile,
+} from '../paths.js';
 import { rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -58,11 +64,18 @@ export default class Init extends Command {
     if (flags.backend) {
       backend = flags.backend as StorageBackend;
       if (backend === 'encrypted-file') {
-        resolvedPassphrase = generatePassphrase();
+        // Prefer operator-supplied passphrase via env var so secrets never
+        // have to touch disk. Only auto-generate as a last resort.
+        resolvedPassphrase = process.env.AUTH_MESH_PASSPHRASE ?? generatePassphrase();
         warning =
           'Using encrypted-file backend — keys are SOFTWARE-PROTECTED only.\n' +
           '  Private key is encrypted on disk but not bound to hardware.\n' +
-          '  For hardware-backed storage, use macOS (Keychain) or Linux with TPM 2.0, then re-run `amesh init --force`.';
+          `  Passphrase is stored in ${getPassphrasePath()} with mode 0o400.\n` +
+          '  For true hardware-level protection move this file to a secrets\n' +
+          '  manager / tmpfs / separate mount, or set AUTH_MESH_PASSPHRASE on\n' +
+          '  each run instead (see AMESH_PASSPHRASE_FILE).\n' +
+          '  For hardware-backed storage, use macOS (Keychain) or Linux with\n' +
+          '  TPM 2.0, then re-run `amesh init --force`.';
       }
       keyStore = await createForBackend(backend, keysDir, resolvedPassphrase);
       this.log(`  Using backend: ${BACKEND_LABELS[backend]}`);
@@ -102,11 +115,20 @@ export default class Init extends Command {
       friendlyName: flags.name,
       createdAt: new Date().toISOString(),
       storageBackend: backend,
-      ...(resolvedPassphrase ? { passphrase: resolvedPassphrase } : {}),
       ...(flags['max-controllers'] > 1 ? { maxControllers: flags['max-controllers'] } : {}),
     };
 
     await saveIdentity(identityPath, identity);
+
+    // H2 — write the passphrase (if any) to its dedicated file, NOT
+    // identity.json. This way a leak of identity.json alone does not
+    // compromise the encrypted-file backend's key. On `--force`, clear any
+    // pre-existing passphrase file so a backend switch doesn't leave stale
+    // state behind.
+    await deletePassphraseFile();
+    if (resolvedPassphrase) {
+      await savePassphrase(resolvedPassphrase);
+    }
 
     // Remove stale allow list — it was sealed with the old key and can't be verified
     const { getAllowListPath } = await import('../paths.js');
