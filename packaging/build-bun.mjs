@@ -1,10 +1,13 @@
 /**
- * Build script for Bun single-executable binary.
+ * Build script for Bun single-executable binaries.
  *
  * Usage:
  *   bun packaging/build-bun.mjs [--target bun-darwin-arm64]
  *
- * Compiles packages/cli/src/sea.ts into a standalone binary via `bun build --compile`.
+ * Compiles two standalone binaries via `bun build --compile`:
+ *   - packages/cli/src/sea.ts   → dist/amesh        (controller CLI)
+ *   - packages/agent/src/sea.ts → dist/amesh-agent  (target daemon + CLI)
+ *
  * On macOS targets, also compiles the Swift Secure Enclave helper.
  * Default target: current platform.
  */
@@ -19,8 +22,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const distDir = join(__dirname, 'dist');
 
-const pkg = JSON.parse(
+const cliPkg = JSON.parse(
   readFileSync(join(root, 'packages/cli/package.json'), 'utf-8'),
+);
+const agentPkg = JSON.parse(
+  readFileSync(join(root, 'packages/agent/package.json'), 'utf-8'),
 );
 
 // Parse --target flag from argv (e.g., --target bun-darwin-arm64)
@@ -32,25 +38,37 @@ const isDarwinTarget = target ? target.includes('darwin') : platform() === 'darw
 
 mkdirSync(distDir, { recursive: true });
 
-// --- Build the main CLI binary ---
-const outfile = join(distDir, 'amesh');
+function compile({ label, version, entry, outfile }) {
+  const cmd = [
+    'build',
+    entry,
+    '--compile',
+    '--minify',
+    '--define', `__VERSION__=${JSON.stringify(version)}`,
+    '--outfile', outfile,
+    ...(target ? ['--target', target] : []),
+  ];
+  console.log(`\nBuilding ${label} v${version}...`);
+  console.log(`  bun ${cmd.join(' ')}`);
+  execFileSync('bun', cmd, { stdio: 'inherit', cwd: root });
+  console.log(`Done → ${outfile}`);
+}
 
-const cmd = [
-  'build',
-  join(root, 'packages/cli/src/sea.ts'),
-  '--compile',
-  '--minify',
-  '--define', `__VERSION__=${JSON.stringify(pkg.version)}`,
-  '--outfile', outfile,
-  ...(target ? ['--target', target] : []),
-];
+// --- Build the main CLI binary (amesh) ---
+compile({
+  label: 'amesh',
+  version: cliPkg.version,
+  entry: join(root, 'packages/cli/src/sea.ts'),
+  outfile: join(distDir, 'amesh'),
+});
 
-console.log(`Building amesh v${pkg.version}...`);
-console.log(`  bun ${cmd.join(' ')}`);
-
-execFileSync('bun', cmd, { stdio: 'inherit', cwd: root });
-
-console.log(`\nDone → ${outfile}`);
+// --- Build the agent binary (amesh-agent) ---
+compile({
+  label: 'amesh-agent',
+  version: agentPkg.version,
+  entry: join(root, 'packages/agent/src/sea.ts'),
+  outfile: join(distDir, 'amesh-agent'),
+});
 
 // --- Build Swift helper for macOS targets ---
 if (isDarwinTarget) {

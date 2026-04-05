@@ -19,8 +19,9 @@ amesh revoke <device-id>         # Remove a trusted device
 amesh provision                  # Generate bootstrap tokens
 amesh grant <device-id> --shell  # Grant shell access to a controller
 amesh shell <device>             # Open remote shell to a target
-amesh agent start                # Start the agent daemon (target side)
 ```
+
+> **Target-side agent daemon:** The remote shell daemon lives in a separate package, [`@authmesh/agent`](https://www.npmjs.com/package/@authmesh/agent) (`amesh-agent agent start`). Install it on the server; install `@authmesh/cli` on your laptop.
 
 ## Pairing flow
 

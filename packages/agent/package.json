@@ -24,21 +24,23 @@
     "access": "public"
   },
   "bin": {
-    "amesh-agent": "./dist/index.js"
+    "amesh-agent": "./scripts/launcher.mjs"
   },
   "oclif": {
     "commands": "./dist/commands",
     "bin": "amesh-agent"
   },
   "files": [
-    "dist"
+    "dist",
+    "scripts"
   ],
   "scripts": {
     "build": "tsc -b",
     "test": "bun test src/__tests__/",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist bin *.tsbuildinfo",
+    "postinstall": "node scripts/postinstall.mjs"
   },
   "dependencies": {
     "@authmesh/core": "0.3.3",
