@@ -37,13 +37,97 @@ export interface WebSocketData {
   btJti?: string;
   agentDeviceId?: string;
   ip: string;
+  /** Set when open() rejected the socket for exceeding MAX_CONNECTIONS. */
+  rejected?: boolean;
+}
+
+/**
+ * Extract the client IP address for rate limiting and logging.
+ *
+ * When `trustProxy` is true we take the left-most entry of X-Forwarded-For,
+ * which is the originating client per RFC 7239. When false we use the TCP
+ * socket peer, which is correct for direct-exposure deployments.
+ *
+ * This is the fix for H1: `Bun.serve().requestIP()` returns the load balancer
+ * IP on Cloud Run / nginx / Cloudflare, so without XFF handling every client
+ * shares the same per-IP rate-limit bucket.
+ */
+export function extractClientIp(
+  req: Request,
+  srv: { requestIP: (req: Request) => { address: string } | null },
+  trustProxy: boolean,
+): string {
+  if (trustProxy) {
+    const xff = req.headers.get('x-forwarded-for');
+    if (xff) {
+      const first = xff.split(',')[0]?.trim();
+      if (first && isValidIp(first)) return first;
+    }
+  }
+  return srv.requestIP(req)?.address ?? 'unknown';
+}
+
+/**
+ * Validate that a string looks like an IPv4 or IPv6 address. Rejects empty
+ * strings and obvious garbage so a malformed XFF header can't pollute the
+ * rate-limit map with arbitrary values.
+ */
+export function isValidIp(s: string): boolean {
+  if (!s || s.length > 64) return false; // longest IPv6 with zone id margin
+  // IPv4: 1-3 digit octets separated by dots
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(s)) {
+    return s.split('.').every((o) => {
+      const n = Number(o);
+      return n >= 0 && n <= 255;
+    });
+  }
+  // IPv6: we only need to guarantee "no injection characters" for safe use as
+  // a rate-limit map key, not full RFC 4291 conformance. Accept values that
+  // contain a colon, consist of hex / colon / dot / percent / alnum (for zone
+  // IDs like `fe80::1%eth0`), and contain no spaces or delimiters that could
+  // confuse logs or downstream parsing.
+  if (s.includes(':') && /^[0-9a-zA-Z:.%]+$/.test(s)) return true;
+  return false;
 }
 
 const MAX_PAYLOAD = 65_536; // 64 KB — generous for handshake messages
-const MAX_CONNECTIONS = 10_000;
+const DEFAULT_MAX_CONNECTIONS = 10_000;
 const BOOTSTRAP_WATCHER_TTL_MS = 300_000; // 5 minutes
+// Bootstrap tokens are max 24h (see bootstrap-token.ts MAX_TTL). Consumed-jti
+// entries persist for slightly longer to cover clock skew between issuer and
+// relay. A relay restart loses this state — document in ops guide that
+// single-use enforcement is best-effort across restarts.
+const CONSUMED_JTI_TTL_MS = 25 * 60 * 60 * 1000; // 25h
+// Cap on the consumed-jti map so an attacker flooding bogus bootstrap_init
+// messages cannot exhaust relay memory. At 1M entries the map is ~100 MB.
+const CONSUMED_JTI_MAX_SIZE = 1_000_000;
 
-export function createRelayServer(opts?: { host?: string; port?: number }) {
+export function createRelayServer(opts?: {
+  host?: string;
+  port?: number;
+  maxConnections?: number;
+  /**
+   * When true, extract the client IP from the left-most entry of the
+   * `X-Forwarded-For` header instead of the TCP socket peer. Enable this when
+   * the relay runs behind a trusted reverse proxy / load balancer (Cloud Run,
+   * nginx, Cloudflare, …) — the socket peer there is the LB, identical for
+   * every client, so per-IP rate limiting collapses into a global bucket.
+   *
+   * NEVER enable this when the relay is directly exposed to untrusted
+   * clients: they could spoof the header and pick any rate-limit bucket.
+   *
+   * Defaults to reading the `AMESH_TRUST_PROXY` env var. `'1'`, `'true'`,
+   * `'yes'` all enable it; anything else (including unset) disables it.
+   */
+  trustProxy?: boolean;
+}) {
+  const MAX_CONNECTIONS = opts?.maxConnections ?? DEFAULT_MAX_CONNECTIONS;
+  const trustProxy =
+    opts?.trustProxy ??
+    (() => {
+      const envVal = process.env.AMESH_TRUST_PROXY?.toLowerCase();
+      return envVal === '1' || envVal === 'true' || envVal === 'yes';
+    })();
   const sessions = new SessionStore();
   const agentStore = new AgentStore();
   const rateLimiter = new RateLimiter(5, 60_000);
@@ -54,11 +138,20 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
     string,
     { socket: ServerWebSocket<WebSocketData>; createdAt: number }
   >();
+  // Consumed bootstrap-token jti → expiry timestamp (ms). Any bootstrap_init
+  // for a jti in this set is rejected. This is the relay-side single-use
+  // enforcement for H4 — it catches the "leaked token, attacker spawns a
+  // second target" scenario even though the relay is untrusted in the wider
+  // threat model (the attacker would have to also compromise the relay to
+  // bypass this check, at which point the single-use guarantee was already
+  // outside this layer's responsibility).
+  const consumedJtis = new Map<string, number>();
   // Track all connected sockets for bootstrap response routing
   const connectedSockets = new Set<ServerWebSocket<WebSocketData>>();
   let connectionCount = 0;
 
-  // Purge stale bootstrap watchers every 30 seconds
+  // Purge stale bootstrap watchers every 30 seconds, and prune expired
+  // consumed-jti entries (H4) on the same cadence.
   const bootstrapCleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [jti, entry] of bootstrapWatchers) {
@@ -68,6 +161,9 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
       ) {
         bootstrapWatchers.delete(jti);
       }
+    }
+    for (const [jti, expiresAt] of consumedJtis) {
+      if (expiresAt <= now) consumedJtis.delete(jti);
     }
   }, 30_000);
   bootstrapCleanupTimer.unref();
@@ -180,11 +276,36 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
       ws.send(JSON.stringify({ type: 'error', code: 'missing_jti' }));
       return;
     }
+
+    // H4 — single-use enforcement. A jti that has already been used for a
+    // bootstrap_init (successful or in-flight) is burned. This prevents a
+    // leaked token from being replayed to pair a second, attacker-controlled
+    // target within the token TTL.
+    const now = Date.now();
+    const consumedAt = consumedJtis.get(msg.jti);
+    if (consumedAt !== undefined && consumedAt > now) {
+      ws.send(JSON.stringify({ type: 'bootstrap_reject', error: 'token_already_used' }));
+      return;
+    }
+
     const entry = bootstrapWatchers.get(msg.jti);
     if (!entry || entry.socket.readyState !== WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'bootstrap_reject', error: 'no_watcher' }));
       return;
     }
+
+    // Reserve the jti immediately — even if the downstream ack never arrives,
+    // the token is burned. Fail-safe: a crash/disconnect mid-bootstrap should
+    // not let the token be retried by a different party.
+    if (consumedJtis.size >= CONSUMED_JTI_MAX_SIZE) {
+      // Bound memory under adversarial flooding. Reject new bootstraps until
+      // the periodic purge drops expired entries. This is a last-resort guard;
+      // legitimate deployments will not hit this.
+      ws.send(JSON.stringify({ type: 'bootstrap_reject', error: 'relay_overloaded' }));
+      return;
+    }
+    consumedJtis.set(msg.jti, now + CONSUMED_JTI_TTL_MS);
+
     // Store target socket for response routing
     ws.data.btJti = msg.jti;
     // Whitelist forwarded fields — do not forward arbitrary attacker-controlled data
@@ -342,6 +463,9 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
 
   return {
     sessions,
+    // Test-only handle on the consumed-jti map so regression tests can assert
+    // single-use enforcement without needing to run a full controller flow.
+    _consumedJtis: consumedJtis,
     get server() {
       return server;
     },
@@ -361,7 +485,7 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
           }
 
           if (url.pathname === '/ws') {
-            const ip = srv.requestIP(req)?.address ?? 'unknown';
+            const ip = extractClientIp(req, srv, trustProxy);
             const upgraded = srv.upgrade(req, {
               data: { ip },
             });
@@ -377,9 +501,15 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
             connectionCount++;
             connectedSockets.add(ws);
             if (connectionCount > MAX_CONNECTIONS) {
+              // Mark the socket as rejected so the close handler can skip
+              // cleanupSocket (which would run against a socket that never
+              // completed any protocol steps) and avoid the historical
+              // double-decrement bug where BOTH open() AND close() decremented
+              // connectionCount, letting it drift negative and silently bypass
+              // MAX_CONNECTIONS over time.
+              ws.data.rejected = true;
               ws.close(1013, 'too_many_connections');
-              connectionCount--;
-              connectedSockets.delete(ws);
+              // Do NOT decrement here — close() will handle it.
             }
           },
           message(ws, raw) {
@@ -433,7 +563,11 @@ export function createRelayServer(opts?: { host?: string; port?: number }) {
           close(ws) {
             connectionCount--;
             connectedSockets.delete(ws);
-            cleanupSocket(ws);
+            // Rejected sockets never entered any protocol state, so there's
+            // nothing to clean up. Running cleanupSocket on them would touch
+            // empty data fields and do nothing, but skipping is cleaner and
+            // makes the rejection path explicit.
+            if (!ws.data.rejected) cleanupSocket(ws);
           },
         },
       });
