@@ -85,21 +85,58 @@ function compressPublicKey(uncompressed: Uint8Array): Uint8Array {
 /**
  * Convert DER-encoded ECDSA signature to raw r||s (64 bytes).
  * Also normalizes S to low-S (Apple produces high-S sometimes).
+ *
+ * L4 — hardened against malformed input. The helper is a locally-signed
+ * binary so the trust boundary is internal, but the parser used to blindly
+ * walk `der[i]` with no bounds checks, so a buggy or tampered helper could
+ * write out-of-range bytes into the fixed 64-byte output. Every field read
+ * now validates the index and the tag/length bytes.
+ *
+ * DER layout for an ECDSA signature:
+ *   30 <seqlen> 02 <rlen> <r bytes> 02 <slen> <s bytes>
+ * All lengths are short-form (one byte, < 128) because a P-256 signature
+ * fits in < 72 bytes total. Long-form lengths are rejected as suspicious.
  */
-function derToRaw(der: Uint8Array): Uint8Array {
-  // DER: 30 <seqlen> 02 <rlen> <r> 02 <slen> <s>
-  let i = 2; // skip SEQUENCE tag (0x30) + length byte
-  i++; // skip INTEGER tag (0x02) for r
-  const rLen = der[i++];
+export function derToRaw(der: Uint8Array): Uint8Array {
+  const readByte = (idx: number): number => {
+    if (idx >= der.length) throw new Error('derToRaw: truncated signature');
+    return der[idx];
+  };
+
+  if (der.length < 8) throw new Error('derToRaw: signature too short');
+  if (readByte(0) !== 0x30) throw new Error('derToRaw: expected SEQUENCE tag');
+
+  const seqLen = readByte(1);
+  if (seqLen & 0x80) throw new Error('derToRaw: long-form SEQUENCE length not expected for P-256');
+  if (2 + seqLen > der.length) throw new Error('derToRaw: SEQUENCE length overflows buffer');
+
+  let i = 2;
+  if (readByte(i) !== 0x02) throw new Error('derToRaw: expected INTEGER tag for r');
+  i++;
+  const rLen = readByte(i);
+  if (rLen & 0x80) throw new Error('derToRaw: long-form r length not expected');
+  if (rLen === 0 || rLen > 33) throw new Error(`derToRaw: r length out of range (${rLen})`);
+  i++;
+  if (i + rLen > der.length) throw new Error('derToRaw: r overflows buffer');
   let r = der.subarray(i, i + rLen);
   i += rLen;
-  i++; // skip INTEGER tag (0x02) for s
-  const sLen = der[i++];
+
+  if (readByte(i) !== 0x02) throw new Error('derToRaw: expected INTEGER tag for s');
+  i++;
+  const sLen = readByte(i);
+  if (sLen & 0x80) throw new Error('derToRaw: long-form s length not expected');
+  if (sLen === 0 || sLen > 33) throw new Error(`derToRaw: s length out of range (${sLen})`);
+  i++;
+  if (i + sLen > der.length) throw new Error('derToRaw: s overflows buffer');
   let s = der.subarray(i, i + sLen);
 
-  // Strip leading zero padding (DER uses signed integers)
+  // Strip leading zero padding (DER uses signed integers) — r/s of length 33
+  // is legal when the high bit is set.
   if (r[0] === 0 && r.length > 32) r = r.subarray(1);
   if (s[0] === 0 && s.length > 32) s = s.subarray(1);
+  if (r.length > 32 || s.length > 32) {
+    throw new Error('derToRaw: r or s still > 32 bytes after strip');
+  }
 
   // Normalize S to low-S (required by noble with lowS:true)
   const P256_N = BigInt('0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551');
