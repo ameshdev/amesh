@@ -102,9 +102,15 @@ gcloud run deploy amesh-relay \\
   --allow-unauthenticated \\
   --session-affinity \\
   --min-instances 0 \\
-  --max-instances 3`} />
+  --max-instances 3 \\
+  --set-env-vars <span class="text-emerald-400">AMESH_TRUST_PROXY=1</span>`} />
 		</div>
 		<p class="mt-3 text-sm text-zinc-500"><code class="text-emerald-400">--session-affinity</code> keeps WebSocket connections on the same instance during pairing.</p>
+		<div class="mt-4 rounded-lg border border-amber-800/60 bg-amber-950/20 p-4">
+			<p class="text-sm text-zinc-300">
+				<strong class="text-amber-400">Required:</strong> set <code class="text-emerald-400">AMESH_TRUST_PROXY=1</code> on Cloud Run (or any reverse proxy / load balancer). The TCP peer Cloud Run exposes is the front-end LB, identical for every client — without this env var the relay's per-IP rate limiter collapses into a single global bucket. Do NOT set it on directly-exposed deployments where clients could spoof <code class="text-emerald-400">X-Forwarded-For</code>.
+			</p>
+		</div>
 	</section>
 
 	<!-- Fly.io -->
@@ -171,16 +177,24 @@ gcloud run deploy amesh-relay \\
 				<div class="mt-1 text-sm text-zinc-400">The relay forwards opaque ChaCha20-Poly1305 blobs. It cannot read the key exchange.</div>
 			</div>
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
-				<div class="text-sm font-semibold text-zinc-50">SAS prevents MITM</div>
-				<div class="mt-1 text-sm text-zinc-400">Even if someone controls the relay, the target must enter a 6-digit code from the controller. A MITM attack produces different codes — caught automatically.</div>
+				<div class="text-sm font-semibold text-zinc-50">MITM protection (pairing and shell)</div>
+				<div class="mt-1 text-sm text-zinc-400">Pairing uses a 6-digit SAS the user confirms across both devices. The shell handshake binds its identity signature to the ECDH ephemeral transcript — a relay forwarding captured envelopes between two legs produces signatures that don't verify on the receiving leg.</div>
 			</div>
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
-				<div class="text-sm font-semibold text-zinc-50">Rate limiting</div>
-				<div class="mt-1 text-sm text-zinc-400">5 failed OTC attempts per IP per minute. Built into the relay.</div>
+				<div class="text-sm font-semibold text-zinc-50">Rate limiting (per client IP)</div>
+				<div class="mt-1 text-sm text-zinc-400">5 failed OTC attempts per IP/minute and 10 bootstrap-watch registrations per IP/minute. Behind a reverse proxy, set <code class="text-emerald-400">AMESH_TRUST_PROXY=1</code> so the left-most <code class="text-emerald-400">X-Forwarded-For</code> entry is used instead of the LB peer.</div>
+			</div>
+			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
+				<div class="text-sm font-semibold text-zinc-50">Single-use bootstrap tokens</div>
+				<div class="mt-1 text-sm text-zinc-400">The relay tracks consumed bootstrap-token jtis for 25h and rejects replays. A leaked provisioning token can't pair a second attacker-controlled device.</div>
+			</div>
+			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
+				<div class="text-sm font-semibold text-zinc-50">Session caps</div>
+				<div class="mt-1 text-sm text-zinc-400">50,000 concurrent pairing sessions and 10,000 concurrent WebSocket connections per instance. Bounds memory under adversarial load.</div>
 			</div>
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">No persistence</div>
-				<div class="mt-1 text-sm text-zinc-400">Nothing is stored. Sessions exist in memory for ~30 seconds during pairing, then are forgotten.</div>
+				<div class="mt-1 text-sm text-zinc-400">Nothing is stored. Sessions exist in memory for ~60 seconds during pairing, then are forgotten. Single-use jtis persist in memory only (best-effort across restarts).</div>
 			</div>
 		</div>
 	</section>

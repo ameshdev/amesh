@@ -167,27 +167,31 @@ amesh init --name <span class="text-emerald-400">"my-server"</span> --backend <s
 	<section class="py-8 border-t border-zinc-800">
 		<h2 id="encrypted-file" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Encrypted File Details</h2>
 		<p class="mt-2 text-zinc-400">
-			The encrypted-file backend stores the private key in <code class="text-emerald-400">~/.amesh/key.enc</code>, encrypted with AES-256-GCM. The encryption key is derived from a passphrase using Argon2id.
+			The encrypted-file backend stores the private key under <code class="text-emerald-400">~/.amesh/keys/</code>, encrypted with AES-256-GCM. The encryption key is derived from a passphrase using Argon2id.
 		</p>
 
 		<div class="mt-4 space-y-3">
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
+				<div class="text-sm font-semibold text-zinc-50">Passphrase source (in priority order)</div>
+				<div class="mt-1 text-sm text-zinc-400">
+					(1) <code class="text-emerald-400">AUTH_MESH_PASSPHRASE</code> env var — never touches disk, preferred for production;
+					(2) a dedicated file at <code class="text-emerald-400">~/.amesh/.passphrase</code> (mode <code class="text-emerald-400">0400</code>), or the path in <code class="text-emerald-400">AMESH_PASSPHRASE_FILE</code>;
+					(3) legacy <code class="text-emerald-400">identity.json</code> field — auto-migrated to the dedicated file on next read with a one-time warning log.
+				</div>
+			</div>
+			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">Auto-generated passphrase</div>
-				<div class="mt-1 text-sm text-zinc-400">By default, <code class="text-emerald-400">amesh init</code> generates a 256-bit random passphrase and stores it in <code class="text-emerald-400">identity.json</code>. No user input needed.</div>
+				<div class="mt-1 text-sm text-zinc-400">If you don't provide one, <code class="text-emerald-400">amesh init</code> generates a 256-bit random passphrase and writes it to the dedicated file with mode <code class="text-emerald-400">0400</code> (read-only owner). Move the file to a secrets manager, tmpfs, or separate mount for real defense-in-depth against filesystem leaks.</div>
 			</div>
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">File permissions</div>
-				<div class="mt-1 text-sm text-zinc-400">All files are created with mode <code class="text-emerald-400">0600</code>, directories with <code class="text-emerald-400">0700</code>. Only the owner can read.</div>
-			</div>
-			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
-				<div class="text-sm font-semibold text-zinc-50">Custom passphrase</div>
-				<div class="mt-1 text-sm text-zinc-400">Set <code class="text-emerald-400">AUTH_MESH_PASSPHRASE</code> env var to use your own passphrase. Useful when you need deterministic key derivation.</div>
+				<div class="mt-1 text-sm text-zinc-400">Keys and identity files are created with mode <code class="text-emerald-400">0600</code>, the passphrase file with mode <code class="text-emerald-400">0400</code>, directories with <code class="text-emerald-400">0700</code>. Only the owner can read.</div>
 			</div>
 		</div>
 
-		<div class="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4">
-			<p class="text-sm text-zinc-500">
-				<strong class="text-zinc-400">Note:</strong> The encrypted-file backend protects against disk theft (the key is encrypted at rest) but not against a compromised OS with access to the running process. For the strongest protection, use hardware-backed storage (Secure Enclave or TPM) where available.
+		<div class="mt-6 rounded-lg border border-amber-800/60 bg-amber-950/20 p-4">
+			<p class="text-sm text-zinc-300">
+				<strong class="text-amber-400">Software-only protection.</strong> The encrypted-file backend protects against targeted leaks of the key file <em>alone</em>, but NOT against any attacker with general filesystem read access on the device — they can read the passphrase file too. For true hardware binding use Secure Enclave (macOS) or TPM 2.0 (Linux). Set <code class="text-emerald-400">AUTH_MESH_PASSPHRASE</code> at runtime (or move the passphrase file to a tmpfs / secrets manager) to keep the secret off durable disk entirely.
 			</p>
 		</div>
 	</section>

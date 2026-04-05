@@ -196,15 +196,37 @@ encrypt(sessionKey, nonce, type_byte || payload) → ciphertext
 
 The shell handshake is a simplified version of the pairing handshake:
 
-1. **Ephemeral key exchange** — identical to pairing (both sides generate ephemeral P-256 keypairs, exchange public keys, compute shared secret via ECDH, derive session key via HKDF)
-2. **Identity exchange** — identical to pairing (both sides send PeerIdentity with selfSig, encrypted with session key)
-3. **Authorization check** — NEW: both sides verify the peer is in their allow list
-   - Target checks: controller's permanent public key is in allow list with `role: "controller"`
+1. **Ephemeral key exchange** — both sides generate ephemeral P-256 keypairs, exchange public keys over the relay, compute the shared secret via ECDH, and derive a session key via HKDF.
+2. **Identity exchange with transcript-bound signature** — both sides send an encrypted PeerIdentity envelope containing a `selfSig` that covers BOTH the peer identity fields AND a hash of the current ECDH transcript (both ephemeral public keys). See §7.1 below for the exact signed bytes.
+3. **Authorization check** — each side verifies the peer is in its allow list:
+   - Target checks: controller's permanent public key is in allow list with `role: "controller"` and `permissions.shell: true`
    - Controller checks: target's permanent public key is in allow list with `role: "target"`
-4. **No SAS verification** — trust was established during the original pairing ceremony. Re-verifying SAS on every shell connection would be unusable.
+4. **No interactive SAS** — trust is pre-established via the pairing ceremony. Re-verifying SAS on every shell connection would be unusable.
 5. **Session begins** — tunnel transitions from handshake mode to shell mode (frame protocol above)
 
-**MITM protection without SAS:** The permanent public keys are exchanged during the original pairing (with SAS). During the shell handshake, both sides verify the peer's permanent key matches what's in their allow list. A MITM relay would need to substitute different permanent keys, which would fail the allow list check.
+### 7.1 Transcript-bound `selfSig`
+
+**Security-critical.** The `selfSig` in the shell handshake's PeerIdentity envelope is NOT a signature over the identity fields alone — it is a signature over the identity fields concatenated with a hash of the ECDH transcript each side actually observed. This is the fix for audit finding **C1** (pre-fix, the selfSig covered only `pub + name + timestamp`, letting a MITM relay replay a captured envelope between the two ECDH legs).
+
+**Canonical signed bytes** — domain prefix `amesh-shell-v1`:
+
+```
+signedBytes =
+  "amesh-shell-v1\n"         ||
+  publicKeyBase64 || "\n"    ||
+  deviceId        || "\n"    ||
+  friendlyName    || "\n"    ||
+  timestamp       || "\n"    ||
+  sha256(signerEphPub || verifierEphPub)
+```
+
+Where:
+- `signerEphPub` is the ephemeral public key the signer PUT on the wire (its own ephemeral)
+- `verifierEphPub` is the ephemeral public key the signer RECEIVED from the peer
+
+The verifier reconstructs the same transcript using the ephemeral keys IT observed: its peer's ephemeral as `signerEphPub`, its own ephemeral as `verifierEphPub`. A MITM forwarding between two ECDH legs sees different ephemerals on each leg, so a signature produced for one leg will not verify on the other.
+
+**Domain separation.** The `amesh-shell-v1` prefix prevents cross-protocol signature reuse with the pairing handshake (which uses SAS for an orthogonal purpose) or any future selfSig format.
 
 ---
 
@@ -220,12 +242,16 @@ The agent grants shell access to any controller in the allow list. This is equiv
 
 ### Relay trust model (unchanged)
 
-The relay cannot read shell content — it's encrypted with ChaCha20-Poly1305. The relay cannot impersonate either side — permanent key verification prevents this. The relay can:
+The relay cannot read shell content — it's encrypted with ChaCha20-Poly1305. The relay cannot impersonate either side because the transcript-bound `selfSig` (§7.1) prevents it from replaying a captured identity envelope across its two ECDH legs. The relay can:
 - Know that a shell session exists between two device IDs
 - Measure session duration and data volume
 - Drop or delay traffic (DoS, not data theft)
 
 This matches the existing relay trust model for pairing.
+
+### Frame cipher desync resistance (H3)
+
+The ShellCipher wrapping each tunnel uses a ChaCha20-Poly1305 stream with per-direction incrementing nonces. Receive-counter advancement happens ONLY after successful Poly1305 verification — an injected or malformed frame from an untrusted relay is rejected without shifting the counter, so the next legitimate frame still decrypts cleanly. (Fix for audit finding H3; see `packages/agent/src/shell-cipher.ts`.)
 
 ### Session key lifecycle
 
