@@ -1,9 +1,9 @@
 import { ShellCipher } from './shell-cipher.js';
 import { AllowList, createForBackend } from '@authmesh/keystore';
 import type { StorageBackend } from '@authmesh/keystore';
-import { loadIdentity } from './identity.js';
+import { loadIdentity, saveIdentity } from './identity.js';
 import type { Identity } from './identity.js';
-import { getIdentityPath, getKeysDir, getAllowListPath } from './paths.js';
+import { getIdentityPath, getKeysDir, getAllowListPath, resolvePassphrase } from './paths.js';
 import { runAgentShellHandshake, createMessageReader, send } from './shell-handshake.js';
 import {
   FrameType,
@@ -36,8 +36,11 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
   const identity = await loadIdentity(getIdentityPath());
 
-  const passphrase = identity.passphrase ?? process.env.AUTH_MESH_PASSPHRASE;
-  delete identity.passphrase;
+  // H2 — passphrase lives in a dedicated file, not identity.json.
+  const { passphrase, migratedFromIdentity } = await resolvePassphrase(identity);
+  if (migratedFromIdentity) {
+    await saveIdentity(getIdentityPath(), identity);
+  }
   const keyStore = await createForBackend(
     identity.storageBackend as StorageBackend,
     getKeysDir(),
