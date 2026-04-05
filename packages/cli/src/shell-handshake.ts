@@ -1,5 +1,6 @@
 import { chacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { randomBytes } from '@noble/ciphers/utils.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 import {
   generateEphemeralKeyPair,
   computeSharedSecret,
@@ -7,6 +8,8 @@ import {
   verifyMessage,
 } from '@authmesh/core';
 import type { AllowList } from '@authmesh/keystore';
+
+const SHELL_SIG_DOMAIN = 'amesh-shell-v1';
 
 interface PeerIdentity {
   publicKey: string; // base64
@@ -87,9 +90,56 @@ function decrypt(sessionKey: Uint8Array, encoded: string): Uint8Array {
   return cipher.decrypt(ciphertext);
 }
 
-function verifySelfSig(peer: PeerIdentity): boolean {
+/**
+ * Canonical message bound to the current ECDH handshake.
+ *
+ * The signature covers (domain, peer identity fields, AND both ephemeral
+ * public keys as observed on the wire). This prevents a MITM relay that holds
+ * an ECDH secret on each leg from replaying a peer's encrypted selfSig
+ * envelope across the two legs — the ephemeral keys differ per leg, so a
+ * signature produced for one leg won't verify on the other.
+ *
+ * Format:
+ *   "amesh-shell-v1\n" || pubB64 || "\n" || deviceId || "\n" || friendlyName ||
+ *   "\n" || timestamp || "\n" || sha256(signerEph || verifierEph)
+ */
+export function buildShellSigMessage(params: {
+  publicKey: string;
+  deviceId: string;
+  friendlyName: string;
+  timestamp: string;
+  signerEphPub: Uint8Array;
+  verifierEphPub: Uint8Array;
+}): Uint8Array {
+  const transcript = new Uint8Array(
+    params.signerEphPub.length + params.verifierEphPub.length,
+  );
+  transcript.set(params.signerEphPub, 0);
+  transcript.set(params.verifierEphPub, params.signerEphPub.length);
+  const transcriptHash = sha256(transcript);
+  const header = new TextEncoder().encode(
+    `${SHELL_SIG_DOMAIN}\n${params.publicKey}\n${params.deviceId}\n${params.friendlyName}\n${params.timestamp}\n`,
+  );
+  const out = new Uint8Array(header.length + transcriptHash.length);
+  out.set(header, 0);
+  out.set(transcriptHash, header.length);
+  return out;
+}
+
+function verifySelfSig(
+  peer: PeerIdentity,
+  signerEphPub: Uint8Array,
+  verifierEphPub: Uint8Array,
+): boolean {
   const publicKey = new Uint8Array(Buffer.from(peer.publicKey, 'base64'));
-  const message = new TextEncoder().encode(peer.publicKey + peer.friendlyName + peer.timestamp);
+  const message = buildShellSigMessage({
+    publicKey: peer.publicKey,
+    deviceId: peer.deviceId,
+    friendlyName: peer.friendlyName,
+    timestamp: peer.timestamp,
+    signerEphPub,
+    verifierEphPub,
+  });
   const sig = new Uint8Array(Buffer.from(peer.selfSig, 'base64'));
   return verifyMessage(sig, message, publicKey);
 }
@@ -135,7 +185,11 @@ export async function runAgentShellHandshake(
     new TextDecoder().decode(decrypt(tempKey, encPeerIdentity.payload as string)),
   ) as PeerIdentity;
 
-  if (!verifySelfSig(peerIdentity)) {
+  // The peer's selfSig must be bound to the ephemeral keys WE observed on the
+  // wire: peerEphPub was the one they claim they sent, ephemeral.publicKey was
+  // the one we sent (which they should have received). A MITM that substitutes
+  // ephemeral keys cannot replay a signature captured from the other leg.
+  if (!verifySelfSig(peerIdentity, peerEphPub, ephemeral.publicKey)) {
     throw new Error('selfSig verification failed');
   }
   validateTimestamp(peerIdentity.timestamp); // H1 fix
@@ -146,10 +200,17 @@ export async function runAgentShellHandshake(
   if (device.role !== 'controller') throw new Error('Device is not a controller');
   if (!device.permissions?.shell) throw new Error('Shell access not granted for this device');
 
-  // Step 5: Send our identity
+  // Step 5: Send our identity, signed over the current ECDH transcript.
   const timestamp = new Date().toISOString();
   const selfSig = await signFn(
-    new TextEncoder().encode(myPublicKeyBase64 + myFriendlyName + timestamp),
+    buildShellSigMessage({
+      publicKey: myPublicKeyBase64,
+      deviceId: myDeviceId,
+      friendlyName: myFriendlyName,
+      timestamp,
+      signerEphPub: ephemeral.publicKey,
+      verifierEphPub: peerEphPub,
+    }),
   );
   const myIdentity: PeerIdentity = {
     publicKey: myPublicKeyBase64,
@@ -203,10 +264,17 @@ export async function runControllerShellHandshake(
   const sharedSecret = computeSharedSecret(ephemeral.privateKey, peerEphPub);
   const tempKey = deriveShellSessionKey(sharedSecret, 'temp', 'temp');
 
-  // Step 3: Send our identity
+  // Step 3: Send our identity, signed over the current ECDH transcript.
   const timestamp = new Date().toISOString();
   const selfSig = await signFn(
-    new TextEncoder().encode(myPublicKeyBase64 + myFriendlyName + timestamp),
+    buildShellSigMessage({
+      publicKey: myPublicKeyBase64,
+      deviceId: myDeviceId,
+      friendlyName: myFriendlyName,
+      timestamp,
+      signerEphPub: ephemeral.publicKey,
+      verifierEphPub: peerEphPub,
+    }),
   );
   const myIdentity: PeerIdentity = {
     publicKey: myPublicKeyBase64,
@@ -226,7 +294,10 @@ export async function runControllerShellHandshake(
     new TextDecoder().decode(decrypt(tempKey, encPeerIdentity.payload as string)),
   ) as PeerIdentity;
 
-  if (!verifySelfSig(peerIdentity)) {
+  // Agent must have signed over the ephemeral keys WE observed: peerEphPub is
+  // what they put on the wire (their ephemeral), ephemeral.publicKey is what
+  // we sent (which they should have received as verifierEph on their side).
+  if (!verifySelfSig(peerIdentity, peerEphPub, ephemeral.publicKey)) {
     throw new Error('selfSig verification failed');
   }
   validateTimestamp(peerIdentity.timestamp); // H1 fix
