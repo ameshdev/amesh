@@ -1,6 +1,6 @@
 {
   "name": "@authmesh/sdk",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Signing fetch client and verification middleware for amesh — replace API keys with device identity",
   "type": "module",
   "license": "MIT",
@@ -51,8 +51,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@authmesh/core": "0.3.3",
-    "@authmesh/keystore": "0.3.3",
+    "@authmesh/core": "0.4.0",
+    "@authmesh/keystore": "0.4.0",
     "@noble/ciphers": "2.1.1",
     "@noble/hashes": "2.0.1",
     "ioredis": "5.6.1",

@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] - 2026-04-05
+
+### Added
+
+- **Prebuilt `amesh-agent` binaries** for macOS arm64/x64 and Linux x64/arm64, built by the release pipeline and shipped in the same `amesh-{version}-{platform}-{arch}.tar.gz` tarball as the main `amesh` binary. Fixes the "install fails on every platform" issue — `npm install -g @authmesh/agent` and `brew install ameshdev/tap/amesh` now both produce a working `amesh-agent` without the `bun $(which amesh-agent) ...` wrapper. Raspberry Pi 3 and earlier (armv7, 32-bit Pi OS) remain unsupported because Bun itself does not ship for that architecture.
+- **`linux-arm64` target** added to the release matrix (cross-compiled from `ubuntu-latest` via Bun's `--target` flag). Unblocks Raspberry Pi 4/5 on 64-bit Pi OS and ARM cloud VMs.
+- **npm postinstall binary downloader** (`packages/agent/scripts/postinstall.mjs`) detects host platform and arch, downloads the matching prebuilt binary from the GitHub release, extracts it into `node_modules/@authmesh/agent/bin/amesh-agent`, and chmods it executable. Unsupported architectures (e.g. armv7) get a clear "install Bun and use wrapper" message and a graceful exit-0 so `npm install` never fails.
+- **Launcher script** (`packages/agent/scripts/launcher.mjs`) — the new `bin` entry that execs the prebuilt binary when present and falls back to the JS oclif entry otherwise. Same pattern esbuild/swc use.
+- **Compiled-binary entry point** for the agent (`packages/agent/src/sea.ts`) — mirrors `packages/cli/src/sea.ts` with explicit nested-command dispatch for `amesh-agent agent start` since the CLI sea.ts only handled top-level commands.
+- **Docs IA restructure (vite.dev / bun.com style)** on the landing page: nested sidebar sections (Introduction / Getting Started / Guides / Reference / Packages), redesigned `/docs` landing with feature-grid layout, cross-section prev/next navigation.
+- **Five new doc pages**: `/docs/introduction`, `/docs/quickstart`, `/docs/faq`, `/docs/troubleshooting`, `/docs/changelog`.
+- **`/blog` section** with two seed posts: "Why we built amesh" (essay) and "Introducing amesh 0.3" (release notes). Includes `BlogPosting` JSON-LD schema and proper `article:*` Open Graph meta.
+- **JSON-LD structured data** on every page: `Organization` + `SoftwareApplication` + `WebSite` on the homepage, `BreadcrumbList` + `TechArticle` on every `/docs/*` and `/use-cases/*` page, `FAQPage` schema on `/docs/faq`, `Blog` + `BlogPosting` on the blog pages. Biggest single SEO improvement in the repo so far.
+- **Favicon + webmanifest** (`favicon.ico`, `icon-192.png`, `icon-512.png`, `site.webmanifest`) for Google SERP icon support and PWA basics.
+- **Sitemap entries** for all new routes and `/docs/key-storage` (was missing).
+
+### Changed
+
+- **`@authmesh/agent` oclif config** — added `topicSeparator: " "` so `amesh-agent agent start` (space-separated) resolves correctly under the JS fallback path. Previously only colon syntax (`agent:start`) worked under Node, which meant users hitting the fallback path saw topic help instead of the Bun runtime guard error.
+- **`packaging/build-bun.mjs`** refactored to a shared `compile()` helper invoked once for `amesh` and once for `amesh-agent`. Both binaries land in `packaging/dist/` and are packed into the same release tarball.
+- **Homebrew formula** (`packaging/homebrew/amesh.rb` + the heredoc in `release-packages.yml`) installs `amesh-agent` alongside `amesh` from a single `brew install ameshdev/tap/amesh`. Added the `on_linux/on_arm` block for the new linux-arm64 target.
+- **Hero chip** on the landing page: `Production ready` → `Beta`. The 0.3.x line is a pre-1.0 product and "production ready" was overclaiming.
+- **Comparison table** on the landing page: `Vault` column renamed to `Secrets Manager`. Matches the genericize-company-names policy below.
+- **Genericize company mentions across prose.** Removed `AWS Secrets Manager`, `HashiCorp Vault`, `Doppler`, `Uber`, `Samsung`, `Toyota`, `Twitch`, `Ethereum`, `Signal`, `Cloudflare` from the landing page, blog, `/docs/introduction`, `/docs/faq`, and `docs/why-amesh.md`. The technical critique of the secrets-manager pattern is preserved; the name-dropping is gone. Product/infrastructure names required for instructions (Cloud Run, Homebrew, npm, Bun, TPM, Secure Enclave, etc.) are kept.
+- **Flattened navigation** — removed the Use Cases dropdown. Nav is now a flat list: `Docs | Use Cases | Blog | GitHub | Get Started`.
+- **Hero visual upgrades** — trust strip below hero with `@noble/*` dependency credits, card lift hovers with shadow on all feature/replace/CTA cards, tightened h1 typography.
+- **ADR-011** (`docs/architecture-decisions.md`) — marked partially superseded. The "one package, one binary" design was reversed in favor of splitting the agent into `@authmesh/agent`. Runtime-dependency argument (`Bun.spawn({ terminal })` is Bun-only) outweighed the install-confusion concern once prebuilt binaries landed.
+
+### Fixed
+
+- **`/docs/remote-shell` showed phantom commands and install methods.** The page displayed `amesh agent start` (command doesn't exist — it's `amesh-agent agent start` from a separate package), referenced `brew install ameshdev/tap/amesh-agent` (no such formula), and linked to an `amesh-agent-linux-x64.tar.gz` download (never built). All corrected, plus a Runtime Requirement callout was added until binaries are verified in the first tagged release.
+- **`TableOfContents` magic-number margin** — replaced hardcoded `margin-left: 44rem` with a responsive `left: min(calc(50vw + 30rem), calc(100vw - 13.5rem))` calc, gated on the `2xl` breakpoint where there's actually room for a right-rail TOC. Between `lg` and `2xl`, the collapsible mobile-style TOC takes over instead of overlapping content.
+- **Sitemap missing `/docs/key-storage`** — added, along with all new routes.
+- **`docs/remote-shell-spec.md` and `docs/why-amesh.md`** updated to match the agent package split and the genericize-company-names policy.
+- **`packages/cli/README.md`** — removed the stale `amesh agent start` command listing (that command lives in `@authmesh/agent`, not `@authmesh/cli`) and added a pointer to the separate agent package.
+- **`packages/agent/README.md`** — dropped the phantom Homebrew tap reference, documented the postinstall binary download, listed the four supported platforms and the armv7 exclusion.
+
 ## [0.3.3] - 2026-04-04
 
 ### Fixed
