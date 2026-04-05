@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Terminal } from '@lucide/svelte';
 	import UseCasePage from '$lib/components/UseCasePage.svelte';
+	import { jsonLdScript, graph, breadcrumbList, techArticle } from '$lib/seo.js';
 </script>
 
 <svelte:head>
@@ -10,6 +11,19 @@
 	<meta property="og:title" content="Remote Shell Without SSH Keys — amesh" />
 	<meta property="og:description" content="SSH-like remote access with device-bound identity. No SSH keys, instant revocation." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases/remote-shell" />
+	{@html jsonLdScript(graph(
+		breadcrumbList([
+			{ name: 'Home', url: '/' },
+			{ name: 'Use Cases', url: '/use-cases' },
+			{ name: 'Remote Shell', url: '/use-cases/remote-shell' }
+		]),
+		techArticle({
+			title: 'Remote Shell Without SSH Keys',
+			description: 'SSH-like remote access with device-bound identity. No SSH keys, no authorized_keys, instant per-device revocation.',
+			url: '/use-cases/remote-shell',
+			section: 'Use Cases'
+		})
+	))}
 </svelte:head>
 
 <UseCasePage

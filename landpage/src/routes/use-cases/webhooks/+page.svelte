@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Webhook } from '@lucide/svelte';
 	import UseCasePage from '$lib/components/UseCasePage.svelte';
+	import { jsonLdScript, graph, breadcrumbList, techArticle } from '$lib/seo.js';
 </script>
 
 <svelte:head>
@@ -10,6 +11,19 @@
 	<meta property="og:title" content="Webhook Authentication Without Shared Secrets — amesh" />
 	<meta property="og:description" content="Sign and verify webhooks with asymmetric cryptography. No HMAC secrets to share or rotate." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases/webhooks" />
+	{@html jsonLdScript(graph(
+		breadcrumbList([
+			{ name: 'Home', url: '/' },
+			{ name: 'Use Cases', url: '/use-cases' },
+			{ name: 'Webhooks', url: '/use-cases/webhooks' }
+		]),
+		techArticle({
+			title: 'Webhook Authentication Without Shared Secrets',
+			description: 'Sign and verify webhooks with asymmetric cryptography. No HMAC secrets to share, rotate, or leak.',
+			url: '/use-cases/webhooks',
+			section: 'Use Cases'
+		})
+	))}
 </svelte:head>
 
 <UseCasePage

@@ -56,7 +56,7 @@
 	];
 
 	// Comparison table
-	const competitors = ['API Keys', 'mTLS', 'Vault', 'OAuth'];
+	const competitors = ['API Keys', 'mTLS', 'Secrets Manager', 'OAuth'];
 	const comparisonRows = [
 		{ feature: 'Secrets on disk', amesh: { val: 'None (hardware) / encrypted (file)', good: true }, values: ['Yes', 'Cert files', 'Token', 'Client secret'] },
 		{ feature: 'Manual rotation', amesh: { val: 'Never (revoke instead)', good: true }, values: ['Required', 'Cert renewal', 'Token TTL', 'Secret rotation'] },
@@ -107,6 +107,42 @@
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content="https://authmesh.dev/og-image.png" />
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+	{@html `<script type="application/ld+json">${JSON.stringify({
+		'@context': 'https://schema.org',
+		'@graph': [
+			{
+				'@type': 'Organization',
+				'@id': 'https://authmesh.dev/#organization',
+				name: 'amesh',
+				url: 'https://authmesh.dev/',
+				logo: 'https://authmesh.dev/icon-512.png',
+				description: 'Device-bound machine-to-machine authentication. Replace static API keys with cryptographic device identity.',
+				sameAs: ['https://github.com/ameshdev/amesh', 'https://www.npmjs.com/org/authmesh']
+			},
+			{
+				'@type': 'SoftwareApplication',
+				'@id': 'https://authmesh.dev/#software',
+				name: 'amesh',
+				applicationCategory: 'DeveloperApplication',
+				operatingSystem: 'macOS, Linux, Windows',
+				description: 'Device-bound M2M authentication using P-256 ECDSA keys protected by Secure Enclave, TPM, or encrypted file.',
+				url: 'https://authmesh.dev/',
+				downloadUrl: 'https://github.com/ameshdev/amesh/releases',
+				license: 'https://opensource.org/licenses/MIT',
+				offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+				publisher: { '@id': 'https://authmesh.dev/#organization' }
+			},
+			{
+				'@type': 'WebSite',
+				'@id': 'https://authmesh.dev/#website',
+				url: 'https://authmesh.dev/',
+				name: 'amesh',
+				publisher: { '@id': 'https://authmesh.dev/#organization' },
+				inLanguage: 'en'
+			}
+		]
+	})}</` + `script>`}
 </svelte:head>
 
 <main>
@@ -119,11 +155,21 @@
 		<div class="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-2">
 			<!-- Left: headline + install -->
 			<div>
-				<a href={REPO + '/releases'} class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-400 no-underline transition hover:border-zinc-600 hover:text-zinc-300">
-					v0.3.0 <span class="text-emerald-400">&rarr;</span>
-				</a>
+				<div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+					<span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2.5 py-1 text-emerald-400">
+						<span class="relative flex h-1.5 w-1.5">
+							<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+							<span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+						</span>
+						Beta
+					</span>
+					<span class="text-zinc-700">·</span>
+					<span class="text-zinc-500">MIT Licensed</span>
+					<span class="text-zinc-700">·</span>
+					<a href={REPO + '/releases'} class="text-zinc-500 no-underline transition hover:text-zinc-300">Changelog &rarr;</a>
+				</div>
 
-				<h1 class="mt-6 text-4xl font-bold leading-tight tracking-tight text-zinc-50 sm:text-5xl lg:text-6xl">
+				<h1 class="mt-6 text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-zinc-50 sm:text-5xl lg:text-[4rem]">
 					Stop managing API&nbsp;keys. Let your device prove identity.
 				</h1>
 
@@ -222,6 +268,31 @@ amesh.fetch(<span class="text-emerald-400">"/api/orders"</span>, {'{'}
 		</div>
 	</section>
 
+	<!-- ========== TRUST STRIP ========== -->
+	<section class="w-full border-y border-zinc-900 bg-zinc-950/60 px-6 py-10">
+		<div class="mx-auto max-w-6xl">
+			<p class="mb-6 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600">Built on audited open-source cryptography</p>
+			<div class="grid grid-cols-2 gap-x-8 gap-y-5 text-center text-sm sm:grid-cols-4">
+				<div class="flex flex-col items-center">
+					<code class="font-mono text-sm text-zinc-300">@noble/curves</code>
+					<span class="mt-1 text-xs text-zinc-600">P-256 ECDSA · ECDH</span>
+				</div>
+				<div class="flex flex-col items-center">
+					<code class="font-mono text-sm text-zinc-300">@noble/hashes</code>
+					<span class="mt-1 text-xs text-zinc-600">SHA-256 · HMAC · HKDF</span>
+				</div>
+				<div class="flex flex-col items-center">
+					<code class="font-mono text-sm text-zinc-300">@noble/ciphers</code>
+					<span class="mt-1 text-xs text-zinc-600">ChaCha20-Poly1305</span>
+				</div>
+				<div class="flex flex-col items-center">
+					<span class="font-mono text-sm text-zinc-300">Hardware-backed</span>
+					<span class="mt-1 text-xs text-zinc-600">Secure Enclave · TPM 2.0</span>
+				</div>
+			</div>
+		</div>
+	</section>
+
 	<!-- ========== WHAT AMESH REPLACES ========== -->
 	<section class="w-full px-6 py-20 sm:py-28" style="background:#0A0A0C">
 		<div class="mx-auto max-w-5xl text-center">
@@ -231,7 +302,7 @@ amesh.fetch(<span class="text-emerald-400">"/api/orders"</span>, {'{'}
 			</p>
 			<div class="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-3">
 				{#each replaces as item}
-					<div class="rounded-lg border border-red-900/60 px-5 py-4 text-left transition hover:border-red-700/60" style="background:#2A1215">
+					<div class="rounded-lg border border-red-900/60 px-5 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-red-700/80 hover:shadow-lg hover:shadow-red-950/30" style="background:#2A1215">
 						<span class="block font-mono text-sm text-red-400 line-through">{item.old}</span>
 						<span class="text-xs text-red-300/60">{item.desc}</span>
 					</div>
@@ -312,8 +383,8 @@ amesh.fetch(<span class="text-emerald-400">"/api/orders"</span>, {'{'}
 
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each features as feat}
-					<div class="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition hover:border-emerald-400/30">
-						<div class="inline-flex rounded-lg bg-emerald-400/10 p-2.5">
+					<div class="group rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/30 hover:bg-zinc-900 hover:shadow-xl hover:shadow-emerald-950/20">
+						<div class="inline-flex rounded-lg bg-emerald-400/10 p-2.5 transition-transform duration-200 group-hover:scale-110">
 							<feat.icon size={20} strokeWidth={2} class="text-emerald-400" />
 						</div>
 						<h3 class="mt-4 text-base font-semibold text-zinc-50">{feat.title}</h3>
@@ -385,15 +456,15 @@ amesh.fetch(<span class="text-emerald-400">"/api/orders"</span>, {'{'}
 
 			<!-- Link cards -->
 			<div class="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-				<a href="/docs" class="rounded-lg border border-zinc-800 px-6 py-4 text-center no-underline transition hover:border-emerald-400/40">
+				<a href="/docs" class="rounded-lg border border-zinc-800 bg-zinc-900/30 px-6 py-4 text-center no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/40 hover:bg-zinc-900 hover:shadow-lg hover:shadow-emerald-950/20">
 					<span class="block text-sm font-semibold text-zinc-50">Read the docs</span>
 					<span class="text-xs text-zinc-500">Get started guide</span>
 				</a>
-				<a href="/docs/integration" class="rounded-lg border border-zinc-800 px-6 py-4 text-center no-underline transition hover:border-emerald-400/40">
+				<a href="/docs/integration" class="rounded-lg border border-zinc-800 bg-zinc-900/30 px-6 py-4 text-center no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/40 hover:bg-zinc-900 hover:shadow-lg hover:shadow-emerald-950/20">
 					<span class="block text-sm font-semibold text-zinc-50">Integration guide</span>
 					<span class="text-xs text-zinc-500">Express, microservices, webhooks</span>
 				</a>
-				<a href={REPO} target="_blank" rel="noopener" class="rounded-lg border border-zinc-800 px-6 py-4 text-center no-underline transition hover:border-emerald-400/40">
+				<a href={REPO} target="_blank" rel="noopener" class="rounded-lg border border-zinc-800 bg-zinc-900/30 px-6 py-4 text-center no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/40 hover:bg-zinc-900 hover:shadow-lg hover:shadow-emerald-950/20">
 					<span class="flex items-center justify-center gap-1.5 text-sm font-semibold text-zinc-50">
 						<img src="/github-mark-white.svg" alt="" class="h-4 w-4" />
 						Star on GitHub

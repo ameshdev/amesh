@@ -7,15 +7,19 @@
 	import { Copy, Check } from '@lucide/svelte';
 	import { getDocNav } from '$lib/navigation.js';
 	import type { RelatedLink } from '$lib/navigation.js';
+	import { jsonLdScript, graph, breadcrumbList, techArticle } from '$lib/seo.js';
 
 	const { prev, next } = getDocNav('remote-shell');
 
-	// Install method tabs
+	// Install method tabs. Until prebuilt binaries ship (see Runtime requirement
+	// callout below), npm is the only target-side install path. Homebrew and the
+	// binary tarball will be re-added once packages/agent ships compiled binaries
+	// through the release pipeline.
 	const installMethods = [
 		{
 			label: 'Homebrew',
 			controller: 'brew install ameshdev/tap/amesh',
-			server: 'brew install ameshdev/tap/amesh-agent',
+			server: '# Not yet available for the agent — see the npm tab or the\n# "Runtime requirement" note below.',
 		},
 		{
 			label: 'npm',
@@ -25,7 +29,7 @@
 		{
 			label: 'Binary',
 			controller: 'curl -sLO https://github.com/ameshdev/amesh/releases/latest/download/amesh-darwin-arm64.tar.gz\ntar xzf amesh-darwin-arm64.tar.gz && sudo mv amesh /usr/local/bin/',
-			server: 'curl -sLO https://github.com/ameshdev/amesh/releases/latest/download/amesh-agent-linux-x64.tar.gz\ntar xzf amesh-agent-linux-x64.tar.gz && sudo mv amesh-agent /usr/local/bin/',
+			server: '# Not yet available — use npm install -g @authmesh/agent for now.',
 		},
 	];
 	let activeInstallMethod = $state(0);
@@ -59,6 +63,19 @@
 	<meta property="og:title" content="Remote Shell Guide — amesh" />
 	<meta property="og:description" content="Secure remote shell with device-bound identity. No SSH keys." />
 	<meta property="og:url" content="https://authmesh.dev/docs/remote-shell" />
+	{@html jsonLdScript(graph(
+		breadcrumbList([
+			{ name: 'Home', url: '/' },
+			{ name: 'Docs', url: '/docs' },
+			{ name: 'Remote Shell', url: '/docs/remote-shell' }
+		]),
+		techArticle({
+			title: 'Remote Shell Guide: Secure Shell Access with Device Identity',
+			description: 'Set up secure remote shell access with amesh. Agent daemon, shell client, permissions, and security model.',
+			url: '/docs/remote-shell',
+			section: 'Guides'
+		})
+	))}
 </svelte:head>
 
 <div class="mx-auto max-w-2xl px-6 pb-20">
@@ -148,13 +165,35 @@ amesh list
 		<p class="mt-3 text-sm text-zinc-500">Shell access is opt-in. Pairing for HTTP API auth does not automatically grant shell access.</p>
 
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">3. Start the agent</h3>
-		<div class="mt-3">
+
+		<!-- Runtime requirement callout — remove once prebuilt agent binaries ship -->
+		<div class="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/[0.04] p-4">
+			<div class="text-xs font-semibold uppercase tracking-wide text-amber-400">Runtime requirement</div>
+			<p class="mt-2 text-sm text-zinc-300">
+				The <code class="rounded bg-amber-400/10 px-1.5 py-0.5 font-mono text-xs text-amber-400">amesh-agent</code> daemon currently requires <a href="https://bun.com/docs/installation" target="_blank" rel="noopener" class="text-emerald-400 no-underline hover:underline">Bun</a> installed on the target because it uses <code class="font-mono text-xs">Bun.spawn</code> for PTY support. Until prebuilt binaries ship, start the agent through Bun:
+			</p>
+			<div class="mt-3">
+				<CodeBlock code={`<span class="text-zinc-500"># Install Bun on the target (once)</span>
+curl -fsSL https://bun.sh/install | bash
+
+<span class="text-zinc-500"># Then start the agent through Bun</span>
+bun $(which amesh-agent) agent start`} />
+			</div>
+			<p class="mt-3 text-xs text-zinc-500">
+				<strong class="text-zinc-400">Platform support:</strong> macOS (arm64, x64) and Linux (x64, arm64 — including Raspberry Pi 4/5 on 64-bit Pi OS). Linux armv7 (Raspberry Pi 3 and earlier, 32-bit Pi OS) is not supported because Bun does not ship for that architecture.
+			</p>
+		</div>
+
+		<div class="mt-4">
 			<CodeBlock code={`<span class="text-zinc-500"># On the target (server) — start the agent daemon</span>
-amesh agent start
+amesh-agent agent start
 
 <span class="text-zinc-500"># Or with options</span>
-amesh agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
+amesh-agent agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
 		</div>
+		<p class="mt-3 text-xs text-zinc-500">
+			Note the binary name: controller commands run through <code class="font-mono text-emerald-400">amesh</code>; the agent daemon runs through <code class="font-mono text-emerald-400">amesh-agent</code>. They are separate packages (<code class="font-mono">@authmesh/cli</code> and <code class="font-mono">@authmesh/agent</code>).
+		</p>
 	</section>
 
 	<!-- Usage -->
@@ -235,7 +274,11 @@ Filesystem      Size  Used Avail Use% Mounted on
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"Handshake failed" / connection timeout</div>
-				<div class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="text-emerald-400">amesh agent start</code>.</div>
+				<div class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="text-emerald-400">bun $(which amesh-agent) agent start</code> (see the runtime requirement note above).</div>
+			</div>
+			<div class="border-l-2 border-red-400/60 pl-4 py-1">
+				<div class="text-sm font-semibold text-zinc-50">"The agent daemon requires Bun runtime for PTY support"</div>
+				<div class="mt-1 text-sm text-zinc-400">You ran <code class="text-emerald-400">amesh-agent agent start</code> under Node.js. The agent uses <code class="font-mono">Bun.spawn</code> for PTY, which doesn't exist in Node. Install Bun (<code class="text-emerald-400">curl -fsSL https://bun.sh/install | bash</code>) and run as <code class="text-emerald-400">bun $(which amesh-agent) agent start</code>.</div>
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"Refusing to run as root"</div>

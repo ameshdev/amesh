@@ -6,6 +6,7 @@
 	import RelatedContent from '$lib/components/RelatedContent.svelte';
 	import { getDocNav } from '$lib/navigation.js';
 	import type { RelatedLink } from '$lib/navigation.js';
+	import { jsonLdScript, graph, breadcrumbList, techArticle } from '$lib/seo.js';
 
 	const REPO = 'https://github.com/ameshdev/amesh';
 	const { prev, next } = getDocNav('integration');
@@ -35,6 +36,19 @@
 	<meta property="og:title" content="Integration Guide — amesh" />
 	<meta property="og:description" content="Step-by-step recipes for Express, microservices, and webhooks." />
 	<meta property="og:url" content="https://authmesh.dev/docs/integration" />
+	{@html jsonLdScript(graph(
+		breadcrumbList([
+			{ name: 'Home', url: '/' },
+			{ name: 'Docs', url: '/docs' },
+			{ name: 'Integration Guide', url: '/docs/integration' }
+		]),
+		techArticle({
+			title: 'Integration Guide: Express, Microservices, Webhooks',
+			description: 'Step-by-step recipes for integrating amesh into Express, microservices, and webhooks.',
+			url: '/docs/integration',
+			section: 'Guides'
+		})
+	))}
 </svelte:head>
 
 <div class="mx-auto max-w-2xl px-6 pb-20">

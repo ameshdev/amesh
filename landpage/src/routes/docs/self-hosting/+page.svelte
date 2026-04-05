@@ -6,6 +6,7 @@
 	import RelatedContent from '$lib/components/RelatedContent.svelte';
 	import { getDocNav } from '$lib/navigation.js';
 	import type { RelatedLink } from '$lib/navigation.js';
+	import { jsonLdScript, graph, breadcrumbList, techArticle } from '$lib/seo.js';
 
 	const { prev, next } = getDocNav('self-hosting');
 
@@ -31,6 +32,19 @@
 	<meta property="og:title" content="Self-Hosting the amesh Relay — amesh" />
 	<meta property="og:description" content="Deploy the relay with Docker, Cloud Run, Fly.io, Kubernetes, or plain Bun." />
 	<meta property="og:url" content="https://authmesh.dev/docs/self-hosting" />
+	{@html jsonLdScript(graph(
+		breadcrumbList([
+			{ name: 'Home', url: '/' },
+			{ name: 'Docs', url: '/docs' },
+			{ name: 'Self-Hosting', url: '/docs/self-hosting' }
+		]),
+		techArticle({
+			title: 'Self-Hosting the amesh Relay: Docker, Cloud Run, Fly.io, Kubernetes',
+			description: 'How to run your own amesh relay server with Docker, Cloud Run, Fly.io, Kubernetes, or plain Bun.',
+			url: '/docs/self-hosting',
+			section: 'Guides'
+		})
+	))}
 </svelte:head>
 
 <div class="mx-auto max-w-2xl px-6 pb-20">

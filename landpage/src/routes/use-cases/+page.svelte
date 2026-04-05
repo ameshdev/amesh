@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Network, Webhook, Clock, Terminal, Monitor, ChevronRight } from '@lucide/svelte';
+	import { jsonLdScript, breadcrumbList } from '$lib/seo.js';
 
 	const cases = [
 		{ slug: 'microservices', icon: Network, title: 'Microservices', desc: 'Every service gets its own device-bound identity. No shared API keys. Per-service audit trail.' },
@@ -17,6 +18,10 @@
 	<meta property="og:title" content="Use Cases — amesh" />
 	<meta property="og:description" content="How teams use amesh to replace API keys in microservices, webhooks, cron jobs, and internal tools." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases" />
+	{@html jsonLdScript(breadcrumbList([
+		{ name: 'Home', url: '/' },
+		{ name: 'Use Cases', url: '/use-cases' }
+	]))}
 </svelte:head>
 
 <div class="mx-auto max-w-2xl px-6 pt-16 pb-20">

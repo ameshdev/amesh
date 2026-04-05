@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Network } from '@lucide/svelte';
 	import UseCasePage from '$lib/components/UseCasePage.svelte';
+	import { jsonLdScript, graph, breadcrumbList, techArticle } from '$lib/seo.js';
 </script>
 
 <svelte:head>
@@ -10,6 +11,19 @@
 	<meta property="og:title" content="Microservices Authentication — amesh" />
 	<meta property="og:description" content="Give each microservice its own device-bound identity. Per-service audit trail, no shared API keys." />
 	<meta property="og:url" content="https://authmesh.dev/use-cases/microservices" />
+	{@html jsonLdScript(graph(
+		breadcrumbList([
+			{ name: 'Home', url: '/' },
+			{ name: 'Use Cases', url: '/use-cases' },
+			{ name: 'Microservices', url: '/use-cases/microservices' }
+		]),
+		techArticle({
+			title: 'Microservices Authentication with Device-Bound Identity',
+			description: 'Give each microservice its own device-bound identity. Per-service audit trail, isolated revocation, no shared API keys.',
+			url: '/use-cases/microservices',
+			section: 'Use Cases'
+		})
+	))}
 </svelte:head>
 
 <UseCasePage
