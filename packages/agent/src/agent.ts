@@ -53,7 +53,36 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
   const signFn = (message: Uint8Array) => keyStore.sign(keyAlias, message);
 
+  /**
+   * Represents an in-flight shell session. Owned by the WebSocket that opened
+   * it — on WS close (M4), the owning connect() scope tears it down so the
+   * bash process doesn't orphan and `sessionActive` is correctly reset.
+   */
+  interface ActiveSession {
+    proc: { kill: () => void; exited: Promise<number>; terminal?: { write: (_: unknown) => void; resize: (_c: number, _r: number) => void } };
+    cipher: ShellCipher;
+    idleCheck: ReturnType<typeof setInterval>;
+    messageHandler: (event: MessageEvent) => void;
+  }
+
   let sessionActive = false;
+  // Current active session, if any. Scoped to the outer closure so the
+  // connect()'s ws.close handler can tear it down.
+  let activeSession: ActiveSession | null = null;
+
+  function teardownActiveSession(reason: string): void {
+    if (!activeSession) return;
+    console.log(`[amesh-agent] Tearing down active session (${reason})`);
+    try {
+      activeSession.proc.kill();
+    } catch { /* already exited */ }
+    clearInterval(activeSession.idleCheck);
+    try {
+      activeSession.cipher.close();
+    } catch { /* already closed */ }
+    activeSession = null;
+    sessionActive = false;
+  }
 
   console.log(`[amesh-agent] Device: ${identity.deviceId} (${identity.friendlyName})`);
   console.log(`[amesh-agent] Connecting to relay: ${opts.relayUrl}`);
@@ -128,12 +157,19 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
           .catch(() => {})
           .finally(() => {
             sessionActive = false;
+            activeSession = null;
           });
         return;
       }
     });
 
     ws.addEventListener('close', () => {
+      // M4 — tear down any active shell session on disconnect. Previously the
+      // bash process kept running, `sessionActive` stayed true, and reconnect
+      // could never accept a new session until idle timeout fired.
+      if (activeSession) {
+        teardownActiveSession('ws_disconnect');
+      }
       console.log(`[amesh-agent] Disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
       setTimeout(connect, reconnectDelay);
       reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
@@ -163,6 +199,11 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
         sign,
         al,
       );
+
+      // M4 — drop the handshake reader NOW. Its message listener would
+      // otherwise accumulate every encrypted shell frame into an unread
+      // queue for the rest of the session (unbounded memory growth).
+      reader.dispose();
 
       const startTime = Date.now();
 
@@ -208,7 +249,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       }, 30_000);
 
       // Receive encrypted frames from controller
-      ws.addEventListener('message', (event: MessageEvent) => {
+      const messageHandler = (event: MessageEvent) => {
         const raw = typeof event.data === 'string' ? event.data : String(event.data);
         let msg;
         try {
@@ -252,11 +293,23 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
         } catch (err) {
           console.error('[amesh-agent] Frame decryption error:', (err as Error).message);
         }
-      });
+      };
+      ws.addEventListener('message', messageHandler);
+
+      // Register with the outer scope so the ws.close handler (M4 teardown)
+      // can kill the proc, clear the timer, and close the cipher if the
+      // relay disconnects mid-session.
+      activeSession = {
+        proc: proc as ActiveSession['proc'],
+        cipher,
+        idleCheck,
+        messageHandler,
+      };
 
       // Wait for process exit
       const exitCode = await proc.exited;
       clearInterval(idleCheck);
+      ws.removeEventListener('message', messageHandler);
 
       // Send exit frame
       try {
@@ -276,8 +329,10 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       );
 
       cipher.close();
+      activeSession = null;
       // sessionActive reset by .finally() in caller
     } catch (err) {
+      reader.dispose();
       console.error('[amesh-agent] Shell handshake failed:', (err as Error).message);
       // sessionActive reset by .finally() in caller
     }

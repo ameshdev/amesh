@@ -70,6 +70,7 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
   const peerFound = await reader.read(30_000);
   if (peerFound.type === 'error') {
     console.error(`Relay error: ${peerFound.code}`);
+    reader.dispose();
     ws.close();
     return 1;
   }
@@ -89,9 +90,15 @@ export async function connectShell(opts: ShellOptions): Promise<number> {
   } catch (err) {
     console.error(`Handshake failed: ${(err as Error).message}`);
     console.error('Is the agent running on the target? Start it with: amesh agent start');
+    reader.dispose();
     ws.close();
     return 1;
   }
+
+  // M4 — drop the handshake reader. The encrypted frame loop below installs
+  // its own listener; without dispose() the reader's queue would grow on
+  // every frame for the lifetime of the shell session.
+  reader.dispose();
 
   console.error(`Connected. Shell session started.\n`);
 

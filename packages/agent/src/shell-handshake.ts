@@ -36,8 +36,10 @@ function createMessageReader(ws: WebSocket) {
     resolve: (msg: Record<string, unknown>) => void;
     reject: (err: Error) => void;
   } | null = null;
+  let disposed = false;
 
-  ws.addEventListener('message', (event: MessageEvent) => {
+  const handler = (event: MessageEvent) => {
+    if (disposed) return;
     const raw = typeof event.data === 'string' ? event.data : String(event.data);
     const msg = JSON.parse(raw);
     if (waiter) {
@@ -47,7 +49,9 @@ function createMessageReader(ws: WebSocket) {
     } else {
       queue.push(msg);
     }
-  });
+  };
+
+  ws.addEventListener('message', handler);
 
   return {
     read(timeoutMs = 30_000): Promise<Record<string, unknown>> {
@@ -68,6 +72,22 @@ function createMessageReader(ws: WebSocket) {
           },
         };
       });
+    },
+    /**
+     * Remove the message listener and drain any pending waiter. Must be
+     * called once the caller is done reading messages, otherwise the handler
+     * keeps appending to `queue` on every incoming frame (M4 memory leak).
+     */
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      ws.removeEventListener('message', handler);
+      queue.length = 0;
+      if (waiter) {
+        const w = waiter;
+        waiter = null;
+        w.reject(new Error('reader_disposed'));
+      }
     },
   };
 }
