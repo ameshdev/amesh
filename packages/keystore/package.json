@@ -1,6 +1,6 @@
 {
   "name": "@authmesh/keystore",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Secure Enclave, macOS Keychain, and TPM 2.0 key storage for amesh",
   "type": "module",
   "license": "MIT",
@@ -37,7 +37,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@authmesh/core": "0.5.0",
+    "@authmesh/core": "0.5.1",
     "@noble/curves": "2.0.1",
     "@noble/hashes": "2.0.1",
     "@noble/ciphers": "2.1.1"

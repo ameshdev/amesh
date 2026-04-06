@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.1] - 2026-04-06
+
+### Added
+
+- **SECURITY.md** — vulnerability disclosure policy via GitHub private reporting
+- **CONTRIBUTING.md** — contributor setup, dev workflow, PR guidelines, crypto change policy
+- **CODE_OF_CONDUCT.md** — Contributor Covenant 2.1
+- **Issue templates** — structured bug report and feature request forms
+- **PR template** — What/Why/How checklist
+- **Social preview image** — 1280x640 branded card for GitHub link sharing
+- **GitHub Discussions** enabled for community Q&A
+- **Repo topics** — 10 discovery tags (authentication, m2m, iot, security, etc.)
+- **Docker smoke test suite** — 11 post-release tests in `smoke-tests/`, run via `./smoke-tests/run.sh <version>`
+
 ## [0.5.0] - 2026-04-05
 
 Full external-pen-tester-style security audit. All findings (2 critical, 4 high, 7 medium, 5 low) are fixed in this release. ~140 new regression tests, 301 pass / 0 regressions in the source test suite. Full writeup in `docs/security-audit-2026-04.md`.
