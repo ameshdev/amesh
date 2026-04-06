@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "description": "Smoke test manifest for amesh release verification. Each entry maps to a test script in tests/ that validates a specific shipped artifact.",
+  "tests": [
+    { "id": "01", "name": "relay-image-boot",      "file": "tests/01-relay-image-boot.sh",      "category": "relay",          "requires": ["relay"],   "description": "Relay Docker image starts and /health returns {status:'ok'}" },
+    { "id": "02", "name": "relay-endpoints",        "file": "tests/02-relay-endpoints.sh",        "category": "relay",          "requires": ["relay"],   "description": "/ws returns 400 without upgrade, unknown paths return 404" },
+    { "id": "03", "name": "npm-install-sdk",        "file": "tests/03-npm-install-sdk.sh",        "category": "npm",            "requires": ["network"], "description": "npm install @authmesh/sdk@VERSION with transitive deps at same version" },
+    { "id": "04", "name": "npm-exports-sdk",        "file": "tests/04-npm-exports-sdk.sh",        "category": "npm",            "requires": ["network"], "description": "Import SDK top-level + /middleware subpath, verify expected exports" },
+    { "id": "05", "name": "relay-ws-protocol",      "file": "tests/05-relay-ws-protocol.sh",      "category": "relay",          "requires": ["relay"],   "description": "Full WS pairing flow + M3 watcher hijack protection" },
+    { "id": "06", "name": "relay-ws-errors",        "file": "tests/06-relay-ws-errors.sh",        "category": "relay",          "requires": ["relay"],   "description": "WS error responses: invalid OTC, unknown type" },
+    { "id": "07", "name": "binary-download",        "file": "tests/07-binary-download.sh",        "category": "binary",         "requires": ["network"], "description": "Download linux binary tarball from GitHub Releases, verify valid gzip" },
+    { "id": "08", "name": "binary-runs",            "file": "tests/08-binary-runs.sh",            "category": "binary",         "requires": ["network"], "description": "--help lists commands, --version matches release" },
+    { "id": "09", "name": "passphrase-autogen",     "file": "tests/09-passphrase-autogen.sh",     "category": "h2-passphrase",  "requires": ["network"], "description": "Auto-generated passphrase in .passphrase (mode 400), not identity.json" },
+    { "id": "10", "name": "passphrase-envvar",      "file": "tests/10-passphrase-envvar.sh",      "category": "h2-passphrase",  "requires": ["network"], "description": "AUTH_MESH_PASSPHRASE env var honoured, no passphrase in identity.json" },
+    { "id": "11", "name": "passphrase-migration",   "file": "tests/11-passphrase-migration.sh",   "category": "h2-passphrase",  "requires": ["network"], "description": "Legacy identity.json passphrase migrates to dedicated .passphrase file" }
+  ],
+  "categories": {
+    "relay": "Relay Docker image and WebSocket protocol",
+    "npm": "npm package installation and ESM export verification",
+    "binary": "GitHub Release binary download and execution",
+    "h2-passphrase": "H2 hardening: passphrase separation from identity.json"
+  }
+}
