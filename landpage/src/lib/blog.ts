@@ -12,6 +12,16 @@ export interface BlogPost {
 // src/routes/blog/[slug]/+page.svelte — this file is for metadata only.
 export const posts: BlogPost[] = [
   {
+    slug: 'your-ai-writes-env-files',
+    title: 'Your AI just wrote another .env file',
+    description:
+      'AI coding tools generate more backends in a month than teams used to build in a year. Each one starts with a .env file full of static secrets. It doesn\'t have to.',
+    date: '2026-04-06',
+    author: 'The amesh team',
+    readingTime: '6 min read',
+    tags: ['essay', 'ai', 'security'],
+  },
+  {
     slug: 'introducing-amesh-0-3',
     title: 'Introducing amesh 0.3',
     description:
