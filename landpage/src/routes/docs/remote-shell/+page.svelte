@@ -30,7 +30,7 @@
 		{
 			label: 'Shell',
 			controller: 'curl -fsSL https://authmesh.dev/install | sh',
-			server: 'curl -fsSL https://authmesh.dev/install | sh',
+			server: 'curl -fsSL https://authmesh.dev/install-agent | sh',
 		},
 	];
 	let activeInstallMethod = $state(0);

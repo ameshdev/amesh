@@ -21,6 +21,15 @@
             "value": "text/plain; charset=utf-8"
           }
         ]
+      },
+      {
+        "source": "/install-agent",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/plain; charset=utf-8"
+          }
+        ]
       }
     ]
   }
