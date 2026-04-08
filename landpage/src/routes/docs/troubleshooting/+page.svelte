@@ -100,6 +100,18 @@
 				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">selfSig verification failed</code> after re-init</div>
 				<p class="mt-1 text-sm text-zinc-400">Known issue in older versions where macOS Keychain accumulated stale keys across <code class="font-mono text-emerald-400">amesh init --force</code> runs. Fixed in v0.3.1. Upgrade and re-run init.</p>
 			</div>
+			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
+				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">Device already in allow list</code></div>
+				<p class="mt-1 text-sm text-zinc-400">The device was previously paired. From v0.5.3+, the CLI automatically updates the existing entry with fresh handshake data. On older versions, run <code class="font-mono text-emerald-400">amesh revoke &lt;device-id&gt;</code> first, then re-pair.</p>
+			</div>
+			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
+				<div class="text-sm font-semibold text-zinc-50">One-sided trust (paired on one side but not the other)</div>
+				<p class="mt-1 text-sm text-zinc-400">Can happen if one side crashed mid-pairing. Run <code class="font-mono text-emerald-400">amesh list</code> on both machines. Revoke the stale entry with <code class="font-mono text-emerald-400">amesh revoke &lt;device-id&gt;</code>, then re-pair.</p>
+			</div>
+			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
+				<div class="text-sm font-semibold text-zinc-50">Can't run interactive commands on the target</div>
+				<p class="mt-1 text-sm text-zinc-400">The pairing flow requires interactive SAS code entry. For remote or scripted environments, use <code class="font-mono text-emerald-400">amesh provision</code> on the controller to generate a bootstrap token. Set <code class="font-mono text-emerald-400">AMESH_BOOTSTRAP_TOKEN</code> on the target — pairing happens automatically on first request.</p>
+			</div>
 		</div>
 	</section>
 

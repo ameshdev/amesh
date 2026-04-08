@@ -16,6 +16,78 @@
 
 	const releases: Release[] = [
 		{
+			version: '0.5.3',
+			date: '2026-04-08',
+			sections: [
+				{
+					label: 'Fixed',
+					items: [
+						'<strong><code class="font-mono text-emerald-400">amesh invite</code> crash on duplicate device</strong> — no longer throws when the target is already in the allow list. Automatically updates the existing entry with fresh handshake data.',
+						'<strong>Handshake timeout errors</strong> now show actionable recovery guidance instead of raw error messages.',
+						'<strong><code class="font-mono text-emerald-400">amesh grant</code> error</strong> explains that grant runs on the target side and suggests <code class="font-mono text-emerald-400">amesh list</code>.',
+						'<strong><code class="font-mono text-emerald-400">amesh listen</code> SAS prompt</strong> now includes Ctrl+C hint and clearer mismatch recovery message.',
+						'<strong><code class="font-mono text-emerald-400">amesh init</code> next-steps</strong> uses plain language instead of controller/target jargon.',
+						'<strong>Separate install scripts</strong> — <code class="font-mono text-emerald-400">authmesh.dev/install</code> for CLI, <code class="font-mono text-emerald-400">authmesh.dev/install-agent</code> for daemon.',
+					],
+				},
+				{
+					label: 'Added',
+					items: [
+						'<strong><code class="font-mono text-emerald-400">amesh provision</code> discoverability</strong> — non-interactive pairing now surfaced in <code class="font-mono text-emerald-400">listen</code>, <code class="font-mono text-emerald-400">init</code>, and README quickstart.',
+						'<strong>Trust model legend</strong> in <code class="font-mono text-emerald-400">amesh list</code> output — explains what [controller] and [target] mean.',
+						'<strong>Pairing troubleshooting</strong> section in docs covering 6 common failure scenarios.',
+					],
+				},
+			],
+		},
+		{
+			version: '0.5.2',
+			date: '2026-04-08',
+			sections: [
+				{
+					label: 'Added',
+					items: [
+						'<strong>Install script</strong> at <code class="font-mono text-emerald-400">authmesh.dev/install</code> — one-liner install for headless devices.',
+						'<strong>arm64 .deb package</strong> — release workflow now produces both amd64 and arm64 Debian packages.',
+						'<strong>Blog post</strong> — "Your AI just wrote another .env file".',
+					],
+				},
+			],
+		},
+		{
+			version: '0.5.1',
+			date: '2026-04-06',
+			sections: [
+				{
+					label: 'Added',
+					items: [
+						'<strong>Community files</strong> — SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, issue templates, PR template.',
+						'<strong>Social preview image</strong> for GitHub link sharing.',
+						'<strong>GitHub Discussions</strong> enabled for community Q&A.',
+					],
+				},
+			],
+		},
+		{
+			version: '0.5.0',
+			date: '2026-04-05',
+			sections: [
+				{
+					label: 'Security',
+					items: [
+						'<strong>Full security audit</strong> — 18 fixes across 2 critical, 4 high, 7 medium, 5 low severity issues.',
+						'<strong>Relay redeployed</strong> with <code class="font-mono text-emerald-400">AMESH_TRUST_PROXY=1</code> for correct IP rate limiting behind Cloud Run.',
+					],
+				},
+				{
+					label: 'Added',
+					items: [
+						'<strong>Docker smoke test suite</strong> — 11 post-release tests verifying npm packages, binaries, and relay.',
+					],
+				},
+			],
+		},
+		{
 			version: '0.3.3',
 			date: '2026-04-04',
 			sections: [

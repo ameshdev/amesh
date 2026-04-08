@@ -120,6 +120,9 @@ Identity created.
 		<p class="mt-3 text-sm text-zinc-500">
 			The verification code (shown on both sides) must match — this defeats man-in-the-middle attacks on the relay.
 		</p>
+		<div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+			<p class="text-sm text-zinc-400"><strong class="text-zinc-300">Remote device?</strong> If you can't run interactive commands on the target, use <code class="font-mono text-emerald-400">amesh provision</code> to generate a bootstrap token instead. See <a href="/docs/integration" class="text-emerald-400 no-underline hover:underline">Integration Guide — Pairing Remote Machines</a>.</p>
+		</div>
 	</section>
 
 	<section class="py-8">
