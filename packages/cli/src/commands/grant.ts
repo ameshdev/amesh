@@ -37,7 +37,7 @@ export default class Grant extends Command {
       this.error(
         `Device ${args.deviceId} not found in allow list.\n` +
           'Run `amesh list` to see paired devices.\n' +
-          'Note: grant runs on the target — you\'re granting a controller permission to access this device.',
+          "Note: grant runs on the target — you're granting a controller permission to access this device.",
       );
     }
 

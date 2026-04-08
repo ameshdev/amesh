@@ -37,7 +37,7 @@ export default class Listen extends Command {
     this.log('');
     this.log('  Share this code with your Controller device.');
     this.log('');
-    this.log('  Tip: Can\'t run interactive commands? Use `amesh provision` instead.');
+    this.log("  Tip: Can't run interactive commands? Use `amesh provision` instead.");
     this.log('       Run `amesh provision --help` on the controller for details.');
     this.log('');
 

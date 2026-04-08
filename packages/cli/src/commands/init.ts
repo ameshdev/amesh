@@ -150,8 +150,14 @@ export default class Init extends Command {
 
     this.log('');
     this.log('Next steps:');
-    this.log('  This is the server:  run `amesh listen`, then `amesh invite <code>` from your laptop');
-    this.log('  This is your laptop: run `amesh listen` on the server first, then `amesh invite <code>` here');
-    this.log('  Remote / scripted:   run `amesh provision` on the controller for non-interactive pairing');
+    this.log(
+      '  This is the server:  run `amesh listen`, then `amesh invite <code>` from your laptop',
+    );
+    this.log(
+      '  This is your laptop: run `amesh listen` on the server first, then `amesh invite <code>` here',
+    );
+    this.log(
+      '  Remote / scripted:   run `amesh provision` on the controller for non-interactive pairing',
+    );
   }
 }
