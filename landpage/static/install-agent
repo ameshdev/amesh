@@ -1,12 +1,12 @@
 #!/bin/sh
-# Install script for amesh — device-bound M2M authentication.
-# Usage: curl -fsSL https://authmesh.dev/install | sh
+# Install script for amesh-agent — the target daemon for remote shell.
+# Usage: curl -fsSL https://authmesh.dev/install-agent | sh
 #
 # Detects OS and architecture, downloads the latest release from GitHub,
-# and installs amesh into /usr/local/bin (or ~/.local/bin).
+# and installs amesh-agent into /usr/local/bin (or ~/.local/bin).
 #
 # Environment variables:
-#   AMESH_VERSION   — install a specific version (e.g., "0.5.1")
+#   AMESH_VERSION   — install a specific version (e.g., "0.5.2")
 #   AMESH_INSTALL   — custom install directory (default: /usr/local/bin or ~/.local/bin)
 
 set -e
@@ -99,7 +99,7 @@ main() {
   TARBALL="amesh-${VERSION}-${OS}-${ARCH}.tar.gz"
   URL="${BASE_URL}/download/v${VERSION}/${TARBALL}"
 
-  log "Installing amesh v${VERSION} (${OS}/${ARCH})"
+  log "Installing amesh-agent v${VERSION} (${OS}/${ARCH})"
   log "  from: ${URL}"
   log "  to:   ${INSTALL_DIR}"
 
@@ -112,28 +112,21 @@ main() {
 
   tar -xzf "${TMPDIR}/${TARBALL}" -C "$TMPDIR"
 
-  # Install binaries
+  # Install binary
   if needs_sudo "$INSTALL_DIR"; then
-    sudo install -m 755 "${TMPDIR}/amesh" "${INSTALL_DIR}/amesh"
-    # macOS Secure Enclave helper (only present in darwin tarballs)
-    if [ -f "${TMPDIR}/amesh-se-helper" ]; then
-      sudo install -m 755 "${TMPDIR}/amesh-se-helper" "${INSTALL_DIR}/amesh-se-helper"
-    fi
+    sudo install -m 755 "${TMPDIR}/amesh-agent" "${INSTALL_DIR}/amesh-agent"
   else
-    install -m 755 "${TMPDIR}/amesh" "${INSTALL_DIR}/amesh"
-    if [ -f "${TMPDIR}/amesh-se-helper" ]; then
-      install -m 755 "${TMPDIR}/amesh-se-helper" "${INSTALL_DIR}/amesh-se-helper"
-    fi
+    install -m 755 "${TMPDIR}/amesh-agent" "${INSTALL_DIR}/amesh-agent"
   fi
 
   # Verify
-  if "${INSTALL_DIR}/amesh" --version >/dev/null 2>&1; then
-    INSTALLED_VERSION=$("${INSTALL_DIR}/amesh" --version 2>&1)
+  if "${INSTALL_DIR}/amesh-agent" --version >/dev/null 2>&1; then
+    INSTALLED_VERSION=$("${INSTALL_DIR}/amesh-agent" --version 2>&1)
     log ""
-    log "amesh installed: ${INSTALLED_VERSION}"
+    log "amesh-agent installed: ${INSTALLED_VERSION}"
   else
     log ""
-    log "amesh installed to ${INSTALL_DIR}/amesh"
+    log "amesh-agent installed to ${INSTALL_DIR}/amesh-agent"
   fi
 
   # Warn if install dir is not in PATH
@@ -147,7 +140,7 @@ main() {
   esac
 
   log ""
-  log "Get started: amesh init"
+  log "Get started: amesh-agent agent start"
 }
 
 main
