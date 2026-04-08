@@ -59,6 +59,13 @@ jobs:
 
   release-deb:
     needs: build-binary
+    strategy:
+      matrix:
+        include:
+          - platform-arch: linux-x64
+            deb-arch: amd64
+          - platform-arch: linux-arm64
+            deb-arch: arm64
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -69,16 +76,16 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Download linux-x64 binary
+      - name: Download binary
         uses: robinraju/release-downloader@v1
         with:
           tag: ${{ github.ref_name }}
-          fileName: amesh-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz
+          fileName: amesh-${{ steps.version.outputs.VERSION }}-${{ matrix.platform-arch }}.tar.gz
 
       - name: Extract binary
         run: |
           mkdir -p packaging/dist
-          tar -xzf amesh-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz -C packaging/dist/
+          tar -xzf amesh-${{ steps.version.outputs.VERSION }}-${{ matrix.platform-arch }}.tar.gz -C packaging/dist/
 
       - name: Install nfpm
         run: |
@@ -89,14 +96,16 @@ jobs:
       - name: Build .deb
         working-directory: packaging
         run: |
-          VERSION=${{ steps.version.outputs.VERSION }} nfpm pkg \
+          VERSION=${{ steps.version.outputs.VERSION }} \
+          DEB_ARCH=${{ matrix.deb-arch }} \
+          nfpm pkg \
             --packager deb \
-            --target ../amesh_${{ steps.version.outputs.VERSION }}_amd64.deb
+            --target ../amesh_${{ steps.version.outputs.VERSION }}_${{ matrix.deb-arch }}.deb
 
       - name: Upload .deb to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: amesh_${{ steps.version.outputs.VERSION }}_amd64.deb
+          files: amesh_${{ steps.version.outputs.VERSION }}_${{ matrix.deb-arch }}.deb
 
   update-homebrew:
     needs: build-binary
