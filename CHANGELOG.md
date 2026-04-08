@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.2] - 2026-04-08
+
+### Added
+
+- **Install script** served at `authmesh.dev/install` — one-liner install for headless devices: `curl -fsSL https://authmesh.dev/install | sh`
+- **arm64 .deb package** — release workflow now produces both `amd64` and `arm64` Debian packages
+- **amesh-agent in .deb** — the `.deb` package now includes both `amesh` and `amesh-agent` binaries
+- **Blog post** — "Your AI just wrote another .env file"
+
+### Changed
+
+- **Install tabs** on landing page, quickstart, and remote-shell docs now show the `curl | sh` method alongside Homebrew and npm
+
 ## [0.5.1] - 2026-04-06
 
 ### Added
