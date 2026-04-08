@@ -34,7 +34,11 @@ export default class Grant extends Command {
     const data = await allowList.read();
     const device = data.devices.find((d) => d.deviceId === args.deviceId);
     if (!device) {
-      this.error(`Device ${args.deviceId} not found in allow list.`);
+      this.error(
+        `Device ${args.deviceId} not found in allow list.\n` +
+          'Run `amesh list` to see paired devices.\n' +
+          'Note: grant runs on the target — you\'re granting a controller permission to access this device.',
+      );
     }
 
     await allowList.updatePermissions(args.deviceId, { shell: flags.shell });

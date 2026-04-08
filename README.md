@@ -72,6 +72,8 @@ amesh invite 482916
 
 Trust is one-way: the controller can authenticate to the target, but not the reverse.
 
+> **Remote device?** If you can't run interactive commands on the target, use `amesh provision` to generate a bootstrap token instead. See the [Integration Guide](./docs/integration-guide.md#pairing-remote-machines).
+
 ### 3. Sign requests (2 lines)
 
 ```typescript
