@@ -6,8 +6,8 @@
 	// Install tabs
 	const installTabs = [
 		{ label: 'Homebrew', cmd: 'brew install ameshdev/tap/amesh' },
+		{ label: 'Shell', cmd: 'curl -fsSL https://authmesh.dev/install | sh' },
 		{ label: 'npm', cmd: 'npm install @authmesh/sdk' },
-		{ label: 'Binary', cmd: 'curl -sLO https://github.com/ameshdev/amesh/releases/latest/download/amesh-darwin-arm64.tar.gz' },
 	];
 	let activeInstallTab = $state(0);
 	let installCopied = $state(false);
