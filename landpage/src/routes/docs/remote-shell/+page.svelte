@@ -28,9 +28,9 @@
 			server: 'npm install -g @authmesh/agent',
 		},
 		{
-			label: 'Binary',
-			controller: 'curl -sLO https://github.com/ameshdev/amesh/releases/latest/download/amesh-darwin-arm64.tar.gz\ntar xzf amesh-darwin-arm64.tar.gz && sudo mv amesh /usr/local/bin/',
-			server: 'curl -sLO https://github.com/ameshdev/amesh/releases/latest/download/amesh-linux-x64.tar.gz\ntar xzf amesh-linux-x64.tar.gz && sudo mv amesh-agent /usr/local/bin/',
+			label: 'Shell',
+			controller: 'curl -fsSL https://authmesh.dev/install | sh',
+			server: 'curl -fsSL https://authmesh.dev/install | sh',
 		},
 	];
 	let activeInstallMethod = $state(0);
