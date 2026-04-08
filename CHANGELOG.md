@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.3] - 2026-04-08
+
+### Fixed
+
+- **`amesh invite`** no longer crashes when the target device is already in the allow list — updates the existing entry with fresh handshake data instead of throwing an unrecoverable error
+- **Handshake timeout errors** now show actionable recovery guidance instead of raw error messages
+- **`amesh grant`** error message explains that grant runs on the target side and suggests `amesh list`
+- **`amesh listen`** SAS prompt now includes Ctrl+C hint and clearer mismatch recovery message
+- **`amesh init`** next-steps text uses plain language instead of controller/target jargon
+- **Separate install scripts** — `authmesh.dev/install` for CLI, `authmesh.dev/install-agent` for daemon
+
+### Added
+
+- **`amesh provision` discoverability** — non-interactive pairing is now surfaced in `listen`, `init`, and README quickstart
+- **Trust model legend** in `amesh list` output — explains what `[controller]` and `[target]` mean
+- **Pairing troubleshooting** section in `docs/guide.md` covering 6 common failure scenarios
+
 ## [0.5.2] - 2026-04-08
 
 ### Added
