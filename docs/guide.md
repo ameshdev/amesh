@@ -278,6 +278,26 @@ cd packages/relay
 bun test
 ```
 
+### Pairing Troubleshooting
+
+**"Device already in allow list"**
+The device was previously paired. The CLI will automatically update the existing entry with fresh handshake data. If you need to start clean, run `amesh revoke <device-id>` first.
+
+**Pairing code expired**
+Codes expire after 60 seconds. Run `amesh listen` again to generate a new code.
+
+**SAS code mismatch**
+The 6-digit verification code didn't match. This could indicate a MITM attack, or simply that the wrong code was entered. No changes were made — run `amesh listen` again to retry.
+
+**One-sided trust (paired on one side but not the other)**
+This can happen if one side crashed mid-pairing. Run `amesh list` on both machines. Revoke the stale entry with `amesh revoke <device-id>`, then re-pair.
+
+**Can't run interactive commands on the target?**
+Use `amesh provision` on the controller to generate a bootstrap token. Set `AMESH_BOOTSTRAP_TOKEN` on the target — pairing happens automatically. See [Integration Guide — Pairing Remote Machines](./integration-guide.md#pairing-remote-machines).
+
+**Timed out waiting for the other device**
+Both devices must be running and connected to the same relay. The default relay is `wss://relay.authmesh.dev/ws`. Use `--relay` to override on both sides.
+
 ---
 
 ## 8. Start the Relay Server

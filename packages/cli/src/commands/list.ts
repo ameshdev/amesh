@@ -52,6 +52,9 @@ export default class List extends Command {
         );
       }
       this.log('  ' + '─'.repeat(55));
+      this.log('');
+      this.log('  [controller] = can authenticate TO this device');
+      this.log('  [target]     = this device can authenticate TO it');
     }
 
     this.log('');

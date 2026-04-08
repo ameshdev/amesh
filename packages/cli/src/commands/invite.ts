@@ -51,7 +51,20 @@ export default class Invite extends Command {
         signFn,
       );
     } catch (err) {
-      this.error(`Handshake failed: ${(err as Error).message}`);
+      const msg = (err as Error).message;
+      if (msg.includes('Timeout')) {
+        this.error(
+          'Timed out waiting for the target device.\n' +
+            'Make sure `amesh listen` is running on the target and both devices use the same relay.',
+        );
+      } else if (msg.includes('otc_not_found') || msg.includes('otc_expired')) {
+        this.error(
+          'Pairing code not found or expired.\n' +
+            'Run `amesh listen` again on the target for a fresh code.',
+        );
+      } else {
+        this.error(`Handshake failed: ${msg}`);
+      }
     }
 
     this.log('  Peer found.');
@@ -65,14 +78,27 @@ export default class Invite extends Command {
     this.log('  └──────────────────────────────────┘');
     this.log('');
 
-    await allowList.addDevice({
+    const newDevice = {
       deviceId: generateDeviceId(result.peerPublicKey),
       publicKey: Buffer.from(result.peerPublicKey).toString('base64'),
       friendlyName: result.peerFriendlyName,
       addedAt: new Date().toISOString(),
-      addedBy: 'handshake',
-      role: 'target',
-    });
+      addedBy: 'handshake' as const,
+      role: 'target' as const,
+    };
+
+    try {
+      await allowList.addDevice(newDevice);
+    } catch (err) {
+      if ((err as Error).message.includes('already in allow list')) {
+        this.log(`  "${result.peerFriendlyName}" is already in your allow list.`);
+        this.log('  Updating with fresh handshake data...');
+        await allowList.removeDevice(newDevice.deviceId);
+        await allowList.addDevice(newDevice);
+      } else {
+        throw err;
+      }
+    }
 
     this.log('');
     this.log(`  "${result.peerFriendlyName}" added as target.`);

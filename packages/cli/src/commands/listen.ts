@@ -37,6 +37,9 @@ export default class Listen extends Command {
     this.log('');
     this.log('  Share this code with your Controller device.');
     this.log('');
+    this.log("  Tip: Can't run interactive commands? Use `amesh provision` instead.");
+    this.log('       Run `amesh provision --help` on the controller for details.');
+    this.log('');
 
     const signFn = async (message: Uint8Array) => {
       return keyStore.sign(keyAlias, message);
@@ -52,23 +55,34 @@ export default class Listen extends Command {
         signFn,
       );
     } catch (err) {
-      this.error(`Handshake failed: ${(err as Error).message}`);
+      const msg = (err as Error).message;
+      if (msg.includes('Timeout')) {
+        this.error(
+          'Timed out waiting for a controller to connect.\n' +
+            'Make sure the controller runs `amesh invite <code>` within 60 seconds.',
+        );
+      } else {
+        this.error(`Handshake failed: ${msg}`);
+      }
     }
 
     this.log('  Controller connected.');
     this.log('  Ephemeral P-256 ECDH tunnel established.');
     this.log('  Keys exchanged and verified.');
     this.log('');
-    this.log('  ┌──────────────────────────────────┐');
-    this.log('  │   Enter the 6-digit code shown  │');
-    this.log("  │   on the Controller's screen.   │");
-    this.log('  └──────────────────────────────────┘');
+    this.log('  ┌────────────────────────────────────────────┐');
+    this.log('  │   Enter the 6-digit code shown on the     │');
+    this.log("  │   Controller's screen to complete pairing. │");
+    this.log('  │                                            │');
+    this.log('  │   Press Ctrl+C to cancel without changes.  │');
+    this.log('  └────────────────────────────────────────────┘');
     this.log('');
 
     const entered = await this.prompt('  Verification code: ');
     if (!verifySAS(entered.trim(), result.sas)) {
       this.log('');
-      this.log('  Code mismatch — possible MITM. Pairing aborted.');
+      this.log('  Code mismatch — possible MITM attack. Pairing aborted.');
+      this.log('  No changes were made. Run `amesh listen` again to retry.');
       return;
     }
 
