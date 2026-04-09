@@ -86,8 +86,10 @@ describe('derToRaw DER signature parser (L4)', () => {
   it('throws when r length is absurd (33+)', () => {
     // Build a SEQUENCE with r length = 40 (impossible for P-256)
     const bad = new Uint8Array(50);
-    bad[0] = 0x30; bad[1] = 48;
-    bad[2] = 0x02; bad[3] = 40; // r length = 40, invalid
+    bad[0] = 0x30;
+    bad[1] = 48;
+    bad[2] = 0x02;
+    bad[3] = 40; // r length = 40, invalid
     expect(() => derToRaw(bad)).toThrow(/r length out of range/);
   });
 
@@ -106,8 +108,11 @@ describe('derToRaw DER signature parser (L4)', () => {
 
   it('throws when s tag is missing after r', () => {
     const bad = new Uint8Array(10);
-    bad[0] = 0x30; bad[1] = 0x08;
-    bad[2] = 0x02; bad[3] = 0x01; bad[4] = 0x01; // r = [0x01]
+    bad[0] = 0x30;
+    bad[1] = 0x08;
+    bad[2] = 0x02;
+    bad[3] = 0x01;
+    bad[4] = 0x01; // r = [0x01]
     bad[5] = 0x05; // not 0x02 where s tag should be
     expect(() => derToRaw(bad)).toThrow(/INTEGER tag for s/);
   });

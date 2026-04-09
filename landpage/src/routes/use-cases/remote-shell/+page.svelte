@@ -48,8 +48,8 @@ brew install ameshdev/tap/amesh
 <span class="text-zinc-500"># or: npm install -g @authmesh/cli</span>
 
 <span class="text-zinc-500"># On the server (target) — agent daemon + all CLI commands</span>
-brew install ameshdev/tap/amesh-agent
-<span class="text-zinc-500"># or: npm install -g @authmesh/agent</span>` },
+brew install ameshdev/tap/amesh
+<span class="text-zinc-500"># or: npm install -g @authmesh/cli</span>` },
 		{ filename: 'Terminal (target)', code: `<span class="text-zinc-500"># On the server — start the agent daemon</span>
 <span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh agent start</span>
 

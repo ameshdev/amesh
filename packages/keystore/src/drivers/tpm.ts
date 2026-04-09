@@ -83,24 +83,23 @@ export class TPMKeyStore implements KeyStore {
       let wantedPlain = true;
       try {
         await tpm2('sign', [
-          '-c', handle,
-          '-g', 'sha256',
-          '-s', 'ecdsa',
-          '-f', 'plain',
-          '-o', sigPath,
+          '-c',
+          handle,
+          '-g',
+          'sha256',
+          '-s',
+          'ecdsa',
+          '-f',
+          'plain',
+          '-o',
+          sigPath,
           msgPath,
         ]);
       } catch {
         // Older tpm2-tools (4.x on Ubuntu 20.04) lack --format=plain. Retry
         // with default structured format and parse the TPMT_SIGNATURE below.
         wantedPlain = false;
-        await tpm2('sign', [
-          '-c', handle,
-          '-g', 'sha256',
-          '-s', 'ecdsa',
-          '-o', sigPath,
-          msgPath,
-        ]);
+        await tpm2('sign', ['-c', handle, '-g', 'sha256', '-s', 'ecdsa', '-o', sigPath, msgPath]);
       }
       const raw = new Uint8Array(await readFile(sigPath));
       return wantedPlain && raw.length === 64 ? raw : parseTpmtSignature(raw);

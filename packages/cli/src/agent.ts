@@ -39,7 +39,7 @@ function sanitizeForLog(str: string, maxLen = 200): string {
 export async function startAgent(opts: AgentOptions): Promise<void> {
   // Root guard (M1 fix)
   if (typeof process.getuid === 'function' && process.getuid() === 0 && !opts.allowRoot) {
-    console.error('[amesh-agent] ERROR: refusing to run as root.');
+    console.error('[amesh agent] ERROR: refusing to run as root.');
     console.error('  Running as root grants root shells to all authorized controllers.');
     console.error('  Use --allow-root to override.');
     process.exit(1);
@@ -87,7 +87,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
   function teardownActiveSession(reason: string): void {
     if (!activeSession) return;
-    console.log(`[amesh-agent] Tearing down active session (${reason})`);
+    console.log(`[amesh agent] Tearing down active session (${reason})`);
     try {
       activeSession.proc.kill();
     } catch {
@@ -110,7 +110,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
   // Graceful shutdown on SIGTERM / SIGINT
   const shutdown = async () => {
-    console.log('[amesh-agent] Shutting down...');
+    console.log('[amesh agent] Shutting down...');
     if (activeSession) teardownActiveSession('shutdown');
     await unlink(pidPath).catch(() => {});
     process.exit(0);
@@ -118,8 +118,8 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 
-  console.log(`[amesh-agent] Device: ${identity.deviceId} (${identity.friendlyName})`);
-  console.log(`[amesh-agent] Connecting to relay: ${opts.relayUrl}`);
+  console.log(`[amesh agent] Device: ${identity.deviceId} (${identity.friendlyName})`);
+  console.log(`[amesh agent] Connecting to relay: ${opts.relayUrl}`);
 
   // Connect to relay with reconnect
   let reconnectDelay = 1000;
@@ -170,12 +170,12 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       }
 
       if (msg.type === 'agent_registered') {
-        console.log('[amesh-agent] Registered with relay (identity verified).');
+        console.log('[amesh agent] Registered with relay (identity verified).');
         const data = await allowList.read();
         const shellControllers = data.devices.filter(
           (d) => d.role === 'controller' && d.permissions?.shell,
         ).length;
-        console.log(`[amesh-agent] Authorized controllers with shell access: ${shellControllers}`);
+        console.log(`[amesh agent] Authorized controllers with shell access: ${shellControllers}`);
         return;
       }
 
@@ -183,7 +183,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
       if (msg.type === 'peer_found') {
         if (sessionActive) {
-          console.error('[amesh-agent] Session already active, rejecting');
+          console.error('[amesh agent] Session already active, rejecting');
           return;
         }
         sessionActive = true;
@@ -204,7 +204,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       if (activeSession) {
         teardownActiveSession('ws_disconnect');
       }
-      console.log(`[amesh-agent] Disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
+      console.log(`[amesh agent] Disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
       setTimeout(connect, reconnectDelay);
       reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
     });
@@ -242,7 +242,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       const startTime = Date.now();
 
       console.log(
-        `[amesh-agent] Shell opened by ${result.peerDeviceId} (${result.peerFriendlyName})`,
+        `[amesh agent] Shell opened by ${result.peerDeviceId} (${result.peerFriendlyName})`,
       );
 
       // Set up encrypted cipher + zero the handshake result copy (L3 fix)
@@ -277,7 +277,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       let lastActivity = Date.now();
       const idleCheck = setInterval(() => {
         if (Date.now() - lastActivity > idleTimeoutMin * 60_000) {
-          console.log(`[amesh-agent] Idle timeout for ${result.peerDeviceId}`);
+          console.log(`[amesh agent] Idle timeout for ${result.peerDeviceId}`);
           proc.kill();
         }
       }, 30_000);
@@ -318,7 +318,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
             case FrameType.COMMAND: {
               const cmd = new TextDecoder().decode(payload);
               console.log(
-                `[amesh-agent] Command from ${result.peerDeviceId}: ${sanitizeForLog(cmd)}`,
+                `[amesh agent] Command from ${result.peerDeviceId}: ${sanitizeForLog(cmd)}`,
               );
               proc.terminal?.write(cmd + '\nexit\n');
               break;
@@ -330,7 +330,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
             }
           }
         } catch (err) {
-          console.error('[amesh-agent] Frame decryption error:', (err as Error).message);
+          console.error('[amesh agent] Frame decryption error:', (err as Error).message);
         }
       };
       ws.addEventListener('message', messageHandler);
@@ -364,7 +364,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
 
       const duration = Math.round((Date.now() - startTime) / 1000);
       console.log(
-        `[amesh-agent] Shell closed for ${result.peerDeviceId} (exit=${exitCode}, duration=${duration}s)`,
+        `[amesh agent] Shell closed for ${result.peerDeviceId} (exit=${exitCode}, duration=${duration}s)`,
       );
 
       cipher.close();
@@ -372,7 +372,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       // sessionActive reset by .finally() in caller
     } catch (err) {
       reader.dispose();
-      console.error('[amesh-agent] Shell handshake failed:', (err as Error).message);
+      console.error('[amesh agent] Shell handshake failed:', (err as Error).message);
       // sessionActive reset by .finally() in caller
     }
   }
@@ -385,13 +385,13 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
     al: AllowList,
   ): Promise<void> {
     const meta = parseFileMeta(metaPayload);
-    console.log(`[amesh-agent] File transfer from ${peerId}: ${meta.path} (${meta.size} bytes)`);
+    console.log(`[amesh agent] File transfer from ${peerId}: ${meta.path} (${meta.size} bytes)`);
 
     // Check files permission
     const data = await al.read();
     const peer = data.devices.find((d) => d.deviceId === peerId);
     if (!peer?.permissions?.files) {
-      console.error(`[amesh-agent] File transfer denied — no files permission for ${peerId}`);
+      console.error(`[amesh agent] File transfer denied — no files permission for ${peerId}`);
       const errFrame = cipher.encrypt(
         encodeFileErrorFrame(
           'File transfer not permitted. Run `amesh grant <id> --files` on the target.',
@@ -429,7 +429,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
             }
           }
         } catch (err) {
-          console.error('[amesh-agent] File chunk error:', (err as Error).message);
+          console.error('[amesh agent] File chunk error:', (err as Error).message);
           ws.removeEventListener('message', handler);
           resolve();
         }
@@ -470,7 +470,7 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       return;
     }
 
-    console.log(`[amesh-agent] File written: ${meta.path} (${received} bytes)`);
+    console.log(`[amesh agent] File written: ${meta.path} (${received} bytes)`);
     const ackFrame = cipher.encrypt(encodeFileAckFrame());
     ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(ackFrame).toString('base64') }));
   }

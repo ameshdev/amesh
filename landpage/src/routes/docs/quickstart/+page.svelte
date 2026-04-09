@@ -66,7 +66,7 @@ brew install ameshdev/tap/amesh
 bun add <span class="text-emerald-400">@authmesh/sdk</span>`} />
 		</div>
 		<div class="mt-4">
-			<CodeBlock label="Shell (Linux / macOS)" code={`<span class="text-zinc-500"># Installs amesh + amesh-agent — no runtime needed</span>
+			<CodeBlock label="Shell (Linux / macOS)" code={`<span class="text-zinc-500"># Installs amesh CLI — no runtime needed</span>
 curl -fsSL <span class="text-emerald-400">https://authmesh.dev/install</span> | sh`} />
 		</div>
 		<div class="mt-4">

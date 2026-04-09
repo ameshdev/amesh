@@ -144,10 +144,15 @@ describe('parseTpmtSignature (M7)', () => {
     const r = new Uint8Array(33); // too big for P-256
     const s = new Uint8Array(32);
     const tpmt = new Uint8Array(4 + 2 + 33 + 2 + 32);
-    tpmt[0] = 0x00; tpmt[1] = 0x18; tpmt[2] = 0x00; tpmt[3] = 0x0b;
-    tpmt[4] = 0x00; tpmt[5] = 0x21; // size_r = 33
+    tpmt[0] = 0x00;
+    tpmt[1] = 0x18;
+    tpmt[2] = 0x00;
+    tpmt[3] = 0x0b;
+    tpmt[4] = 0x00;
+    tpmt[5] = 0x21; // size_r = 33
     tpmt.set(r, 6);
-    tpmt[39] = 0x00; tpmt[40] = 0x20; // size_s = 32
+    tpmt[39] = 0x00;
+    tpmt[40] = 0x20; // size_s = 32
     tpmt.set(s, 41);
     expect(() => parseTpmtSignature(tpmt)).toThrow('exceeds 32 bytes');
   });

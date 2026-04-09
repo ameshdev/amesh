@@ -6,7 +6,7 @@
  *
  * Compiles two standalone binaries via `bun build --compile`:
  *   - packages/cli/src/sea.ts   → dist/amesh        (controller CLI)
- *   - packages/agent/src/sea.ts → dist/amesh-agent  (target daemon + CLI)
+ *   - packages/agent/src/sea.ts → dist/amesh  (target daemon + CLI)
  *
  * On macOS targets, also compiles the Swift Secure Enclave helper.
  * Default target: current platform.
@@ -62,12 +62,12 @@ compile({
   outfile: join(distDir, 'amesh'),
 });
 
-// --- Build the agent binary (amesh-agent) ---
+// --- Build the agent binary (amesh) ---
 compile({
-  label: 'amesh-agent',
+  label: 'amesh',
   version: agentPkg.version,
   entry: join(root, 'packages/agent/src/sea.ts'),
-  outfile: join(distDir, 'amesh-agent'),
+  outfile: join(distDir, 'amesh'),
 });
 
 // --- Build Swift helper for macOS targets ---

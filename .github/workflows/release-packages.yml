@@ -178,7 +178,7 @@ jobs:
 
             def install
               bin.install "amesh"
-              bin.install "amesh-agent" if File.exist?("amesh-agent")
+              bin.install "amesh" if File.exist?("amesh")
               bin.install "amesh-se-helper" if File.exist?("amesh-se-helper")
             end
 

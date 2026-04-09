@@ -1,7 +1,7 @@
 {
   "name": "@authmesh/cli",
   "version": "0.5.3",
-  "description": "CLI for amesh device identity management — init, pair, list, revoke",
+  "description": "CLI for amesh — device identity, remote shell, file transfer",
   "type": "module",
   "license": "MIT",
   "author": "Yair Etzion",
@@ -27,7 +27,8 @@
   },
   "oclif": {
     "commands": "./dist/commands",
-    "bin": "amesh"
+    "bin": "amesh",
+    "topicSeparator": " "
   },
   "files": [
     "dist"

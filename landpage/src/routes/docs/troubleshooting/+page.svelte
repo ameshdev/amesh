@@ -143,7 +143,7 @@
 			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
 				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"The agent daemon requires Bun runtime for PTY support"</code> (unsupported architectures only)</div>
 				<p class="mt-1 text-sm text-zinc-400">
-					You should never see this on macOS (arm64/x64) or Linux (x64/arm64) — the npm postinstall downloads a prebuilt binary that bundles Bun, and <code class="font-mono text-emerald-400">amesh-agent agent start</code> runs directly. If you do see it on a supported platform, the postinstall probably couldn't reach GitHub releases — check the install log for download errors and re-run <code class="font-mono text-emerald-400">npm rebuild @authmesh/agent</code> with network access.
+					You should never see this on macOS (arm64/x64) or Linux (x64/arm64) — the npm postinstall downloads a prebuilt binary that bundles Bun, and <code class="font-mono text-emerald-400">amesh agent start</code> runs directly. If you do see it on a supported platform, the postinstall probably couldn't reach GitHub releases — check the install log for download errors and re-run <code class="font-mono text-emerald-400">npm rebuild @authmesh/cli</code> with network access.
 				</p>
 				<p class="mt-2 text-sm text-zinc-400">
 					On unsupported architectures (Raspberry Pi 3 and earlier, armv7 32-bit Pi OS), the postinstall falls back to the JS entry and the agent needs Bun for PTY. Bun does not ship for armv7, so you'd need a third-party Bun build. Most users should move to Pi 4/5 on 64-bit Pi OS or a different ARM host.
@@ -151,7 +151,7 @@
 			</div>
 			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
 				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"Handshake failed"</code> / connection timeout</div>
-				<p class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="font-mono text-emerald-400">amesh-agent agent start</code>, and verify the relay is reachable from both sides (port 443 or whatever your self-hosted relay uses).</p>
+				<p class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="font-mono text-emerald-400">amesh agent start</code>, and verify the relay is reachable from both sides (port 443 or whatever your self-hosted relay uses).</p>
 			</div>
 			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
 				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"Refusing to run as root"</code></div>
