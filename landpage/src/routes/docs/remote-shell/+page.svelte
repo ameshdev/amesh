@@ -11,11 +11,8 @@
 
 	const { prev, next } = getDocNav('remote-shell');
 
-	// Install method tabs. The Homebrew formula installs both `amesh` and
-	// `amesh` from a single tap, and the release tarballs contain both
-	// binaries, so the controller and server sides just extract different
-	// binaries from the same archive. The npm tab shows two separate packages
-	// because @authmesh/cli and @authmesh/cli are published independently.
+	// Install method tabs. The same `amesh` binary is used on both controller
+	// and server — `amesh agent start` enables target mode on the server.
 	const installMethods = [
 		{
 			label: 'Homebrew',
@@ -92,7 +89,7 @@
 	<!-- Install -->
 	<section class="py-8">
 		<h2 id="install" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Install</h2>
-		<p class="mt-2 text-zinc-400">Two binaries: <code class="text-emerald-400">amesh</code> for the controller (your laptop), <code class="text-emerald-400">amesh</code> for the server.</p>
+		<p class="mt-2 text-zinc-400">One binary: <code class="text-emerald-400">amesh</code> for both controller (your laptop) and server. Run <code class="text-emerald-400">amesh agent start</code> on the server to enable remote access.</p>
 
 		<!-- Install method tabs -->
 		<div class="mt-4 rounded-xl border border-zinc-800 overflow-hidden" style="background:#0C0C0E">
@@ -175,7 +172,7 @@ amesh agent start
 amesh agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
 		</div>
 		<p class="mt-3 text-xs text-zinc-500">
-			Note the binary name: controller commands run through <code class="font-mono text-emerald-400">amesh</code>; the agent daemon runs through <code class="font-mono text-emerald-400">amesh</code>. They are separate packages (<code class="font-mono">@authmesh/cli</code> and <code class="font-mono">@authmesh/cli</code>), but <code class="font-mono text-emerald-400">brew install ameshdev/tap/amesh</code> installs both.
+			The same <code class="font-mono text-emerald-400">amesh</code> binary handles both controller and agent commands. Install once, use <code class="font-mono text-emerald-400">amesh agent start</code> to enable target mode.
 		</p>
 	</section>
 

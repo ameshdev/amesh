@@ -27,7 +27,6 @@ body:
       label: Related package
       options:
         - "@authmesh/cli"
-        - "@authmesh/agent"
         - "@authmesh/sdk"
         - "@authmesh/core"
         - "@authmesh/keystore"

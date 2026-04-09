@@ -4,15 +4,14 @@
  * Usage:
  *   bun packaging/build-bun.mjs [--target bun-darwin-arm64]
  *
- * Compiles two standalone binaries via `bun build --compile`:
- *   - packages/cli/src/sea.ts   → dist/amesh        (controller CLI)
- *   - packages/agent/src/sea.ts → dist/amesh  (target daemon + CLI)
+ * Compiles a standalone binary via `bun build --compile`:
+ *   - packages/cli/src/sea.ts → dist/amesh (unified CLI + agent)
  *
  * On macOS targets, also compiles the Swift Secure Enclave helper.
  * Default target: current platform.
  */
 
-import { readFileSync, mkdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -24,9 +23,6 @@ const distDir = join(__dirname, 'dist');
 
 const cliPkg = JSON.parse(
   readFileSync(join(root, 'packages/cli/package.json'), 'utf-8'),
-);
-const agentPkg = JSON.parse(
-  readFileSync(join(root, 'packages/agent/package.json'), 'utf-8'),
 );
 
 // Parse --target flag from argv (e.g., --target bun-darwin-arm64)
@@ -54,19 +50,11 @@ function compile({ label, version, entry, outfile }) {
   console.log(`Done → ${outfile}`);
 }
 
-// --- Build the main CLI binary (amesh) ---
+// --- Build the unified amesh binary ---
 compile({
   label: 'amesh',
   version: cliPkg.version,
   entry: join(root, 'packages/cli/src/sea.ts'),
-  outfile: join(distDir, 'amesh'),
-});
-
-// --- Build the agent binary (amesh) ---
-compile({
-  label: 'amesh',
-  version: agentPkg.version,
-  entry: join(root, 'packages/agent/src/sea.ts'),
   outfile: join(distDir, 'amesh'),
 });
 
