@@ -43,13 +43,10 @@
 		{ lead: 'Revocation requires editing every server', detail: 'When someone leaves the team, you remove their key from authorized_keys on every server they had access to. Miss one and they still have access. There is no central revocation.' },
 	]}
 	codeTabs={[
-		{ filename: 'Install', code: `<span class="text-zinc-500"># On your laptop (controller) — shell client included</span>
+		{ filename: 'Install', code: `<span class="text-zinc-500"># Same binary on both machines</span>
 brew install ameshdev/tap/amesh
 <span class="text-zinc-500"># or: npm install -g @authmesh/cli</span>
-
-<span class="text-zinc-500"># On the server (target) — agent daemon + all CLI commands</span>
-brew install ameshdev/tap/amesh
-<span class="text-zinc-500"># or: npm install -g @authmesh/cli</span>` },
+<span class="text-zinc-500"># or: curl -fsSL https://authmesh.dev/install | sh</span>` },
 		{ filename: 'Terminal (target)', code: `<span class="text-zinc-500"># On the server — start the agent daemon</span>
 <span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh agent start</span>
 
@@ -68,11 +65,12 @@ brew install ameshdev/tap/amesh
 user
 <span class="text-emerald-400">user@prod-api:~$</span> exit
   Session closed (exit code 0, duration 2m 14s).` },
-		{ filename: 'Grant access', code: `<span class="text-zinc-500"># Shell access is opt-in — pairing alone doesn't grant it</span>
-<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh grant am_3d9f1a2e --shell</span>
+		{ filename: 'Pair + grant', code: `<span class="text-zinc-500"># On the server — pair and grant shell in one step</span>
+<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh listen --shell</span>
 
-  Device: alice-macbook (am_3d9f1a2e)
-  Shell access: granted
+<span class="text-zinc-500"># On your laptop</span>
+<span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh invite 482916</span>
+<span class="text-emerald-400">✔</span> "prod-api" added as target.
 
 <span class="text-zinc-500"># Revoke when someone leaves — instant, one command</span>
 <span class="text-zinc-500">$</span> <span class="text-zinc-50">amesh revoke am_3d9f1a2e</span>

@@ -11,24 +11,11 @@
 
 	const { prev, next } = getDocNav('remote-shell');
 
-	// Install method tabs. The same `amesh` binary is used on both controller
-	// and server — `amesh agent start` enables target mode on the server.
+	// Install method tabs — single binary for both controller and server.
 	const installMethods = [
-		{
-			label: 'Homebrew',
-			controller: 'brew install ameshdev/tap/amesh',
-			server: 'brew install ameshdev/tap/amesh',
-		},
-		{
-			label: 'npm',
-			controller: 'npm install -g @authmesh/cli',
-			server: 'npm install -g @authmesh/cli',
-		},
-		{
-			label: 'Shell',
-			controller: 'curl -fsSL https://authmesh.dev/install | sh',
-			server: 'curl -fsSL https://authmesh.dev/install-agent | sh',
-		},
+		{ label: 'Homebrew', command: 'brew install ameshdev/tap/amesh' },
+		{ label: 'npm', command: 'npm install -g @authmesh/cli' },
+		{ label: 'Shell', command: 'curl -fsSL https://authmesh.dev/install | sh' },
 	];
 	let activeInstallMethod = $state(0);
 	let copiedField: string | null = $state(null);
@@ -104,35 +91,17 @@
 				{/each}
 			</div>
 
-			<div class="divide-y divide-zinc-800/60">
-				<!-- Controller -->
-				<div class="px-4 py-3">
-					<div class="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500">Your laptop (controller)</div>
-					<div class="flex items-start justify-between gap-3">
-						<code class="overflow-x-auto font-mono text-[13px] text-zinc-300 whitespace-pre">{installMethods[activeInstallMethod].controller}</code>
-						<button onclick={() => copyCmd(installMethods[activeInstallMethod].controller, 'controller')} class="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-1.5 text-zinc-600 transition hover:text-zinc-300 mt-0.5" title="Copy">
-							{#if copiedField === 'controller'}
-								<Check size={14} class="text-emerald-400" />
-							{:else}
-								<Copy size={14} />
-							{/if}
-						</button>
-					</div>
-				</div>
-
-				<!-- Server -->
-				<div class="px-4 py-3">
-					<div class="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500">Server (target)</div>
-					<div class="flex items-start justify-between gap-3">
-						<code class="overflow-x-auto font-mono text-[13px] text-zinc-300 whitespace-pre">{installMethods[activeInstallMethod].server}</code>
-						<button onclick={() => copyCmd(installMethods[activeInstallMethod].server, 'server')} class="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-1.5 text-zinc-600 transition hover:text-zinc-300 mt-0.5" title="Copy">
-							{#if copiedField === 'server'}
-								<Check size={14} class="text-emerald-400" />
-							{:else}
-								<Copy size={14} />
-							{/if}
-						</button>
-					</div>
+			<div class="px-4 py-3">
+				<div class="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500">Both machines (controller + server)</div>
+				<div class="flex items-start justify-between gap-3">
+					<code class="overflow-x-auto font-mono text-[13px] text-zinc-300 whitespace-pre">{installMethods[activeInstallMethod].command}</code>
+					<button onclick={() => copyCmd(installMethods[activeInstallMethod].command, 'install')} class="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-1.5 text-zinc-600 transition hover:text-zinc-300 mt-0.5" title="Copy">
+						{#if copiedField === 'install'}
+							<Check size={14} class="text-emerald-400" />
+						{:else}
+							<Copy size={14} />
+						{/if}
+					</button>
 				</div>
 			</div>
 		</div>
@@ -141,39 +110,26 @@
 	<!-- Setup -->
 	<section class="py-8 border-t border-zinc-800">
 		<h2 id="setup" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Setup</h2>
-		<p class="mt-2 text-zinc-400">Three steps: pair the devices (if not already), grant shell access, start the agent.</p>
+		<p class="mt-2 text-zinc-400">Two steps: pair with shell access, then start the agent.</p>
 
-		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">1. Pair devices (skip if already paired)</h3>
+		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">1. Pair devices with shell access</h3>
 		<div class="mt-3">
-			<CodeBlock code={`<span class="text-zinc-500"># On the target (server)</span>
-amesh listen
+			<CodeBlock code={`<span class="text-zinc-500"># On the target (server) — pair and grant shell in one step</span>
+amesh listen --shell
 
 <span class="text-zinc-500"># On the controller (your laptop)</span>
 amesh invite 482916`} />
 		</div>
+		<p class="mt-3 text-sm text-zinc-500">The <code class="font-mono text-emerald-400">--shell</code> flag auto-grants shell access when pairing completes. Without it, you can grant later with <code class="font-mono text-emerald-400">amesh grant &lt;device-id&gt; --shell</code>.</p>
 
-		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">2. Grant shell permission</h3>
-		<div class="mt-3">
-			<CodeBlock code={`<span class="text-zinc-500"># On the target — grant shell access to the controller</span>
-amesh grant am_3d9f1a2e --shell
-
-<span class="text-zinc-500"># Verify</span>
-amesh list
-<span class="text-zinc-500"># Shows: am_3d9f1a2e  alice-macbook  [controller] [shell]  added 2026-04-03</span>`} />
-		</div>
-		<p class="mt-3 text-sm text-zinc-500">Shell access is opt-in. Pairing for HTTP API auth does not automatically grant shell access.</p>
-
-		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">3. Start the agent</h3>
+		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">2. Start the agent</h3>
 		<div class="mt-3">
 			<CodeBlock code={`<span class="text-zinc-500"># On the target (server) — start the agent daemon</span>
 amesh agent start
 
-<span class="text-zinc-500"># Or with options</span>
-amesh agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
+<span class="text-zinc-500"># Stop when done</span>
+amesh agent stop`} />
 		</div>
-		<p class="mt-3 text-xs text-zinc-500">
-			The same <code class="font-mono text-emerald-400">amesh</code> binary handles both controller and agent commands. Install once, use <code class="font-mono text-emerald-400">amesh agent start</code> to enable target mode.
-		</p>
 	</section>
 
 	<!-- Platform support -->
