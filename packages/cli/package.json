@@ -1,7 +1,7 @@
 {
   "name": "@authmesh/cli",
-  "version": "0.5.3",
-  "description": "CLI for amesh — device identity, remote shell, file transfer",
+  "version": "0.6.0",
+  "description": "CLI for amesh — device identity, remote shell, agent daemon",
   "type": "module",
   "license": "MIT",
   "author": "Yair Etzion",
@@ -41,8 +41,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@authmesh/core": "0.5.3",
-    "@authmesh/keystore": "0.5.3",
+    "@authmesh/core": "0.6.0",
+    "@authmesh/keystore": "0.6.0",
     "@noble/ciphers": "2.1.1",
     "@noble/curves": "2.0.1",
     "@noble/hashes": "2.0.1",

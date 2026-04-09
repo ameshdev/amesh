@@ -1,6 +1,6 @@
 {
   "name": "@authmesh/relay",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "WebSocket relay server for amesh device pairing handshakes",
   "type": "module",
   "license": "MIT",
@@ -42,7 +42,7 @@
     "start": "bun dist/start.js"
   },
   "dependencies": {
-    "@authmesh/core": "0.5.3"
+    "@authmesh/core": "0.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
