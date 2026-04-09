@@ -131,9 +131,7 @@ export function buildShellSigMessage(params: {
   signerEphPub: Uint8Array;
   verifierEphPub: Uint8Array;
 }): Uint8Array {
-  const transcript = new Uint8Array(
-    params.signerEphPub.length + params.verifierEphPub.length,
-  );
+  const transcript = new Uint8Array(params.signerEphPub.length + params.verifierEphPub.length);
   transcript.set(params.signerEphPub, 0);
   transcript.set(params.verifierEphPub, params.signerEphPub.length);
   const transcriptHash = sha256(transcript);

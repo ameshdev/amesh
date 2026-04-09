@@ -78,7 +78,11 @@ describe('shell handshake signature binding (C1)', () => {
     expect(verifyMessage(sig, buildShellSigMessage(base), id.publicKey)).toBe(true);
 
     expect(
-      verifyMessage(sig, buildShellSigMessage({ ...base, deviceId: 'am_mallory1234' }), id.publicKey),
+      verifyMessage(
+        sig,
+        buildShellSigMessage({ ...base, deviceId: 'am_mallory1234' }),
+        id.publicKey,
+      ),
     ).toBe(false);
 
     expect(
@@ -110,9 +114,7 @@ describe('shell handshake signature binding (C1)', () => {
     });
     const sig = signMessage(id.privateKey, shellMsg);
 
-    const oldFormatMsg = new TextEncoder().encode(
-      id.publicKeyBase64 + id.friendlyName + timestamp,
-    );
+    const oldFormatMsg = new TextEncoder().encode(id.publicKeyBase64 + id.friendlyName + timestamp);
     expect(verifyMessage(sig, oldFormatMsg, id.publicKey)).toBe(false);
   });
 });

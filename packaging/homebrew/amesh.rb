@@ -30,12 +30,10 @@ class Amesh < Formula
 
   def install
     bin.install "amesh"
-    bin.install "amesh-agent" if File.exist?("amesh-agent")
     bin.install "amesh-se-helper" if File.exist?("amesh-se-helper")
   end
 
   test do
     assert_match "amesh", shell_output("#{bin}/amesh --help")
-    assert_match "amesh-agent", shell_output("#{bin}/amesh-agent --help") if File.exist?("#{bin}/amesh-agent")
   end
 end

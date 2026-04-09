@@ -111,8 +111,7 @@ app.use(amesh.verify());
 | Package | Description |
 |---------|-------------|
 | [`@authmesh/sdk`](./packages/sdk) | Signing fetch client + Express verification middleware |
-| [`@authmesh/cli`](./packages/cli) | CLI: `init`, `listen`, `invite`, `list`, `revoke`, `provision`, `grant`, `shell` |
-| [`@authmesh/agent`](./packages/agent) | Agent daemon + full CLI: all CLI commands + `agent start` |
+| [`@authmesh/cli`](./packages/cli) | CLI + agent: `init`, `listen`, `invite`, `list`, `revoke`, `provision`, `grant`, `shell`, `agent start/stop`, `reset` |
 | [`@authmesh/core`](./packages/core) | Crypto primitives: sign, verify, canonical string, nonce, HMAC, HKDF, ECDH |
 | [`@authmesh/keystore`](./packages/keystore) | Key storage drivers: Secure Enclave, macOS Keychain, TPM 2.0, encrypted file |
 | [`@authmesh/relay`](./packages/relay) | WebSocket relay for device pairing handshakes |

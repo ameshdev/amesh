@@ -1,6 +1,6 @@
 # @authmesh/cli
 
-CLI for [amesh](https://github.com/ameshdev/amesh) device identity management.
+Unified CLI for [amesh](https://github.com/ameshdev/amesh) — device identity, remote shell, and file transfer.
 
 ## Install
 
@@ -12,28 +12,30 @@ npm install -g @authmesh/cli
 
 ```bash
 amesh init --name "prod-api"     # Create a device identity
-amesh listen                     # Start pairing (target side)
+amesh listen --shell             # Start pairing + grant shell access
 amesh invite <code>              # Join pairing (controller side)
 amesh list                       # Show trusted devices
 amesh revoke <device-id>         # Remove a trusted device
 amesh provision                  # Generate bootstrap tokens
 amesh grant <device-id> --shell  # Grant shell access to a controller
 amesh shell <device>             # Open remote shell to a target
+amesh agent start                # Start the agent daemon (target side)
+amesh agent stop                 # Stop the agent daemon
+amesh reset                      # Clear stale sessions
 ```
-
-> **Target-side agent daemon:** The remote shell daemon lives in a separate package, [`@authmesh/agent`](https://www.npmjs.com/package/@authmesh/agent) (`amesh-agent agent start`). Install it on the server; install `@authmesh/cli` on your laptop.
 
 ## Pairing flow
 
 On the target machine:
 ```bash
-$ amesh listen
+$ amesh listen --shell
   Pairing code: 482916
 
   Controller connected.
   Enter the 6-digit code shown on the Controller.
   Verification code: 847291
   "Dev Laptop" added as controller.
+  Shell access: granted
 ```
 
 On the controller:
@@ -41,7 +43,7 @@ On the controller:
 $ amesh invite 482916
   Connected to relay.
   Verification code: 847291
-  Enter this code on the Target device.
+  Waiting for target to confirm verification code...
   "prod-api" added as target.
 ```
 

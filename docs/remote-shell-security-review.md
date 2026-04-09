@@ -146,7 +146,7 @@ This is the same traffic analysis SSH faces over any network. It's not fixable w
 
 **Not in spec.**
 
-**Problem:** The agent logs `[amesh-agent] shell opened by am_3d9f — command: uptime`. If the command contains ANSI escape sequences, it could corrupt log files or exploit log viewers (terminal escape injection).
+**Problem:** The agent logs `[amesh agent] shell opened by am_3d9f — command: uptime`. If the command contains ANSI escape sequences, it could corrupt log files or exploit log viewers (terminal escape injection).
 
 **Fix:** Sanitize the logged command string (strip non-printable characters, truncate to 200 chars).
 

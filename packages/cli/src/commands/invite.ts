@@ -77,6 +77,18 @@ export default class Invite extends Command {
     this.log('  │   device to complete pairing.    │');
     this.log('  └──────────────────────────────────┘');
     this.log('');
+    this.log('  Waiting for target to confirm verification code...');
+
+    // Wait for the target to verify the SAS code before committing
+    const confirmed = await result.connection.waitForConfirmation(90_000);
+    result.connection.close();
+
+    if (!confirmed) {
+      this.log('');
+      this.log('  Target rejected the verification code or disconnected.');
+      this.log('  No changes were made. Run `amesh listen` + `amesh invite` to retry.');
+      return;
+    }
 
     const newDevice = {
       deviceId: generateDeviceId(result.peerPublicKey),

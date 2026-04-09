@@ -11,11 +11,8 @@
 
 	const { prev, next } = getDocNav('remote-shell');
 
-	// Install method tabs. The Homebrew formula installs both `amesh` and
-	// `amesh-agent` from a single tap, and the release tarballs contain both
-	// binaries, so the controller and server sides just extract different
-	// binaries from the same archive. The npm tab shows two separate packages
-	// because @authmesh/cli and @authmesh/agent are published independently.
+	// Install method tabs. The same `amesh` binary is used on both controller
+	// and server — `amesh agent start` enables target mode on the server.
 	const installMethods = [
 		{
 			label: 'Homebrew',
@@ -25,7 +22,7 @@
 		{
 			label: 'npm',
 			controller: 'npm install -g @authmesh/cli',
-			server: 'npm install -g @authmesh/agent',
+			server: 'npm install -g @authmesh/cli',
 		},
 		{
 			label: 'Shell',
@@ -92,7 +89,7 @@
 	<!-- Install -->
 	<section class="py-8">
 		<h2 id="install" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Install</h2>
-		<p class="mt-2 text-zinc-400">Two binaries: <code class="text-emerald-400">amesh</code> for the controller (your laptop), <code class="text-emerald-400">amesh-agent</code> for the server.</p>
+		<p class="mt-2 text-zinc-400">One binary: <code class="text-emerald-400">amesh</code> for both controller (your laptop) and server. Run <code class="text-emerald-400">amesh agent start</code> on the server to enable remote access.</p>
 
 		<!-- Install method tabs -->
 		<div class="mt-4 rounded-xl border border-zinc-800 overflow-hidden" style="background:#0C0C0E">
@@ -169,20 +166,20 @@ amesh list
 		<h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-zinc-500">3. Start the agent</h3>
 		<div class="mt-3">
 			<CodeBlock code={`<span class="text-zinc-500"># On the target (server) — start the agent daemon</span>
-amesh-agent agent start
+amesh agent start
 
 <span class="text-zinc-500"># Or with options</span>
-amesh-agent agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
+amesh agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} />
 		</div>
 		<p class="mt-3 text-xs text-zinc-500">
-			Note the binary name: controller commands run through <code class="font-mono text-emerald-400">amesh</code>; the agent daemon runs through <code class="font-mono text-emerald-400">amesh-agent</code>. They are separate packages (<code class="font-mono">@authmesh/cli</code> and <code class="font-mono">@authmesh/agent</code>), but <code class="font-mono text-emerald-400">brew install ameshdev/tap/amesh</code> installs both.
+			The same <code class="font-mono text-emerald-400">amesh</code> binary handles both controller and agent commands. Install once, use <code class="font-mono text-emerald-400">amesh agent start</code> to enable target mode.
 		</p>
 	</section>
 
 	<!-- Platform support -->
 	<section class="py-8 border-t border-zinc-800">
 		<h2 id="platforms" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Platform Support</h2>
-		<p class="mt-2 text-zinc-400">The <code class="text-emerald-400">amesh-agent</code> daemon ships as a prebuilt binary on all supported platforms — no runtime install needed.</p>
+		<p class="mt-2 text-zinc-400">The <code class="text-emerald-400">amesh</code> daemon ships as a prebuilt binary on all supported platforms — no runtime install needed.</p>
 		<div class="mt-4 overflow-x-auto rounded-lg border border-zinc-800">
 			<table class="w-full text-sm">
 				<thead>
@@ -222,7 +219,7 @@ amesh-agent agent start --relay wss://relay.authmesh.dev/ws --idle-timeout 60`} 
 			</table>
 		</div>
 		<p class="mt-3 text-xs text-zinc-500">
-			<strong class="text-zinc-400">Linux armv7 (Raspberry Pi 3 and earlier):</strong> Bun does not ship for 32-bit ARM. If you must run the agent on these devices, install <a href="https://bun.com/docs/installation" target="_blank" rel="noopener" class="text-emerald-400 no-underline hover:underline">Bun</a> manually (if a third-party build is available for your arch) and run as <code class="font-mono text-emerald-400">bun $(which amesh-agent) agent start</code>. Everything else (Pi 4/5 on 64-bit Pi OS, all modern ARM servers) is supported out of the box.
+			<strong class="text-zinc-400">Linux armv7 (Raspberry Pi 3 and earlier):</strong> Bun does not ship for 32-bit ARM. If you must run the agent on these devices, install <a href="https://bun.com/docs/installation" target="_blank" rel="noopener" class="text-emerald-400 no-underline hover:underline">Bun</a> manually (if a third-party build is available for your arch) and run as <code class="font-mono text-emerald-400">bun $(which amesh) agent start</code>. Everything else (Pi 4/5 on 64-bit Pi OS, all modern ARM servers) is supported out of the box.
 		</p>
 	</section>
 
@@ -305,11 +302,11 @@ Filesystem      Size  Used Avail Use% Mounted on
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"Handshake failed" / connection timeout</div>
-				<div class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="text-emerald-400">amesh-agent agent start</code> and verify the relay is reachable from both sides.</div>
+				<div class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="text-emerald-400">amesh agent start</code> and verify the relay is reachable from both sides.</div>
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"The agent daemon requires Bun runtime for PTY support" (armv7 only)</div>
-				<div class="mt-1 text-sm text-zinc-400">You're on an unsupported architecture (typically Raspberry Pi 3 or earlier, 32-bit Pi OS). The postinstall couldn't find a prebuilt binary for your arch and fell back to the JS entry, which needs Bun for PTY. If a Bun build exists for your arch, install it and run as <code class="text-emerald-400">bun $(which amesh-agent) agent start</code>. On supported architectures (macOS arm64/x64, Linux x64/arm64) this error should not appear — if it does, see the Troubleshooting page for the full diagnostic flow.</div>
+				<div class="mt-1 text-sm text-zinc-400">You're on an unsupported architecture (typically Raspberry Pi 3 or earlier, 32-bit Pi OS). The postinstall couldn't find a prebuilt binary for your arch and fell back to the JS entry, which needs Bun for PTY. If a Bun build exists for your arch, install it and run as <code class="text-emerald-400">bun $(which amesh) agent start</code>. On supported architectures (macOS arm64/x64, Linux x64/arm64) this error should not appear — if it does, see the Troubleshooting page for the full diagnostic flow.</div>
 			</div>
 			<div class="border-l-2 border-red-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">"Refusing to run as root"</div>

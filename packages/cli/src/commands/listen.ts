@@ -16,6 +16,10 @@ export default class Listen extends Command {
       default: DEFAULT_RELAY,
       env: 'AMESH_RELAY_URL',
     }),
+    shell: Flags.boolean({
+      description: 'Auto-grant shell access to the controller after pairing',
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -80,11 +84,17 @@ export default class Listen extends Command {
 
     const entered = await this.prompt('  Verification code: ');
     if (!verifySAS(entered.trim(), result.sas)) {
+      result.connection.sendConfirmation(false);
+      result.connection.close();
       this.log('');
       this.log('  Code mismatch — possible MITM attack. Pairing aborted.');
       this.log('  No changes were made. Run `amesh listen` again to retry.');
       return;
     }
+
+    // Inform the controller that SAS was verified before committing locally
+    result.connection.sendConfirmation(true);
+    result.connection.close();
 
     const newDevice = {
       deviceId: generateDeviceId(result.peerPublicKey),
@@ -117,8 +127,14 @@ export default class Listen extends Command {
 
     this.log('');
     this.log(`  "${result.peerFriendlyName}" added as controller.`);
+
+    if (flags.shell) {
+      await allowList.updatePermissions(newDevice.deviceId, { shell: true });
+      this.log('  Shell access: granted');
+    }
+
     this.log('');
-    this.log('  You can now use amesh signing. The relay connection is closed.');
+    this.log('  Pairing complete. The relay connection is closed.');
     this.log('');
   }
 

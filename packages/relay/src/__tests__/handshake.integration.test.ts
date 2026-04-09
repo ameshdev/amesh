@@ -77,6 +77,10 @@ describe('full handshake integration', () => {
     // SAS codes match (proves no MITM)
     expect(targetResult.sas).toBe(controllerResult.sas);
     expect(targetResult.sas).toMatch(/^\d{6}$/);
+
+    // Clean up connections (handshake no longer auto-closes for SAS confirmation)
+    targetResult.connection.close();
+    controllerResult.connection.close();
   }, 15_000);
 
   it('controller gets error for nonexistent OTC', async () => {

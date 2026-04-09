@@ -1,6 +1,6 @@
 import type { ServerWebSocket } from 'bun';
 import { verifyMessage } from '@authmesh/core';
-import { SessionStore } from './session.js';
+import { SessionStore, SESSION_MAX_BYTES } from './session.js';
 import { RateLimiter, OTCAttemptTracker } from './rate-limit.js';
 import { AgentStore } from './agent-store.js';
 
@@ -137,7 +137,7 @@ export function createRelayServer(opts?: {
   const sessions = new SessionStore(opts?.maxSessions);
   const agentStore = new AgentStore();
   const rateLimiter = new RateLimiter(5, 60_000);
-  const shellRateLimiter = new RateLimiter(5, 60_000);
+  const shellRateLimiter = new RateLimiter(2, 60_000);
   // Dedicated limiter for bootstrap_watch (M3). 10 per minute per IP is
   // generous for legitimate fleet provisioning and tight enough to stop an
   // attacker from brute-forcing jti claims. Kept separate from the OTC
@@ -253,6 +253,21 @@ export function createRelayServer(opts?: {
 
     const session = sessions.get(otc);
     if (!session) return;
+
+    // Track bytes forwarded — enforce per-session cap
+    const payloadSize = typeof msg.payload === 'string' ? msg.payload.length : 0;
+    session.bytesForwarded += payloadSize;
+    if (session.bytesForwarded > SESSION_MAX_BYTES) {
+      ws.send(JSON.stringify({ type: 'error', code: 'session_data_limit' }));
+      sessions.remove(otc);
+      try {
+        session.target.close();
+      } catch { /* ignore */ }
+      try {
+        session.controller?.close();
+      } catch { /* ignore */ }
+      return;
+    }
 
     // Forward to the other peer (opaque blob forwarding)
     const peer = ws === session.target ? session.controller : session.target;

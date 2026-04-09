@@ -21,8 +21,11 @@ import Invite from './commands/invite.js';
 import List from './commands/list.js';
 import Listen from './commands/listen.js';
 import Provision from './commands/provision.js';
+import Reset from './commands/reset.js';
 import Revoke from './commands/revoke.js';
 import Shell from './commands/shell.js';
+import AgentStart from './commands/agent/start.js';
+import AgentStop from './commands/agent/stop.js';
 
 declare const __VERSION__: string;
 const VERSION = __VERSION__; // replaced at build time by bun
@@ -43,15 +46,23 @@ interface CommandMeta {
   args?: Record<string, { description?: string; required?: boolean }>;
 }
 
-const commands: Record<string, CommandMeta> = {
+const topLevelCommands: Record<string, CommandMeta> = {
   grant: Grant,
   init: Init,
   invite: Invite,
   list: List,
   listen: Listen,
   provision: Provision,
+  reset: Reset,
   revoke: Revoke,
   shell: Shell,
+};
+
+const nestedCommands: Record<string, Record<string, CommandMeta>> = {
+  agent: {
+    start: AgentStart,
+    stop: AgentStop,
+  },
 };
 
 /**
@@ -79,8 +90,13 @@ function showHelp(): void {
   console.log(`amesh v${VERSION} — Device-bound M2M authentication\n`);
   console.log('Usage: amesh <command> [flags]\n');
   console.log('Commands:');
-  for (const [name, cmd] of Object.entries(commands)) {
+  for (const [name, cmd] of Object.entries(topLevelCommands)) {
     console.log(`  ${name.padEnd(14)}${cmd.description ?? ''}`);
+  }
+  for (const [topic, subs] of Object.entries(nestedCommands)) {
+    for (const [sub, cmd] of Object.entries(subs)) {
+      console.log(`  ${`${topic} ${sub}`.padEnd(14)}${cmd.description ?? ''}`);
+    }
   }
   console.log('\nRun "amesh <command> --help" for details on a specific command.');
 }
@@ -115,32 +131,60 @@ function showCommandHelp(name: string, cmd: CommandMeta): void {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const cmdName = args[0];
+  const first = args[0];
 
-  if (!cmdName || cmdName === '--help' || cmdName === '-h' || cmdName === 'help') {
+  if (!first || first === '--help' || first === '-h' || first === 'help') {
     showHelp();
     process.exit(0);
   }
 
-  if (cmdName === '--version' || cmdName === '-V') {
+  if (first === '--version' || first === '-V') {
     console.log(`amesh/${VERSION}`);
     process.exit(0);
   }
 
-  const Cmd = commands[cmdName];
+  const oclifRoot = getOclifRoot();
+
+  // Nested commands: `amesh agent start [flags]`
+  const nested = nestedCommands[first];
+  if (nested) {
+    const sub = args[1];
+    if (!sub || sub === '--help' || sub === '-h') {
+      console.log(`amesh ${first} — subcommands:\n`);
+      for (const [name, cmd] of Object.entries(nested)) {
+        console.log(`  ${name.padEnd(14)}${cmd.description ?? ''}`);
+      }
+      process.exit(0);
+    }
+    const Cmd = nested[sub];
+    if (!Cmd) {
+      console.error(`Unknown subcommand: ${first} ${sub}`);
+      console.error(`Run "amesh ${first} --help" to see available subcommands.`);
+      process.exit(1);
+    }
+    const rest = args.slice(2);
+    if (rest.includes('--help') || rest.includes('-h')) {
+      showCommandHelp(`${first} ${sub}`, Cmd);
+      process.exit(0);
+    }
+    await Cmd.run(rest, oclifRoot);
+    return;
+  }
+
+  // Top-level commands
+  const Cmd = topLevelCommands[first];
   if (!Cmd) {
-    console.error(`Unknown command: ${cmdName}`);
+    console.error(`Unknown command: ${first}`);
     console.error('Run "amesh --help" to see available commands.');
     process.exit(1);
   }
 
   const rest = args.slice(1);
   if (rest.includes('--help') || rest.includes('-h')) {
-    showCommandHelp(cmdName, Cmd);
+    showCommandHelp(first, Cmd);
     process.exit(0);
   }
 
-  const oclifRoot = getOclifRoot();
   await Cmd.run(rest, oclifRoot);
 }
 

@@ -26,7 +26,7 @@ packages/
   core/       — crypto primitives (sign, verify, HMAC, HKDF, ECDH)
   keystore/   — key storage drivers (Secure Enclave, TPM, encrypted file)
   cli/        — amesh CLI (oclif)
-  agent/      — amesh-agent daemon + remote shell
+  cli/        — unified amesh CLI + agent daemon
   sdk/        — signing fetch client + verification middleware
   relay/      — WebSocket relay for device pairing
 ```

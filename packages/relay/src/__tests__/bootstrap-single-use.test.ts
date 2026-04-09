@@ -110,12 +110,16 @@ describe('relay bootstrap single-use enforcement (H4)', () => {
     await waitForMessage(watcherB);
 
     const targetA = await openWs();
-    targetA.send(JSON.stringify({ type: 'bootstrap_init', jti: jtiA, token: 't', targetPubKey: 'p' }));
+    targetA.send(
+      JSON.stringify({ type: 'bootstrap_init', jti: jtiA, token: 't', targetPubKey: 'p' }),
+    );
     const msgA = await waitForMessage(watcherA);
     expect(msgA.type).toBe('bootstrap_init');
 
     const targetB = await openWs();
-    targetB.send(JSON.stringify({ type: 'bootstrap_init', jti: jtiB, token: 't', targetPubKey: 'p' }));
+    targetB.send(
+      JSON.stringify({ type: 'bootstrap_init', jti: jtiB, token: 't', targetPubKey: 'p' }),
+    );
     const msgB = await waitForMessage(watcherB);
     expect(msgB.type).toBe('bootstrap_init');
 
@@ -137,9 +141,7 @@ describe('relay bootstrap single-use enforcement (H4)', () => {
     await waitForMessage(watcher);
 
     const target1 = await openWs();
-    target1.send(
-      JSON.stringify({ type: 'bootstrap_init', jti, token: 't', targetPubKey: 'p' }),
-    );
+    target1.send(JSON.stringify({ type: 'bootstrap_init', jti, token: 't', targetPubKey: 'p' }));
     await waitForMessage(watcher);
 
     // Simulate the target going away without completing bootstrap.

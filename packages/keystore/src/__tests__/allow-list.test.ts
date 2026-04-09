@@ -382,7 +382,11 @@ describe('AllowList', () => {
       const legacyHmac = computeHmac(hmacKey, new TextEncoder().encode(legacyCanonical));
       await writeFile(
         filePath(),
-        JSON.stringify({ ...legacyData, hmac: Buffer.from(legacyHmac).toString('base64') }, null, 2),
+        JSON.stringify(
+          { ...legacyData, hmac: Buffer.from(legacyHmac).toString('base64') },
+          null,
+          2,
+        ),
       );
 
       // Read must accept the legacy HMAC

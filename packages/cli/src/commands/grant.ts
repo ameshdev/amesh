@@ -23,7 +23,8 @@ export default class Grant extends Command {
 
     if (flags.shell === undefined) {
       this.error(
-        'Specify a permission to grant or revoke. Example: amesh grant <device-id> --shell',
+        'Specify a permission to grant or revoke.\n' +
+          '  Example: amesh grant <device-id> --shell',
       );
     }
 
@@ -45,13 +46,7 @@ export default class Grant extends Command {
 
     this.log('');
     this.log(`  Device: ${device.friendlyName} (${args.deviceId})`);
-    if (flags.shell) {
-      this.log('  Shell access: granted');
-      this.log('');
-      this.log('  This device can now open remote shells via `amesh shell`.');
-    } else {
-      this.log('  Shell access: revoked');
-    }
+    this.log(`  Shell access: ${flags.shell ? 'granted' : 'revoked'}`);
     this.log('');
   }
 }

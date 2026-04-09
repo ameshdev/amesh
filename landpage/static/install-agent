@@ -1,146 +1,20 @@
 #!/bin/sh
-# Install script for amesh-agent — the target daemon for remote shell.
-# Usage: curl -fsSL https://authmesh.dev/install-agent | sh
+# amesh-agent is now part of the main amesh binary.
+# Redirecting to the unified install script.
 #
-# Detects OS and architecture, downloads the latest release from GitHub,
-# and installs amesh-agent into /usr/local/bin (or ~/.local/bin).
-#
-# Environment variables:
-#   AMESH_VERSION   — install a specific version (e.g., "0.5.2")
-#   AMESH_INSTALL   — custom install directory (default: /usr/local/bin or ~/.local/bin)
+# Usage: curl -fsSL https://authmesh.dev/install | sh
+# Then:  amesh agent start
 
-set -e
+echo ""
+echo "  amesh-agent has been merged into the main amesh binary."
+echo "  Use the unified installer instead:"
+echo ""
+echo "    curl -fsSL https://authmesh.dev/install | sh"
+echo ""
+echo "  After install, start the agent with:"
+echo ""
+echo "    amesh agent start"
+echo ""
 
-REPO="ameshdev/amesh"
-BASE_URL="https://github.com/${REPO}/releases"
-
-# --- Helpers ---
-
-log() {
-  printf '%s\n' "$1"
-}
-
-err() {
-  printf 'Error: %s\n' "$1" >&2
-  exit 1
-}
-
-need() {
-  command -v "$1" >/dev/null 2>&1 || err "required command not found: $1"
-}
-
-# --- Detect platform ---
-
-detect_os() {
-  case "$(uname -s)" in
-    Linux*)  echo "linux" ;;
-    Darwin*) echo "darwin" ;;
-    *)       err "unsupported OS: $(uname -s)" ;;
-  esac
-}
-
-detect_arch() {
-  case "$(uname -m)" in
-    x86_64|amd64)    echo "x64" ;;
-    aarch64|arm64)   echo "arm64" ;;
-    *)               err "unsupported architecture: $(uname -m)" ;;
-  esac
-}
-
-# --- Resolve version ---
-
-resolve_version() {
-  if [ -n "${AMESH_VERSION}" ]; then
-    echo "${AMESH_VERSION}"
-    return
-  fi
-
-  # Fetch latest release tag from GitHub API
-  need curl
-  tag=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
-    | grep '"tag_name"' | head -1 | sed 's/.*"v\(.*\)".*/\1/')
-  [ -n "$tag" ] || err "could not determine latest version"
-  echo "$tag"
-}
-
-# --- Choose install directory ---
-
-choose_install_dir() {
-  if [ -n "${AMESH_INSTALL}" ]; then
-    echo "${AMESH_INSTALL}"
-    return
-  fi
-
-  if [ -w /usr/local/bin ]; then
-    echo "/usr/local/bin"
-  elif command -v sudo >/dev/null 2>&1; then
-    echo "/usr/local/bin"
-  else
-    mkdir -p "${HOME}/.local/bin"
-    echo "${HOME}/.local/bin"
-  fi
-}
-
-needs_sudo() {
-  [ ! -w "$1" ] && command -v sudo >/dev/null 2>&1
-}
-
-# --- Main ---
-
-main() {
-  need curl
-  need tar
-
-  OS=$(detect_os)
-  ARCH=$(detect_arch)
-  VERSION=$(resolve_version)
-  INSTALL_DIR=$(choose_install_dir)
-
-  TARBALL="amesh-${VERSION}-${OS}-${ARCH}.tar.gz"
-  URL="${BASE_URL}/download/v${VERSION}/${TARBALL}"
-
-  log "Installing amesh-agent v${VERSION} (${OS}/${ARCH})"
-  log "  from: ${URL}"
-  log "  to:   ${INSTALL_DIR}"
-
-  # Download and extract to a temp directory
-  TMPDIR=$(mktemp -d)
-  trap 'rm -rf "$TMPDIR"' EXIT
-
-  curl -fsSL "$URL" -o "${TMPDIR}/${TARBALL}" \
-    || err "download failed — check that v${VERSION} exists for ${OS}-${ARCH}"
-
-  tar -xzf "${TMPDIR}/${TARBALL}" -C "$TMPDIR"
-
-  # Install binary
-  if needs_sudo "$INSTALL_DIR"; then
-    sudo install -m 755 "${TMPDIR}/amesh-agent" "${INSTALL_DIR}/amesh-agent"
-  else
-    install -m 755 "${TMPDIR}/amesh-agent" "${INSTALL_DIR}/amesh-agent"
-  fi
-
-  # Verify
-  if "${INSTALL_DIR}/amesh-agent" --version >/dev/null 2>&1; then
-    INSTALLED_VERSION=$("${INSTALL_DIR}/amesh-agent" --version 2>&1)
-    log ""
-    log "amesh-agent installed: ${INSTALLED_VERSION}"
-  else
-    log ""
-    log "amesh-agent installed to ${INSTALL_DIR}/amesh-agent"
-  fi
-
-  # Warn if install dir is not in PATH
-  case ":${PATH}:" in
-    *":${INSTALL_DIR}:"*) ;;
-    *)
-      log ""
-      log "Note: ${INSTALL_DIR} is not in your PATH."
-      log "  Add it with: export PATH=\"${INSTALL_DIR}:\$PATH\""
-      ;;
-  esac
-
-  log ""
-  log "Get started: amesh-agent agent start"
-}
-
-main
+# Auto-redirect to main install script
+exec sh -c "$(curl -fsSL https://authmesh.dev/install)"

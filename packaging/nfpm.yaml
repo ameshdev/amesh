@@ -11,7 +11,3 @@ contents:
     dst: /usr/bin/amesh
     file_info:
       mode: 0755
-  - src: ./dist/amesh-agent
-    dst: /usr/bin/amesh-agent
-    file_info:
-      mode: 0755
