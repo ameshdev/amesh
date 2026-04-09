@@ -138,7 +138,7 @@
 		<div class="mt-4 space-y-4">
 			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
 				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"Shell access not granted for this device"</code></div>
-				<p class="mt-1 text-sm text-zinc-400">The controller is paired but doesn't have shell permission. Run <code class="font-mono text-emerald-400">amesh grant &lt;device-id&gt; --shell</code> on the target. Pairing alone doesn't grant shell access — it's a separate explicit permission.</p>
+				<p class="mt-1 text-sm text-zinc-400">The controller is paired but doesn't have shell permission. The easiest fix: re-pair with <code class="font-mono text-emerald-400">amesh listen --shell</code> which auto-grants shell access. Or grant it separately: <code class="font-mono text-emerald-400">amesh grant &lt;device-id&gt; --shell</code>.</p>
 			</div>
 			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
 				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"The agent daemon requires Bun runtime for PTY support"</code> (unsupported architectures only)</div>

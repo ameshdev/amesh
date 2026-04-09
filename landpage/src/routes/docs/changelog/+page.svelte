@@ -16,6 +16,34 @@
 
 	const releases: Release[] = [
 		{
+			version: '0.6.0',
+			date: '2026-04-09',
+			sections: [
+				{
+					label: 'Breaking',
+					items: [
+						'<strong><code class="font-mono text-emerald-400">@authmesh/agent</code> merged into <code class="font-mono text-emerald-400">@authmesh/cli</code></strong> — single <code class="font-mono text-emerald-400">amesh</code> binary replaces <code class="font-mono">amesh</code> + <code class="font-mono">amesh-agent</code>. The <code class="font-mono">@authmesh/agent</code> npm package is deprecated.',
+					],
+				},
+				{
+					label: 'Added',
+					items: [
+						'<strong><code class="font-mono text-emerald-400">amesh agent start</code> / <code class="font-mono text-emerald-400">amesh agent stop</code></strong> — daemon management with PID file and graceful SIGTERM shutdown.',
+						'<strong><code class="font-mono text-emerald-400">amesh listen --shell</code></strong> — auto-grants shell permission to the new controller after pairing completes.',
+						'<strong><code class="font-mono text-emerald-400">amesh reset</code></strong> — clears stale session state without affecting identity or pairings.',
+						'<strong>SAS confirmation protocol</strong> — controller waits for target to verify the 6-digit code before adding to allow list. Prevents one-sided trust.',
+					],
+				},
+				{
+					label: 'Security',
+					items: [
+						'<strong>Relay per-session data cap</strong> — 5 MB maximum forwarded per session to prevent bulk data streaming abuse.',
+						'<strong>Relay shell rate limit</strong> tightened to 2 sessions/min per IP.',
+					],
+				},
+			],
+		},
+		{
 			version: '0.5.3',
 			date: '2026-04-08',
 			sections: [

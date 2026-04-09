@@ -256,17 +256,19 @@ The handshake establishes trust between two machines. Run it once per device pai
 
 On the **target** machine (the server being secured):
 ```bash
-amesh listen
+amesh listen --shell
 # ✔ "Dev Laptop" added as controller.
+# Shell access: granted
 ```
 
 On the **controller** machine (your laptop), using the 6-digit code displayed by the target:
 ```bash
 amesh invite 482916
+# Waiting for target to confirm verification code...
 # ✔ "prod-api" added as target.
 ```
 
-The controller displays a 6-digit verification code — enter it on the target to confirm the pairing. After that:
+The controller displays a 6-digit verification code — enter it on the target to confirm the pairing. The controller waits for confirmation before adding the device (no one-sided trust if the target rejects). After that:
 - The target's allow list has the controller's key with role `controller` (accepts auth from it)
 - The controller's allow list has the target's key with role `target` (cannot auth from it)
 
@@ -309,6 +311,39 @@ cd packages/relay && bun run start
 ```
 
 Health check: `curl http://localhost:3001/health`
+
+---
+
+## 9. Remote Shell
+
+Once paired with `--shell`, you can open a remote terminal to the target.
+
+On the **target** (server):
+```bash
+amesh agent start
+# [amesh agent] Registered with relay (identity verified).
+# [amesh agent] Authorized controllers with shell access: 1
+```
+
+On the **controller** (your laptop):
+```bash
+amesh shell prod-api
+# Connected. Shell session started.
+
+amesh shell prod-api -c "uptime"   # single command mode
+```
+
+Stop the agent:
+```bash
+amesh agent stop
+# Agent (PID 12345) stopped.
+```
+
+If you have persistent connection issues:
+```bash
+amesh reset    # clears stale sessions, stops running agent
+amesh agent start   # reconnect
+```
 
 ---
 
