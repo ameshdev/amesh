@@ -148,10 +148,22 @@ export function verifySAS(entered: string, computed: string): boolean {
   return diff === 0;
 }
 
+/** Handle for the relay connection kept open after key exchange for SAS confirmation. */
+export interface HandshakeConnection {
+  /** Target calls this after SAS verification to inform the controller. */
+  sendConfirmation(confirmed: boolean): void;
+  /** Controller calls this to wait for the target's SAS verdict. */
+  waitForConfirmation(timeoutMs?: number): Promise<boolean>;
+  /** Close the relay connection. Both sides must call this when done. */
+  close(): void;
+}
+
 export interface HandshakeResult {
   peerPublicKey: Uint8Array;
   peerFriendlyName: string;
   sas: string;
+  /** Relay connection kept open for SAS confirmation round-trip. */
+  connection: HandshakeConnection;
 }
 
 /**
@@ -224,16 +236,29 @@ export async function runTargetHandshake(
     const peerPub = new Uint8Array(Buffer.from(peerIdentity.publicKey, 'base64'));
     const sas = computeSAS(myPub, peerPub, sharedSecret);
 
-    // Step 10: Done
-    send(ws, { type: 'done' });
-
+    // Keep connection open for SAS confirmation round-trip
     return {
       peerPublicKey: peerPub,
       peerFriendlyName: peerIdentity.friendlyName,
       sas,
+      connection: {
+        sendConfirmation(confirmed: boolean) {
+          send(ws, { type: 'data', payload: confirmed ? 'sas_confirmed' : 'sas_rejected' });
+        },
+        waitForConfirmation(timeoutMs = 90_000): Promise<boolean> {
+          return reader.read(timeoutMs).then(
+            (msg) => msg.payload === 'sas_confirmed',
+            () => false,
+          );
+        },
+        close() {
+          ws.close();
+        },
+      },
     };
-  } finally {
+  } catch (err) {
     ws.close();
+    throw err;
   }
 }
 
@@ -304,15 +329,28 @@ export async function runControllerHandshake(
     const myPub = new Uint8Array(Buffer.from(myPublicKeyBase64, 'base64'));
     const sas = computeSAS(peerPub, myPub, sharedSecret);
 
-    // Step 10: Done
-    send(ws, { type: 'done' });
-
+    // Keep connection open for SAS confirmation round-trip
     return {
       peerPublicKey: peerPub,
       peerFriendlyName: peerIdentity.friendlyName,
       sas,
+      connection: {
+        sendConfirmation(confirmed: boolean) {
+          send(ws, { type: 'data', payload: confirmed ? 'sas_confirmed' : 'sas_rejected' });
+        },
+        waitForConfirmation(timeoutMs = 90_000): Promise<boolean> {
+          return reader.read(timeoutMs).then(
+            (msg) => msg.payload === 'sas_confirmed',
+            () => false,
+          );
+        },
+        close() {
+          ws.close();
+        },
+      },
     };
-  } finally {
+  } catch (err) {
     ws.close();
+    throw err;
   }
 }

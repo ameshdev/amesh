@@ -148,10 +148,17 @@ export function verifySAS(entered: string, computed: string): boolean {
   return diff === 0;
 }
 
+export interface HandshakeConnection {
+  sendConfirmation(confirmed: boolean): void;
+  waitForConfirmation(timeoutMs?: number): Promise<boolean>;
+  close(): void;
+}
+
 export interface HandshakeResult {
   peerPublicKey: Uint8Array;
   peerFriendlyName: string;
   sas: string;
+  connection: HandshakeConnection;
 }
 
 /**
@@ -224,16 +231,28 @@ export async function runTargetHandshake(
     const peerPub = new Uint8Array(Buffer.from(peerIdentity.publicKey, 'base64'));
     const sas = computeSAS(myPub, peerPub, sharedSecret);
 
-    // Step 10: Done
-    send(ws, { type: 'done' });
-
     return {
       peerPublicKey: peerPub,
       peerFriendlyName: peerIdentity.friendlyName,
       sas,
+      connection: {
+        sendConfirmation(confirmed: boolean) {
+          send(ws, { type: 'data', payload: confirmed ? 'sas_confirmed' : 'sas_rejected' });
+        },
+        waitForConfirmation(timeoutMs = 90_000): Promise<boolean> {
+          return reader.read(timeoutMs).then(
+            (msg) => msg.payload === 'sas_confirmed',
+            () => false,
+          );
+        },
+        close() {
+          ws.close();
+        },
+      },
     };
-  } finally {
+  } catch (err) {
     ws.close();
+    throw err;
   }
 }
 
@@ -304,15 +323,27 @@ export async function runControllerHandshake(
     const myPub = new Uint8Array(Buffer.from(myPublicKeyBase64, 'base64'));
     const sas = computeSAS(peerPub, myPub, sharedSecret);
 
-    // Step 10: Done
-    send(ws, { type: 'done' });
-
     return {
       peerPublicKey: peerPub,
       peerFriendlyName: peerIdentity.friendlyName,
       sas,
+      connection: {
+        sendConfirmation(confirmed: boolean) {
+          send(ws, { type: 'data', payload: confirmed ? 'sas_confirmed' : 'sas_rejected' });
+        },
+        waitForConfirmation(timeoutMs = 90_000): Promise<boolean> {
+          return reader.read(timeoutMs).then(
+            (msg) => msg.payload === 'sas_confirmed',
+            () => false,
+          );
+        },
+        close() {
+          ws.close();
+        },
+      },
     };
-  } finally {
+  } catch (err) {
     ws.close();
+    throw err;
   }
 }

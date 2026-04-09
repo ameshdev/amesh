@@ -12,6 +12,10 @@ export const FrameType = {
   PING: 0x04, // Keepalive ping (empty payload)
   PONG: 0x05, // Keepalive pong (empty payload)
   COMMAND: 0x06, // Single command for -c mode (UTF-8 string)
+  FILE_META: 0x10, // File transfer metadata (JSON: path, size, mode)
+  FILE_CHUNK: 0x11, // File data chunk (raw bytes)
+  FILE_ACK: 0x12, // File transfer acknowledgement (1 byte: 0=ok, 1=error + optional message)
+  FILE_ERROR: 0x13, // File transfer error (UTF-8 error message)
 } as const;
 
 export type FrameTypeValue = (typeof FrameType)[keyof typeof FrameType];
@@ -63,6 +67,10 @@ const VALID_FRAME_TYPES = new Set<number>([
   FrameType.PING,
   FrameType.PONG,
   FrameType.COMMAND,
+  FrameType.FILE_META,
+  FrameType.FILE_CHUNK,
+  FrameType.FILE_ACK,
+  FrameType.FILE_ERROR,
 ]);
 
 export function parseFrame(frame: Uint8Array): { type: FrameTypeValue; payload: Uint8Array } {
@@ -85,4 +93,43 @@ export function parseExit(payload: Uint8Array): { code: number } {
   if (payload.byteLength < 4) throw new Error('EXIT frame too short');
   const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   return { code: view.getInt32(0, false) };
+}
+
+// --- File transfer frames ---
+
+export interface FileMeta {
+  path: string;
+  size: number;
+  mode?: number;
+}
+
+export function encodeFileMetaFrame(meta: FileMeta): Uint8Array {
+  const json = new TextEncoder().encode(JSON.stringify(meta));
+  const frame = new Uint8Array(1 + json.length);
+  frame[0] = FrameType.FILE_META;
+  frame.set(json, 1);
+  return frame;
+}
+
+export function parseFileMeta(payload: Uint8Array): FileMeta {
+  return JSON.parse(new TextDecoder().decode(payload));
+}
+
+export function encodeFileChunkFrame(data: Uint8Array): Uint8Array {
+  const frame = new Uint8Array(1 + data.length);
+  frame[0] = FrameType.FILE_CHUNK;
+  frame.set(data, 1);
+  return frame;
+}
+
+export function encodeFileAckFrame(): Uint8Array {
+  return new Uint8Array([FrameType.FILE_ACK, 0]);
+}
+
+export function encodeFileErrorFrame(message: string): Uint8Array {
+  const encoded = new TextEncoder().encode(message);
+  const frame = new Uint8Array(1 + encoded.length);
+  frame[0] = FrameType.FILE_ERROR;
+  frame.set(encoded, 1);
+  return frame;
 }

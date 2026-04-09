@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 
 export interface DevicePermissions {
   shell?: boolean;
+  files?: boolean;
 }
 
 export interface AllowListDevice {
