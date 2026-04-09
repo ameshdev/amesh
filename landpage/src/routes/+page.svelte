@@ -3,17 +3,11 @@
 
 	const REPO = 'https://github.com/ameshdev/amesh';
 
-	// Install tabs
-	const installTabs = [
-		{ label: 'Homebrew', cmd: 'brew install ameshdev/tap/amesh' },
-		{ label: 'Shell', cmd: 'curl -fsSL https://authmesh.dev/install | sh' },
-		{ label: 'npm', cmd: 'npm install @authmesh/sdk' },
-	];
-	let activeInstallTab = $state(0);
+	const installCmd = 'npm install @authmesh/sdk';
 	let installCopied = $state(false);
 
 	function copyInstall() {
-		navigator.clipboard.writeText(installTabs[activeInstallTab].cmd);
+		navigator.clipboard.writeText(installCmd);
 		installCopied = true;
 		setTimeout(() => installCopied = false, 2000);
 	}
@@ -180,23 +174,10 @@
 
 				<!-- Install CTA -->
 				<div class="mt-8">
-					<p class="mb-2 text-sm font-medium text-zinc-400">Install amesh</p>
 					<div class="rounded-xl border border-zinc-800 bg-terminal shadow-[0_0_60px_-15px_rgba(52,211,153,0.15)]" style="background:#0C0C0E">
-						<!-- Tabs -->
-						<div class="flex border-b border-zinc-800">
-							{#each installTabs as tab, i}
-								<button
-									onclick={() => { activeInstallTab = i; installCopied = false; }}
-									class="cursor-pointer border-none px-4 py-2.5 text-sm transition {i === activeInstallTab ? 'bg-zinc-800/50 text-zinc-50 font-medium' : 'bg-transparent text-zinc-500 hover:text-zinc-300'} {i === 0 ? 'rounded-tl-xl' : ''}"
-								>
-									{tab.label}
-								</button>
-							{/each}
-						</div>
-						<!-- Command -->
 						<div class="flex items-center justify-between gap-3 px-4 py-3">
 							<code class="overflow-x-auto font-mono text-sm text-zinc-300 whitespace-nowrap">
-								<span class="text-zinc-500">$</span> {installTabs[activeInstallTab].cmd}
+								<span class="text-zinc-500">$</span> {installCmd}
 							</code>
 							<button onclick={copyInstall} class="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-1.5 text-zinc-500 transition hover:text-zinc-300" title="Copy">
 								{#if installCopied}
@@ -442,10 +423,10 @@ amesh.fetch(<span class="text-emerald-400">"/api/orders"</span>, {'{'}
 			<div class="mx-auto mt-8 max-w-lg rounded-xl border border-zinc-800 bg-terminal" style="background:#0C0C0E">
 				<div class="flex items-center justify-between gap-3 px-4 py-3">
 					<code class="overflow-x-auto font-mono text-sm text-zinc-300 whitespace-nowrap">
-						<span class="text-zinc-500">$</span> brew install ameshdev/tap/amesh
+						<span class="text-zinc-500">$</span> npm install @authmesh/sdk
 					</code>
 					<button
-						onclick={() => { navigator.clipboard.writeText('brew install ameshdev/tap/amesh'); }}
+						onclick={() => { navigator.clipboard.writeText('npm install @authmesh/sdk'); }}
 						class="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-1.5 text-zinc-500 transition hover:text-zinc-300"
 						title="Copy"
 					>
