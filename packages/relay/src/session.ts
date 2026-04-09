@@ -1,12 +1,17 @@
 import type { ServerWebSocket } from 'bun';
 import type { WebSocketData } from './server.js';
 
+/** Maximum bytes forwarded per session (10 MB). Prevents relay cost abuse. */
+export const SESSION_MAX_BYTES = 10 * 1024 * 1024;
+
 export interface PairingSession {
   otc: string;
   target: ServerWebSocket<WebSocketData>;
   controller: ServerWebSocket<WebSocketData> | null;
   createdAt: number;
   expiresAt: number;
+  /** Total bytes forwarded through this session (both directions). */
+  bytesForwarded: number;
 }
 
 /**
@@ -56,6 +61,7 @@ export class SessionStore {
       controller: null,
       createdAt: now,
       expiresAt: now + ttlSeconds * 1000,
+      bytesForwarded: 0,
     };
 
     this.sessions.set(otc, session);
