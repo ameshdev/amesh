@@ -137,7 +137,7 @@ export function createRelayServer(opts?: {
   const sessions = new SessionStore(opts?.maxSessions);
   const agentStore = new AgentStore();
   const rateLimiter = new RateLimiter(5, 60_000);
-  const shellRateLimiter = new RateLimiter(5, 60_000);
+  const shellRateLimiter = new RateLimiter(2, 60_000);
   // Dedicated limiter for bootstrap_watch (M3). 10 per minute per IP is
   // generous for legitimate fleet provisioning and tight enough to stop an
   // attacker from brute-forcing jti claims. Kept separate from the OTC
