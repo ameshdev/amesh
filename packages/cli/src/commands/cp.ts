@@ -8,7 +8,9 @@ import { runControllerShellHandshake, createMessageReader, send } from '../shell
 import { FrameType, encodeFileMetaFrame, encodeFileChunkFrame, parseFrame } from '../frame.js';
 import { readFile, stat } from 'node:fs/promises';
 
-const CHUNK_SIZE = 64 * 1024; // 64KB per chunk
+// Relay maxPayload is 64KB. After encrypt (28B overhead) + frame header (1B)
+// + base64 (×4/3) + JSON wrapper (~40B), 44KB raw fits within the limit.
+const CHUNK_SIZE = 44 * 1024;
 
 /**
  * Parse a cp argument into local path or remote path.
