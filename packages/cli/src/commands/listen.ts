@@ -20,10 +20,6 @@ export default class Listen extends Command {
       description: 'Auto-grant shell access to the controller after pairing',
       default: false,
     }),
-    files: Flags.boolean({
-      description: 'Auto-grant file transfer access to the controller after pairing',
-      default: false,
-    }),
   };
 
   async run(): Promise<void> {
@@ -132,13 +128,9 @@ export default class Listen extends Command {
     this.log('');
     this.log(`  "${result.peerFriendlyName}" added as controller.`);
 
-    const perms: Record<string, boolean> = {};
-    if (flags.shell) perms.shell = true;
-    if (flags.files) perms.files = true;
-    if (Object.keys(perms).length > 0) {
-      await allowList.updatePermissions(newDevice.deviceId, perms);
-      if (flags.shell) this.log('  Shell access: granted');
-      if (flags.files) this.log('  File transfer: granted');
+    if (flags.shell) {
+      await allowList.updatePermissions(newDevice.deviceId, { shell: true });
+      this.log('  Shell access: granted');
     }
 
     this.log('');

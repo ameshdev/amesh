@@ -15,7 +15,6 @@ import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import Cp from './commands/cp.js';
 import Grant from './commands/grant.js';
 import Init from './commands/init.js';
 import Invite from './commands/invite.js';
@@ -48,7 +47,6 @@ interface CommandMeta {
 }
 
 const topLevelCommands: Record<string, CommandMeta> = {
-  cp: Cp,
   grant: Grant,
   init: Init,
   invite: Invite,

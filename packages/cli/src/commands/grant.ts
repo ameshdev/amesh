@@ -16,19 +16,15 @@ export default class Grant extends Command {
       description: 'Grant shell access (remote terminal)',
       allowNo: true,
     }),
-    files: Flags.boolean({
-      description: 'Grant file transfer access (amesh cp)',
-      allowNo: true,
-    }),
   };
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(Grant);
 
-    if (flags.shell === undefined && flags.files === undefined) {
+    if (flags.shell === undefined) {
       this.error(
         'Specify a permission to grant or revoke.\n' +
-          '  Example: amesh grant <device-id> --shell --files',
+          '  Example: amesh grant <device-id> --shell',
       );
     }
 
@@ -46,19 +42,11 @@ export default class Grant extends Command {
       );
     }
 
-    const perms: Record<string, boolean> = {};
-    if (flags.shell !== undefined) perms.shell = flags.shell;
-    if (flags.files !== undefined) perms.files = flags.files;
-    await allowList.updatePermissions(args.deviceId, perms);
+    await allowList.updatePermissions(args.deviceId, { shell: flags.shell });
 
     this.log('');
     this.log(`  Device: ${device.friendlyName} (${args.deviceId})`);
-    if (flags.shell !== undefined) {
-      this.log(`  Shell access: ${flags.shell ? 'granted' : 'revoked'}`);
-    }
-    if (flags.files !== undefined) {
-      this.log(`  File transfer: ${flags.files ? 'granted' : 'revoked'}`);
-    }
+    this.log(`  Shell access: ${flags.shell ? 'granted' : 'revoked'}`);
     this.log('');
   }
 }

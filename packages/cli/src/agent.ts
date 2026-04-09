@@ -18,11 +18,8 @@ import {
   encodeDataFrame,
   encodeExitFrame,
   encodePongFrame,
-  encodeFileAckFrame,
-  encodeFileErrorFrame,
   parseFrame,
   parseResize,
-  parseFileMeta,
 } from './frame.js';
 
 interface AgentOptions {
@@ -323,11 +320,6 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
               proc.terminal?.write(cmd + '\nexit\n');
               break;
             }
-            case FrameType.FILE_META: {
-              // File transfer mode — handle inline
-              handleFileTransfer(ws, cipher, result.peerDeviceId, payload, al);
-              break;
-            }
           }
         } catch (err) {
           console.error('[amesh agent] Frame decryption error:', (err as Error).message);
@@ -375,104 +367,6 @@ export async function startAgent(opts: AgentOptions): Promise<void> {
       console.error('[amesh agent] Shell handshake failed:', (err as Error).message);
       // sessionActive reset by .finally() in caller
     }
-  }
-
-  async function handleFileTransfer(
-    ws: WebSocket,
-    cipher: ShellCipher,
-    peerId: string,
-    metaPayload: Uint8Array,
-    al: AllowList,
-  ): Promise<void> {
-    const meta = parseFileMeta(metaPayload);
-    console.log(`[amesh agent] File transfer from ${peerId}: ${meta.path} (${meta.size} bytes)`);
-
-    // Check files permission
-    const data = await al.read();
-    const peer = data.devices.find((d) => d.deviceId === peerId);
-    if (!peer?.permissions?.files) {
-      console.error(`[amesh agent] File transfer denied — no files permission for ${peerId}`);
-      const errFrame = cipher.encrypt(
-        encodeFileErrorFrame(
-          'File transfer not permitted. Run `amesh grant <id> --files` on the target.',
-        ),
-      );
-      ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(errFrame).toString('base64') }));
-      return;
-    }
-
-    // Collect chunks
-    const chunks: Uint8Array[] = [];
-    let received = 0;
-
-    await new Promise<void>((resolve) => {
-      const handler = (event: MessageEvent) => {
-        const raw = typeof event.data === 'string' ? event.data : String(event.data);
-        let msg;
-        try {
-          msg = JSON.parse(raw);
-        } catch {
-          return;
-        }
-        if (msg.type !== 'data' || !msg.payload) return;
-
-        try {
-          const decrypted = cipher.decrypt(Buffer.from(msg.payload, 'base64'));
-          const { type, payload } = parseFrame(decrypted);
-
-          if (type === FrameType.FILE_CHUNK) {
-            chunks.push(new Uint8Array(payload));
-            received += payload.length;
-            if (received >= meta.size) {
-              ws.removeEventListener('message', handler);
-              resolve();
-            }
-          }
-        } catch (err) {
-          console.error('[amesh agent] File chunk error:', (err as Error).message);
-          ws.removeEventListener('message', handler);
-          resolve();
-        }
-      };
-      ws.addEventListener('message', handler);
-
-      // Timeout
-      setTimeout(() => {
-        ws.removeEventListener('message', handler);
-        resolve();
-      }, 120_000);
-    });
-
-    if (received < meta.size) {
-      const errFrame = cipher.encrypt(
-        encodeFileErrorFrame(`Incomplete transfer: got ${received}/${meta.size} bytes`),
-      );
-      ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(errFrame).toString('base64') }));
-      return;
-    }
-
-    // Assemble and write file
-    const fileData = new Uint8Array(received);
-    let offset = 0;
-    for (const chunk of chunks) {
-      fileData.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    try {
-      await mkdir(dirname(meta.path), { recursive: true });
-      await writeFile(meta.path, fileData, { mode: meta.mode ?? 0o644 });
-    } catch (err) {
-      const errFrame = cipher.encrypt(
-        encodeFileErrorFrame(`Write failed: ${(err as Error).message}`),
-      );
-      ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(errFrame).toString('base64') }));
-      return;
-    }
-
-    console.log(`[amesh agent] File written: ${meta.path} (${received} bytes)`);
-    const ackFrame = cipher.encrypt(encodeFileAckFrame());
-    ws.send(JSON.stringify({ type: 'data', payload: Buffer.from(ackFrame).toString('base64') }));
   }
 
   connect();

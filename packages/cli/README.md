@@ -18,9 +18,7 @@ amesh list                       # Show trusted devices
 amesh revoke <device-id>         # Remove a trusted device
 amesh provision                  # Generate bootstrap tokens
 amesh grant <device-id> --shell  # Grant shell access to a controller
-amesh grant <device-id> --files  # Grant file transfer access
 amesh shell <device>             # Open remote shell to a target
-amesh cp <src> <device:/path>    # Copy files to a target
 amesh agent start                # Start the agent daemon (target side)
 amesh agent stop                 # Stop the agent daemon
 amesh reset                      # Clear stale sessions
