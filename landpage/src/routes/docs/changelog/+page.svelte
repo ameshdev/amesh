@@ -16,21 +16,31 @@
 
 	const releases: Release[] = [
 		{
-			version: '0.6.0',
-			date: '2026-04-09',
+			version: '0.7.0',
+			date: '2026-04-12',
 			sections: [
 				{
 					label: 'Breaking',
 					items: [
-						'<strong><code class="font-mono text-emerald-400">@authmesh/agent</code> merged into <code class="font-mono text-emerald-400">@authmesh/cli</code></strong> — single <code class="font-mono text-emerald-400">amesh</code> binary replaces <code class="font-mono">amesh</code> + <code class="font-mono">amesh-agent</code>. The <code class="font-mono">@authmesh/agent</code> npm package is deprecated.',
+						'<strong>Remote shell and agent daemon removed</strong> — <code class="font-mono text-emerald-400">amesh agent start/stop</code>, <code class="font-mono text-emerald-400">amesh shell</code>, <code class="font-mono text-emerald-400">amesh grant</code>, and <code class="font-mono text-emerald-400">amesh reset</code> commands removed. The <code class="font-mono text-emerald-400">@authmesh/agent</code> npm package is deprecated. amesh now focuses on device-bound M2M authentication.',
 					],
 				},
 				{
+					label: 'Security',
+					items: [
+						'<strong>Reduced attack surface</strong> — removing the agent daemon (PTY spawning, shell cipher, frame protocol) eliminates the highest-risk component.',
+						'<strong>Relay simplified</strong> — agent registration, challenge-response, and shell routing handlers removed.',
+					],
+				},
+			],
+		},
+		{
+			version: '0.6.0',
+			date: '2026-04-09',
+			sections: [
+				{
 					label: 'Added',
 					items: [
-						'<strong><code class="font-mono text-emerald-400">amesh agent start</code> / <code class="font-mono text-emerald-400">amesh agent stop</code></strong> — daemon management with PID file and graceful SIGTERM shutdown.',
-						'<strong><code class="font-mono text-emerald-400">amesh listen --shell</code></strong> — auto-grants shell permission to the new controller after pairing completes.',
-						'<strong><code class="font-mono text-emerald-400">amesh reset</code></strong> — clears stale session state without affecting identity or pairings.',
 						'<strong>SAS confirmation protocol</strong> — controller waits for target to verify the 6-digit code before adding to allow list. Prevents one-sided trust.',
 					],
 				},
@@ -38,7 +48,6 @@
 					label: 'Security',
 					items: [
 						'<strong>Relay per-session data cap</strong> — 5 MB maximum forwarded per session to prevent bulk data streaming abuse.',
-						'<strong>Relay shell rate limit</strong> tightened to 2 sessions/min per IP.',
 					],
 				},
 			],
@@ -52,10 +61,9 @@
 					items: [
 						'<strong><code class="font-mono text-emerald-400">amesh invite</code> crash on duplicate device</strong> — no longer throws when the target is already in the allow list. Automatically updates the existing entry with fresh handshake data.',
 						'<strong>Handshake timeout errors</strong> now show actionable recovery guidance instead of raw error messages.',
-						'<strong><code class="font-mono text-emerald-400">amesh grant</code> error</strong> explains that grant runs on the target side and suggests <code class="font-mono text-emerald-400">amesh list</code>.',
 						'<strong><code class="font-mono text-emerald-400">amesh listen</code> SAS prompt</strong> now includes Ctrl+C hint and clearer mismatch recovery message.',
 						'<strong><code class="font-mono text-emerald-400">amesh init</code> next-steps</strong> uses plain language instead of controller/target jargon.',
-						'<strong>Separate install scripts</strong> — <code class="font-mono text-emerald-400">authmesh.dev/install</code> for CLI, <code class="font-mono text-emerald-400">authmesh.dev/install-agent</code> for daemon.',
+						'<strong>Install script</strong> at <code class="font-mono text-emerald-400">authmesh.dev/install</code> for headless CLI installation.',
 					],
 				},
 				{
@@ -122,7 +130,7 @@
 				{
 					label: 'Fixed',
 					items: [
-						'<strong>Device ID derivation mismatch</strong> — <code class="font-mono text-emerald-400">invite</code> and <code class="font-mono text-emerald-400">listen</code> derived device IDs with raw <code class="font-mono text-emerald-400">base64url(pubkey)</code> while <code class="font-mono text-emerald-400">init</code> used <code class="font-mono text-emerald-400">SHA-256(pubkey)</code> per the protocol spec. The relay could never match the controller\'s allow list entry to the agent\'s registration. <strong>Existing pairings need re-pairing.</strong>',
+						'<strong>Device ID derivation mismatch</strong> — <code class="font-mono text-emerald-400">invite</code> and <code class="font-mono text-emerald-400">listen</code> derived device IDs with raw <code class="font-mono text-emerald-400">base64url(pubkey)</code> while <code class="font-mono text-emerald-400">init</code> used <code class="font-mono text-emerald-400">SHA-256(pubkey)</code> per the protocol spec. <strong>Existing pairings need re-pairing.</strong>',
 						'<strong>Compiled binary broken</strong> — <code class="font-mono text-emerald-400">sea.ts</code> entry point restored with all 8 commands.',
 					],
 				},
@@ -135,7 +143,7 @@
 				{
 					label: 'Fixed',
 					items: [
-						'<strong>macOS Keychain stale key accumulation</strong> — <code class="font-mono text-emerald-400">SecItemDelete</code> only removes one Keychain item per call; multiple <code class="font-mono text-emerald-400">amesh init --force</code> runs accumulated stale keys, causing <code class="font-mono text-emerald-400">selfSig verification failed</code> on remote peers during pairing and shell handshakes.',
+						'<strong>macOS Keychain stale key accumulation</strong> — <code class="font-mono text-emerald-400">SecItemDelete</code> only removes one Keychain item per call; multiple <code class="font-mono text-emerald-400">amesh init --force</code> runs accumulated stale keys, causing <code class="font-mono text-emerald-400">selfSig verification failed</code> on remote peers during pairing.',
 					],
 				},
 				{

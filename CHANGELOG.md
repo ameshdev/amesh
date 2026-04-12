@@ -4,29 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.6.0] - 2026-04-09
+## [0.7.0] - 2026-04-12
 
 ### Breaking
 
-- **`@authmesh/agent` merged into `@authmesh/cli`** — single `amesh` binary replaces `amesh` + `amesh-agent`. Install `@authmesh/cli` only. The `@authmesh/agent` npm package is deprecated.
+- **Remote shell and agent daemon removed** — `amesh agent start/stop`, `amesh shell`, `amesh grant`, and `amesh reset` commands removed. The `@authmesh/agent` npm package is deprecated. amesh now focuses exclusively on device-bound M2M authentication.
+
+### Security
+
+- **Reduced attack surface** — removing the agent daemon (PTY spawning, shell cipher, frame protocol) eliminates the highest-risk component
+- **Relay simplified** — agent registration, challenge-response, and shell routing handlers removed
+
+## [0.6.0] - 2026-04-09
 
 ### Added
 
-- **`amesh agent start`** / **`amesh agent stop`** — daemon management with PID file and graceful shutdown via SIGTERM
-- **`amesh listen --shell`** — auto-grants shell permission to the new controller after pairing completes
-- **`amesh reset`** — clears stale session state (stops running agent, removes PID file) without affecting identity or pairings
 - **SAS confirmation protocol** — controller now waits for target to verify the 6-digit code before adding to allow list, preventing one-sided trust when the target rejects or disconnects
 
 ### Security
 
 - **Relay per-session data cap** — 5 MB maximum forwarded per session, prevents bulk data streaming abuse
-- **Relay shell rate limit** tightened to 2 sessions/min per IP (was 5)
-
-### Changed
-
-- **Unified binary** — all commands (`init`, `listen`, `invite`, `shell`, `agent start/stop`, `reset`, etc.) in one `amesh` binary
-- **`install-agent` script** now redirects to the main install script
-- **Packaging** — single binary in .deb, Homebrew, and release tarballs
 
 ## [0.5.3] - 2026-04-08
 

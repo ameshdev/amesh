@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Rocket, Zap, BookOpen, KeyRound, Server, Terminal, HelpCircle, Wrench, History, FileText, GitBranch, Package, Lightbulb } from '@lucide/svelte';
+	import { Rocket, Zap, BookOpen, KeyRound, Server, HelpCircle, Wrench, History, FileText, GitBranch, Package, Lightbulb } from '@lucide/svelte';
 	import { jsonLdScript, breadcrumbList } from '$lib/seo.js';
 
 	const REPO = 'https://github.com/ameshdev/amesh';
@@ -44,12 +44,6 @@
 					desc: 'Run your own relay with Docker, Cloud Run, Fly.io, Kubernetes, or plain Bun.',
 					href: '/docs/self-hosting',
 				},
-				{
-					icon: Terminal,
-					title: 'Remote Shell',
-					desc: 'SSH-like remote access using device identity. Agent setup, permissions, security model.',
-					href: '/docs/remote-shell',
-				},
 			],
 		},
 		{
@@ -64,7 +58,7 @@
 				{
 					icon: Wrench,
 					title: 'Troubleshooting',
-					desc: 'Common errors and how to fix them — signing, pairing, key storage, shell, relay.',
+					desc: 'Common errors and how to fix them — signing, pairing, key storage, relay.',
 					href: '/docs/troubleshooting',
 				},
 				{
@@ -208,7 +202,7 @@
 		<p class="text-sm text-zinc-400">
 			See also:
 			<a href="/use-cases" class="text-emerald-400 no-underline hover:underline">Use Cases</a>
-			— real-world patterns for microservices, webhooks, cron jobs, internal tools, and remote shell.
+			— real-world patterns for microservices, webhooks, cron jobs, and internal tools.
 		</p>
 	</section>
 

@@ -15,17 +15,12 @@ import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import Grant from './commands/grant.js';
 import Init from './commands/init.js';
 import Invite from './commands/invite.js';
 import List from './commands/list.js';
 import Listen from './commands/listen.js';
 import Provision from './commands/provision.js';
-import Reset from './commands/reset.js';
 import Revoke from './commands/revoke.js';
-import Shell from './commands/shell.js';
-import AgentStart from './commands/agent/start.js';
-import AgentStop from './commands/agent/stop.js';
 
 declare const __VERSION__: string;
 const VERSION = __VERSION__; // replaced at build time by bun
@@ -47,23 +42,15 @@ interface CommandMeta {
 }
 
 const topLevelCommands: Record<string, CommandMeta> = {
-  grant: Grant,
   init: Init,
   invite: Invite,
   list: List,
   listen: Listen,
   provision: Provision,
-  reset: Reset,
   revoke: Revoke,
-  shell: Shell,
 };
 
-const nestedCommands: Record<string, Record<string, CommandMeta>> = {
-  agent: {
-    start: AgentStart,
-    stop: AgentStop,
-  },
-};
+const nestedCommands: Record<string, Record<string, CommandMeta>> = {};
 
 /**
  * Create a minimal oclif root so Config.load() works in compiled binaries.
@@ -145,7 +132,7 @@ async function main(): Promise<void> {
 
   const oclifRoot = getOclifRoot();
 
-  // Nested commands: `amesh agent start [flags]`
+  // Nested commands (e.g. `amesh <topic> <sub> [flags]`)
   const nested = nestedCommands[first];
   if (nested) {
     const sub = args[1];

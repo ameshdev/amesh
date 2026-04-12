@@ -14,7 +14,6 @@
 		{ id: 'signing', label: 'Signing & verification errors' },
 		{ id: 'pairing', label: 'Pairing errors' },
 		{ id: 'backend', label: 'Key storage backend errors' },
-		{ id: 'shell', label: 'Remote shell errors' },
 		{ id: 'relay', label: 'Self-hosted relay errors' },
 		{ id: 'diagnostics', label: 'Diagnostic commands' },
 	];
@@ -27,7 +26,7 @@
 
 <svelte:head>
 	<title>Troubleshooting — amesh</title>
-	<meta name="description" content="Common amesh errors and how to fix them. Signing failures, pairing issues, key storage errors, relay problems, and remote shell connection issues." />
+	<meta name="description" content="Common amesh errors and how to fix them. Signing failures, pairing issues, key storage errors, and relay problems." />
 	<link rel="canonical" href="https://authmesh.dev/docs/troubleshooting" />
 	<meta property="og:title" content="Troubleshooting — amesh" />
 	<meta property="og:description" content="Common amesh errors and how to fix them." />
@@ -129,33 +128,6 @@
 			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
 				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">AUTH_MESH_PASSPHRASE</code> required</div>
 				<p class="mt-1 text-sm text-zinc-400">You're using the encrypted-file backend with a passphrase not stored in identity.json (older setups). Either set the env var, or re-init — from v0.3.0+, amesh auto-generates a 256-bit passphrase and stores it in identity.json.</p>
-			</div>
-		</div>
-	</section>
-
-	<section class="py-8">
-		<h2 id="shell" class="scroll-mt-20 text-xl font-semibold text-zinc-50">Remote shell errors</h2>
-		<div class="mt-4 space-y-4">
-			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
-				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"Shell access not granted for this device"</code></div>
-				<p class="mt-1 text-sm text-zinc-400">The controller is paired but doesn't have shell permission. The easiest fix: re-pair with <code class="font-mono text-emerald-400">amesh listen --shell</code> which auto-grants shell access. Or grant it separately: <code class="font-mono text-emerald-400">amesh grant &lt;device-id&gt; --shell</code>.</p>
-			</div>
-			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
-				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"The agent daemon requires Bun runtime for PTY support"</code> (unsupported architectures only)</div>
-				<p class="mt-1 text-sm text-zinc-400">
-					You should never see this on macOS (arm64/x64) or Linux (x64/arm64) — the npm postinstall downloads a prebuilt binary that bundles Bun, and <code class="font-mono text-emerald-400">amesh agent start</code> runs directly. If you do see it on a supported platform, the postinstall probably couldn't reach GitHub releases — check the install log for download errors and re-run <code class="font-mono text-emerald-400">npm rebuild @authmesh/cli</code> with network access.
-				</p>
-				<p class="mt-2 text-sm text-zinc-400">
-					On unsupported architectures (Raspberry Pi 3 and earlier, armv7 32-bit Pi OS), the postinstall falls back to the JS entry and the agent needs Bun for PTY. Bun does not ship for armv7, so you'd need a third-party Bun build. Most users should move to Pi 4/5 on 64-bit Pi OS or a different ARM host.
-				</p>
-			</div>
-			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
-				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"Handshake failed"</code> / connection timeout</div>
-				<p class="mt-1 text-sm text-zinc-400">The agent is not running on the target. Start it with <code class="font-mono text-emerald-400">amesh agent start</code>, and verify the relay is reachable from both sides (port 443 or whatever your self-hosted relay uses).</p>
-			</div>
-			<div class="rounded-lg border-l-2 border-red-400/60 bg-zinc-900/30 px-4 py-3">
-				<div class="text-sm font-semibold text-zinc-50"><code class="font-mono">"Refusing to run as root"</code></div>
-				<p class="mt-1 text-sm text-zinc-400">The agent defaults to non-root for safety. If you genuinely need root shells (and understand the blast radius), start the agent with <code class="font-mono text-emerald-400">--allow-root</code>.</p>
 			</div>
 		</div>
 	</section>

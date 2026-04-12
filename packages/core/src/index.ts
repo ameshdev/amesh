@@ -4,9 +4,4 @@ export { InMemoryNonceStore } from './nonce.js';
 export type { NonceStore } from './nonce.js';
 export { computeHmac, verifyHmac } from './hmac.js';
 export { deriveKey } from './hkdf.js';
-export {
-  generateEphemeralKeyPair,
-  computeSharedSecret,
-  deriveSessionKey,
-  deriveShellSessionKey,
-} from './ecdh.js';
+export { generateEphemeralKeyPair, computeSharedSecret, deriveSessionKey } from './ecdh.js';

@@ -1,5 +1,7 @@
 # amesh Security Audit — 2026-04-05
 
+> **Note (v0.7.0):** The remote shell feature (agent daemon, shell cipher, frame protocol) was removed in v0.7.0. Findings C1, H3, M4, and L3 are no longer applicable — the code they targeted no longer exists.
+
 **Scope:** Full external-pen-tester-style review of the v0.4.0 codebase at commit `d59be06`. Covered `packages/core`, `packages/keystore`, `packages/sdk`, `packages/relay`, and `packages/agent`/`packages/cli` shell + handshake + bootstrap flows.
 
 **Threat model:** Attacker with network access + compromised peer OR compromised/untrusted relay. This matches the protocol spec's stated threat model — the relay is explicitly untrusted (see `docs/architecture-decisions.md`).

@@ -20,10 +20,6 @@ export function getKeysDir(): string {
   return join(getAuthMeshDir(), 'keys');
 }
 
-export function getPidPath(): string {
-  return join(getAuthMeshDir(), 'agent.pid');
-}
-
 /**
  * Location of the encrypted-file backend passphrase, stored separately from
  * identity.json so a leak of identity.json alone does not compromise the key.

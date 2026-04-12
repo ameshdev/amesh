@@ -16,10 +16,6 @@ export default class Listen extends Command {
       default: DEFAULT_RELAY,
       env: 'AMESH_RELAY_URL',
     }),
-    shell: Flags.boolean({
-      description: 'Auto-grant shell access to the controller after pairing',
-      default: false,
-    }),
   };
 
   async run(): Promise<void> {
@@ -127,11 +123,6 @@ export default class Listen extends Command {
 
     this.log('');
     this.log(`  "${result.peerFriendlyName}" added as controller.`);
-
-    if (flags.shell) {
-      await allowList.updatePermissions(newDevice.deviceId, { shell: true });
-      this.log('  Shell access: granted');
-    }
 
     this.log('');
     this.log('  Pairing complete. The relay connection is closed.');

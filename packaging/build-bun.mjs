@@ -5,7 +5,7 @@
  *   bun packaging/build-bun.mjs [--target bun-darwin-arm64]
  *
  * Compiles a standalone binary via `bun build --compile`:
- *   - packages/cli/src/sea.ts → dist/amesh (unified CLI + agent)
+ *   - packages/cli/src/sea.ts → dist/amesh
  *
  * On macOS targets, also compiles the Swift Secure Enclave helper.
  * Default target: current platform.

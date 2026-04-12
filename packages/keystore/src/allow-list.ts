@@ -2,10 +2,6 @@ import { computeHmac, verifyHmac, deriveKey } from '@authmesh/core';
 import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-export interface DevicePermissions {
-  shell?: boolean;
-}
-
 export interface AllowListDevice {
   deviceId: string;
   publicKey: string; // base64 compressed P-256
@@ -13,7 +9,6 @@ export interface AllowListDevice {
   addedAt: string; // ISO 8601
   addedBy: 'handshake' | 'manual';
   role: 'controller' | 'target';
-  permissions?: DevicePermissions;
 }
 
 export interface AllowListData {
@@ -219,24 +214,6 @@ export class AllowList {
     const data = await this.read();
     data.devices = data.devices.filter((d) => d.role !== role);
     data.devices.push(device);
-    data.updatedAt = new Date().toISOString();
-    await this.writeSealed(data);
-    return data;
-  }
-
-  /**
-   * Update permissions for a device. Reseals the allow list.
-   */
-  async updatePermissions(
-    deviceId: string,
-    permissions: DevicePermissions,
-  ): Promise<AllowListData> {
-    const data = await this.read();
-    const device = data.devices.find((d) => d.deviceId === deviceId);
-    if (!device) {
-      throw new Error(`Device ${deviceId} not found in allow list`);
-    }
-    device.permissions = { ...device.permissions, ...permissions };
     data.updatedAt = new Date().toISOString();
     await this.writeSealed(data);
     return data;

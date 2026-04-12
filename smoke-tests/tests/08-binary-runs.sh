@@ -36,7 +36,6 @@ assert_eq "$version_line" "amesh/${VERSION}" "--version mismatch"
 
 help_output=$(echo "$output" | sed -n '/^HELP_START$/,/^HELP_END$/p')
 assert_contains "$help_output" "init" "--help should list init command"
-assert_contains "$help_output" "shell" "--help should list shell command"
 assert_contains "$help_output" "invite" "--help should list invite command"
 
-pass "amesh/$VERSION — --version matches, --help lists 8 commands"
+pass "amesh/$VERSION — --version matches, --help lists commands"

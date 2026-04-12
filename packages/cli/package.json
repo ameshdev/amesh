@@ -1,7 +1,7 @@
 {
   "name": "@authmesh/cli",
   "version": "0.6.0",
-  "description": "CLI for amesh — device identity, remote shell, agent daemon",
+  "description": "CLI for amesh — device identity management and pairing",
   "type": "module",
   "license": "MIT",
   "author": "Yair Etzion",

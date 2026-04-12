@@ -822,25 +822,25 @@ Sort query parameters alphabetically before including in canonical string `M`. T
 
 ### Security audit — April 2026
 
-A full external-pen-tester-style audit was performed on 2026-04-05 covering the crypto primitives, keystore, SDK middleware, relay, and agent/cli shell flows. All critical and high-severity findings have been fixed; the mediums and informational items have also landed in the same branch. Summary:
+A full external-pen-tester-style audit was performed on 2026-04-05 covering the crypto primitives, keystore, SDK middleware, relay, and agent/cli shell flows. All critical and high-severity findings have been fixed. **Note:** The remote shell feature was removed in v0.7.0 — findings marked with *(shell — removed)* are no longer applicable. Summary:
 
 | Severity | Finding | Fix |
 |---|---|---|
-| Critical | **C1** — Shell handshake MITM via unbound `selfSig` | Transcript-bound signature: `selfSig` now covers `"amesh-shell-v1"` domain prefix + peer identity fields + `sha256(signerEph \|\| verifierEph)`. A MITM relay forwarding an encrypted identity envelope across two ECDH legs no longer produces a signature that verifies on the receiving leg. See Remote Shell Spec §7.1. |
+| Critical | **C1** — Shell handshake MITM via unbound `selfSig` *(shell — removed)* | Was fixed with transcript-bound signatures. Feature removed in v0.7.0. |
 | Critical | **C2** — Encrypted-file passphrase stored next to the key | Passphrase moved to a dedicated file (`~/.amesh/.passphrase`, mode 0o400) with legacy auto-migration. Preferred source is `AUTH_MESH_PASSPHRASE` env var so secrets can stay off disk. Operators can relocate via `AMESH_PASSPHRASE_FILE`. |
 | High | **H1** — Rate limiter used LB peer IP | Relay extracts client IP from left-most `X-Forwarded-For` entry when `AMESH_TRUST_PROXY=1`, with bounded-format validation. |
 | High | **H2** — Passphrase colocation (see C2) | — |
-| High | **H3** — ShellCipher DoS via counter desync on injected frame | `recvCounter` now only advances after successful Poly1305 verification. |
+| High | **H3** — ShellCipher DoS via counter desync *(shell — removed)* | Feature removed in v0.7.0. |
 | High | **H4** — Bootstrap token `single_use` not enforced | Relay keeps a 25h consumed-jti set; duplicate `bootstrap_init` is rejected with `token_already_used`. Payload `scope`/`single_use`/`alg`/`iat` are now enforced at decode time. |
 | Medium | **M1** — Relay connection counter double-decrement | Rejected sockets marked via `ws.data.rejected`; `close()` handles the single decrement. |
 | Medium | **M2** — SessionStore unbounded | 50,000-session cap with distinct `relay_capacity` error code. |
 | Medium | **M3** — Bootstrap watcher race | `jti_already_watched` rejection + dedicated rate limiter + jti length cap. |
-| Medium | **M4** — Agent listener leak + orphan bash on reconnect | `createMessageReader().dispose()` + outer-scope `activeSession` torn down on relay disconnect. |
+| Medium | **M4** — Agent listener leak *(shell — removed)* | Feature removed in v0.7.0. |
 | Medium | **M5** — Middleware re-serialized parsed bodies | Middleware now hashes raw bytes only (`rawBody` → Buffer → string → stream). Parsed-object bodies without `rawBody` return `500 body_parser_ordering_error`. |
 | Medium | **M6** — Bootstrap token `iat`/`alg`/`scope`/`single_use` unchecked | `validateBootstrapToken` enforces all four invariants with distinct error codes. |
 | Medium | **M7** — TPM driver returned wrong formats | `tpm2_sign --format=plain` with TPMT_SIGNATURE fallback parser; `pemToRaw` now properly decodes P-256 SubjectPublicKeyInfo into a 33-byte compressed point. |
 | Low | **L2** — Auth header parser laxity | Reject duplicate keys, unknown keys, oversized headers, per-field length caps. |
-| Low | **L3** — AgentStore pubkey compare not constant-time | Replaced with `constantTimeStringEqual`. |
+| Low | **L3** — AgentStore pubkey compare *(shell — removed)* | Feature removed in v0.7.0. |
 | Low | **L4** — macOS DER parser had no bounds checks | Bounds-checked every field, rejected long-form lengths, enforced r/s ≤ 32 bytes. |
 | Low | **L5** — Allow-list canonical JSON was insertion-order dependent | Deterministic `stableStringify` with recursive key sorting; legacy canonical accepted on read with auto re-seal. |
 | Low | **L6** — Bootstrap ack message had no delimiter | Ack message now `"amesh-bootstrap-ack-v1\n" + pubB64 + "\n" + jti`. |
