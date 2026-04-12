@@ -247,10 +247,14 @@ export function createRelayServer(opts?: {
       sessions.remove(otc);
       try {
         session.target.close();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       try {
         session.controller?.close();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return;
     }
 
