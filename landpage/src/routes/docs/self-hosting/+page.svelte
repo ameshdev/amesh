@@ -177,8 +177,8 @@ gcloud run deploy amesh-relay \\
 				<div class="mt-1 text-sm text-zinc-400">The relay forwards opaque ChaCha20-Poly1305 blobs. It cannot read the key exchange.</div>
 			</div>
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
-				<div class="text-sm font-semibold text-zinc-50">MITM protection (pairing and shell)</div>
-				<div class="mt-1 text-sm text-zinc-400">Pairing uses a 6-digit SAS the user confirms across both devices. The shell handshake binds its identity signature to the ECDH ephemeral transcript — a relay forwarding captured envelopes between two legs produces signatures that don't verify on the receiving leg.</div>
+				<div class="text-sm font-semibold text-zinc-50">MITM protection</div>
+				<div class="mt-1 text-sm text-zinc-400">Pairing uses a 6-digit SAS the user confirms across both devices. A relay cannot inject its own keys without the SAS mismatch being caught.</div>
 			</div>
 			<div class="border-l-2 border-emerald-400/60 pl-4 py-1">
 				<div class="text-sm font-semibold text-zinc-50">Rate limiting (per client IP)</div>

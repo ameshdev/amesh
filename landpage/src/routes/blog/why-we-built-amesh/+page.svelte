@@ -163,7 +163,7 @@
 			<li>It's not for humans. Users log in with OAuth, passkeys, or WebAuthn, not amesh.</li>
 			<li>It's not for ephemeral compute. Lambda, Cloud Functions, and short-lived containers don't have a stable device to bind to.</li>
 			<li>It's not post-quantum. P-256 is chosen because it's the most broadly supported in hardware in 2026; we'll add ML-DSA once hardware catches up, and the protocol already versions the signature algorithm.</li>
-			<li>It's not a full SSH replacement. The remote shell feature is an alternative to SSH keys, not to SSH itself — no port forwarding, no SFTP, no tunneling.</li>
+			<li>It's not a network tool. amesh authenticates API requests, not network connections — no port forwarding, no tunneling.</li>
 		</ul>
 
 		<h2 class="pt-4 text-2xl font-bold text-zinc-50">The security model in one sentence</h2>

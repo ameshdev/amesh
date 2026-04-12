@@ -2,9 +2,8 @@ import type { ServerWebSocket } from 'bun';
 import type { WebSocketData } from './server.js';
 
 /** Maximum bytes forwarded per session (5 MB). Prevents relay cost abuse.
- *  5 MB ≈ 100,000 lines of terminal output — generous for interactive shell,
- *  tight enough to prevent bulk data streaming. Self-hosted relays can
- *  override by setting a higher value. */
+ *  Tight enough to prevent bulk data streaming through the relay. Self-hosted
+ *  relays can override by setting a higher value. */
 export const SESSION_MAX_BYTES = 5 * 1024 * 1024;
 
 export interface PairingSession {

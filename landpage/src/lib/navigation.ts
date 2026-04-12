@@ -52,7 +52,6 @@ export const docSections: DocSection[] = [
     items: [
       { slug: 'key-storage', title: 'Key Storage', desc: 'Secure Enclave, TPM, encrypted file — tiered auto-detection' },
       { slug: 'self-hosting', title: 'Self-Hosting', desc: 'Docker, Cloud Run, Fly.io, Kubernetes' },
-      { slug: 'remote-shell', title: 'Remote Shell', desc: 'Agent setup, shell access, security model' },
     ],
   },
   {
@@ -79,7 +78,6 @@ export const useCasePages: NavItem[] = [
   { slug: 'webhooks', title: 'Webhooks', desc: 'Prove sender identity' },
   { slug: 'cron-jobs', title: 'Cron Jobs', desc: 'Scheduled task identity' },
   { slug: 'internal-tools', title: 'Internal Tools', desc: 'Per-developer audit trail' },
-  { slug: 'remote-shell', title: 'Remote Shell', desc: 'SSH-like access with device identity' },
 ];
 
 export function getDocNav(currentSlug: string): { prev?: NavLink; next?: NavLink } {

@@ -35,16 +35,3 @@ export function computeSharedSecret(
 export function deriveSessionKey(sharedSecret: Uint8Array): Uint8Array {
   return deriveKey(sharedSecret, HANDSHAKE_SALT, 'session-key', 32);
 }
-
-/**
- * Derive a shell session key from ECDH shared secret, bound to both device IDs.
- * Uses a separate HKDF domain ('amesh-shell-v1') to ensure cryptographic
- * separation from pairing sessions.
- */
-export function deriveShellSessionKey(
-  sharedSecret: Uint8Array,
-  targetDeviceId: string,
-  controllerDeviceId: string,
-): Uint8Array {
-  return deriveKey(sharedSecret, 'amesh-shell-v1', `${targetDeviceId}:${controllerDeviceId}`, 32);
-}

@@ -4,7 +4,7 @@
 
 GITHUB_REPO="ameshdev/amesh"
 NPM_SCOPE="@authmesh"
-NPM_PACKAGES=(core keystore sdk cli relay agent)
+NPM_PACKAGES=(core keystore sdk cli relay)
 RELAY_PORT=3001
 
 # Set by the runner at invocation time

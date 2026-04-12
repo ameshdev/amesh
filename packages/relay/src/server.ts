@@ -1,8 +1,6 @@
 import type { ServerWebSocket } from 'bun';
-import { verifyMessage } from '@authmesh/core';
 import { SessionStore, SESSION_MAX_BYTES } from './session.js';
 import { RateLimiter, OTCAttemptTracker } from './rate-limit.js';
-import { AgentStore } from './agent-store.js';
 
 interface RelayMessage {
   type:
@@ -10,10 +8,6 @@ interface RelayMessage {
     | 'connect'
     | 'data'
     | 'done'
-    | 'ping'
-    | 'agent'
-    | 'agent_challenge_response'
-    | 'shell'
     | 'bootstrap_watch'
     | 'bootstrap_init'
     | 'bootstrap_ack'
@@ -23,19 +17,12 @@ interface RelayMessage {
   jti?: string;
   token?: string;
   targetPubKey?: string;
-  deviceId?: string;
-  publicKey?: string;
-  timestamp?: string;
-  sig?: string;
-  targetDeviceId?: string;
-  targetPublicKey?: string;
   [key: string]: unknown;
 }
 
 export interface WebSocketData {
   otc?: string;
   btJti?: string;
-  agentDeviceId?: string;
   ip: string;
   /** Set when open() rejected the socket for exceeding MAX_CONNECTIONS. */
   rejected?: boolean;
@@ -135,9 +122,7 @@ export function createRelayServer(opts?: {
       return envVal === '1' || envVal === 'true' || envVal === 'yes';
     })();
   const sessions = new SessionStore(opts?.maxSessions);
-  const agentStore = new AgentStore();
   const rateLimiter = new RateLimiter(5, 60_000);
-  const shellRateLimiter = new RateLimiter(2, 60_000);
   // Dedicated limiter for bootstrap_watch (M3). 10 per minute per IP is
   // generous for legitimate fleet provisioning and tight enough to stop an
   // attacker from brute-forcing jti claims. Kept separate from the OTC
@@ -397,105 +382,7 @@ export function createRelayServer(opts?: {
     bootstrapWatchers.delete(jti);
   }
 
-  // Pending agent challenges: ws → { deviceId, publicKey, challenge }
-  const pendingChallenges = new Map<
-    ServerWebSocket<WebSocketData>,
-    { deviceId: string; publicKey: string; challenge: string }
-  >();
-
-  // Shell: agent registration step 1 — issue challenge
-  function handleAgent(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
-    if (!msg.deviceId || !msg.publicKey) {
-      ws.send(JSON.stringify({ type: 'error', code: 'missing_fields' }));
-      return;
-    }
-    // Generate a random challenge nonce
-    const challenge = crypto.randomUUID();
-    pendingChallenges.set(ws, { deviceId: msg.deviceId, publicKey: msg.publicKey, challenge });
-    ws.send(JSON.stringify({ type: 'agent_challenge', challenge }));
-  }
-
-  // Shell: agent registration step 2 — verify challenge response
-  function handleAgentChallengeResponse(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
-    const pending = pendingChallenges.get(ws);
-    if (!pending) {
-      ws.send(JSON.stringify({ type: 'error', code: 'no_pending_challenge' }));
-      return;
-    }
-    pendingChallenges.delete(ws);
-
-    if (!msg.sig) {
-      ws.send(JSON.stringify({ type: 'error', code: 'missing_signature' }));
-      return;
-    }
-
-    // Verify the agent signed the challenge with the claimed private key
-    const publicKey = new Uint8Array(Buffer.from(pending.publicKey, 'base64'));
-    const message = new TextEncoder().encode(pending.challenge);
-    const signature = new Uint8Array(Buffer.from(msg.sig as string, 'base64url'));
-
-    if (!verifyMessage(signature, message, publicKey)) {
-      ws.send(JSON.stringify({ type: 'error', code: 'invalid_signature' }));
-      return;
-    }
-
-    // Signature valid — agent proves it holds the private key
-    const ok = agentStore.register(pending.deviceId, pending.publicKey, ws);
-    if (!ok) {
-      ws.send(JSON.stringify({ type: 'error', code: 'device_id_conflict' }));
-      return;
-    }
-    ws.data.agentDeviceId = pending.deviceId;
-    ws.send(JSON.stringify({ type: 'agent_registered' }));
-  }
-
-  // Shell: controller requests shell to a target agent (C3 fix — uniform responses)
-  function handleShell(ws: ServerWebSocket<WebSocketData>, msg: RelayMessage) {
-    if (!msg.targetDeviceId || !msg.targetPublicKey) {
-      ws.send(JSON.stringify({ type: 'error', code: 'missing_fields' }));
-      return;
-    }
-    if (!shellRateLimiter.check(ws.data.ip)) {
-      ws.send(JSON.stringify({ type: 'error', code: 'rate_limited' }));
-      return;
-    }
-    const agentWs = agentStore.matchAndGet(msg.targetDeviceId, msg.targetPublicKey);
-    if (!agentWs) {
-      // M6 fix — only count failures against rate limit
-      shellRateLimiter.recordFailure(ws.data.ip);
-      // Uniform response — don't reveal whether agent exists (C3 fix)
-      ws.send(JSON.stringify({ type: 'peer_found' }));
-      return;
-    }
-    // Create a pairing-like session for the shell (reuse existing data forwarding)
-    const shellOtc = `shell_${Date.now()}_${crypto.randomUUID()}`;
-    try {
-      sessions.create(shellOtc, agentWs, 600); // 10 min TTL for shell sessions
-      sessions.get(shellOtc)!.controller = ws;
-      ws.data.otc = shellOtc;
-      agentWs.data.otc = shellOtc;
-      agentWs.send(JSON.stringify({ type: 'peer_found' }));
-      ws.send(JSON.stringify({ type: 'peer_found' }));
-    } catch {
-      ws.send(JSON.stringify({ type: 'peer_found' }));
-    }
-  }
-
-  // Shell: agent heartbeat
-  function handlePing(ws: ServerWebSocket<WebSocketData>) {
-    agentStore.recordPing(ws);
-    ws.send(JSON.stringify({ type: 'pong' }));
-  }
-
   function cleanupSocket(ws: ServerWebSocket<WebSocketData>) {
-    // Clean up pending challenges
-    pendingChallenges.delete(ws);
-
-    // Clean up agent registration
-    if (ws.data.agentDeviceId) {
-      agentStore.removeBySocket(ws);
-    }
-
     // Clean up pairing sessions
     const otc = ws.data.otc;
     if (otc) {
@@ -542,7 +429,6 @@ export function createRelayServer(opts?: {
             return Response.json({
               status: 'ok',
               sessions: sessions.size,
-              agents: agentStore.size,
             });
           }
 
@@ -606,18 +492,6 @@ export function createRelayServer(opts?: {
               case 'bootstrap_reject':
                 handleBootstrapResponse(ws, msg);
                 break;
-              case 'agent':
-                handleAgent(ws, msg);
-                break;
-              case 'agent_challenge_response':
-                handleAgentChallengeResponse(ws, msg);
-                break;
-              case 'shell':
-                handleShell(ws, msg);
-                break;
-              case 'ping':
-                handlePing(ws);
-                break;
               default:
                 ws.send(JSON.stringify({ type: 'error', code: 'unknown_type' }));
             }
@@ -639,9 +513,7 @@ export function createRelayServer(opts?: {
     stop() {
       clearInterval(bootstrapCleanupTimer);
       sessions.destroy();
-      agentStore.destroy();
       rateLimiter.destroy();
-      shellRateLimiter.destroy();
       bootstrapWatchRateLimiter.destroy();
       otcAttempts.destroy();
       server?.stop();
